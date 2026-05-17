@@ -81,8 +81,6 @@ const initDb = async () => {
     };
 
     await insertUser('Coach', 'Admin', 'admin', 'admin', 'admin', 'admin');
-    await insertUser('Jean', 'Dupont', 'jean', 'jean123', 'jean', 'user');
-    await insertUser('Marie', 'Martin', 'marie', 'marie123', 'marie_coach', 'coach');
 
     console.log('Base de données initialisée avec succès');
   } catch (error) {
