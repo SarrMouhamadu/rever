@@ -57,8 +57,13 @@ const initDb = async () => {
         sender_id INTEGER,
         receiver_id INTEGER,
         text TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    await pool.query(`
+      ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE
     `);
 
     const insertUser = async (firstName, lastName, contact, password, pseudo, role) => {
@@ -219,6 +224,56 @@ const getCoaches = () => {
   });
 };
 
+const getConversations = (userId) => {
+  return new Promise((resolve, reject) => {
+    pool.query(`
+      SELECT 
+        u.id, u.first_name, u.last_name, u.pseudo, u.role, u.avatar,
+        (SELECT COUNT(*) FROM messages WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE) as unread_count
+      FROM users u
+      WHERE u.id IN (
+        SELECT sender_id FROM messages WHERE receiver_id = $1
+        UNION
+        SELECT receiver_id FROM messages WHERE sender_id = $1
+      )
+    `, [userId], (err, result) => {
+      if (err) reject(err);
+      else resolve(result.rows);
+    });
+  });
+};
+
+const getCoachesWithUnread = (userId) => {
+  return new Promise((resolve, reject) => {
+    pool.query(`
+      SELECT 
+        u.id, u.first_name, u.last_name, u.pseudo, u.role, u.avatar,
+        (SELECT COUNT(*) FROM messages WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE) as unread_count
+      FROM users u 
+      WHERE u.role = 'coach' AND u.id != $1
+    `, [userId], (err, result) => {
+      if (err) reject(err);
+      else resolve(result.rows);
+    });
+  });
+};
+
+const getUnreadCount = (userId) => {
+  return new Promise((resolve, reject) => {
+    pool.query(`SELECT COUNT(*) as count FROM messages WHERE receiver_id = $1 AND is_read = FALSE`, [userId], (err, result) => {
+      if(err) reject(err); else resolve(parseInt(result.rows[0].count) || 0);
+    });
+  });
+};
+
+const markMessagesAsRead = (senderId, receiverId) => {
+  return new Promise((resolve, reject) => {
+    pool.query(`UPDATE messages SET is_read = TRUE WHERE sender_id = $1 AND receiver_id = $2 AND is_read = FALSE`, [senderId, receiverId], (err) => {
+      if(err) reject(err); else resolve();
+    });
+  });
+};
+
 const getAdminUsers = () => {
   return new Promise((resolve, reject) => {
     pool.query(`
@@ -332,5 +387,5 @@ const getMetrics = () => {
 
 module.exports = { 
   pool, registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches
+  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead
 };

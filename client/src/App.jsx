@@ -62,8 +62,9 @@ function App() {
   const [newPostImagePreview, setNewPostImagePreview] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
 
-  const [coaches, setCoaches] = useState([]);
+  const [contacts, setContacts] = useState([]);
   const [selectedCoach, setSelectedCoach] = useState(null);
+  const [totalUnread, setTotalUnread] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
   const [newChatMessage, setNewChatMessage] = useState('');
 
@@ -175,10 +176,35 @@ function App() {
     if (user && view === 'feed') fetchFeed();
   }, [user, view]);
 
-  const fetchCoaches = async () => {
+  const fetchContacts = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/coaches');
-      setCoaches(res.data);
+      if (!user) return;
+      if (user.role === 'coach') {
+        const res = await axios.get(`http://localhost:5001/api/users/${user.id}/conversations`);
+        setContacts(res.data);
+      } else {
+        const res = await axios.get(`http://localhost:5001/api/users/${user.id}/coaches`);
+        setContacts(res.data);
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchUnreadCount = async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get(`http://localhost:5001/api/users/${user.id}/unread`);
+      setTotalUnread(res.data.count);
+    } catch (error) { console.error(error); }
+  };
+
+  const markAsRead = async (contactId) => {
+    try {
+      await axios.post('http://localhost:5001/api/messages/read', {
+        senderId: contactId,
+        receiverId: user.id
+      });
+      fetchContacts();
+      fetchUnreadCount();
     } catch (error) { console.error(error); }
   };
 
@@ -190,13 +216,28 @@ function App() {
   };
 
   useEffect(() => {
-    if (user && view === 'messages') fetchCoaches();
+    if (user && view === 'messages') fetchContacts();
+    if (user) fetchUnreadCount();
+  }, [user, view]);
+
+  // Polling for unread counts globally every 10s
+  useEffect(() => {
+    if (user) {
+      const interval = setInterval(() => {
+        if (view !== 'messages') fetchUnreadCount();
+        if (view === 'messages') fetchContacts();
+      }, 10000);
+      return () => clearInterval(interval);
+    }
   }, [user, view]);
 
   useEffect(() => {
     if (selectedCoach && view === 'messages') {
       fetchChatMessages(selectedCoach.id);
-      const interval = setInterval(() => fetchChatMessages(selectedCoach.id), 5000);
+      markAsRead(selectedCoach.id);
+      const interval = setInterval(() => {
+        fetchChatMessages(selectedCoach.id);
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [selectedCoach, view]);
@@ -307,7 +348,14 @@ function App() {
             {user.role === 'user' || user.role === 'coach' ? (
               <>
                 <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
-                <button onClick={() => setView('messages')} className={`${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Messages</button>
+                <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
+                  Messages
+                  {totalUnread > 0 && (
+                    <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
+                      {totalUnread}
+                    </span>
+                  )}
+                </button>
               </>
             ) : (
               <>
@@ -433,20 +481,28 @@ function App() {
           <div className="relative z-10 flex flex-col md:flex-row gap-6 animate-[fadeIn_0.4s_ease-out]">
             {/* Coaches List */}
             <div className="w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-4 shadow-lg h-[600px] overflow-y-auto">
-              <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">Coachs</h2>
-              {coaches.length > 0 ? coaches.map(coach => (
+              <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">{user.role === 'coach' ? 'Discussions' : 'Coachs'}</h2>
+              {contacts.length > 0 ? contacts.map(coach => (
                 <div 
                   key={coach.id} 
                   onClick={() => setSelectedCoach(coach)}
                   className={`p-3 rounded-2xl cursor-pointer transition-all mb-2 flex items-center gap-3 ${selectedCoach?.id === coach.id ? 'bg-purple-100 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-500/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border border-transparent'}`}
                 >
-                  <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold relative">
                     {coach.pseudo.charAt(0).toUpperCase()}
+                    {parseInt(coach.unread_count) > 0 && (
+                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
+                    )}
                   </div>
-                  <div className="truncate">
+                  <div className="truncate flex-1">
                     <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{coach.pseudo}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Professionnel</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.role === 'coach' ? 'Utilisateur' : 'Professionnel'}</p>
                   </div>
+                  {parseInt(coach.unread_count) > 0 && (
+                    <div className="bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-sm animate-pulse">
+                      {coach.unread_count}
+                    </div>
+                  )}
                 </div>
               )) : (
                 <p className="text-sm text-slate-500 px-2">Aucun coach disponible.</p>

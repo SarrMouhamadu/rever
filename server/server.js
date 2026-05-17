@@ -5,7 +5,7 @@ const path = require('path');
 const { chatWithAI } = require('./geminiService');
 const { 
   registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches
+  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead
 } = require('./database');
 
 const app = express();
@@ -124,13 +124,33 @@ app.post('/api/chat', async (req, res) => {
 
 // --- ROUTES CHAT COACH (HUMAIN) ---
 
-app.get('/api/coaches', async (req, res) => {
+app.get('/api/users/:userId/conversations', async (req, res) => {
   try {
-    const coaches = await getCoaches();
-    res.json(coaches);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération des coachs" });
-  }
+    const data = await getConversations(req.params.userId);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: "Erreur" }); }
+});
+
+app.get('/api/users/:userId/coaches', async (req, res) => {
+  try {
+    const data = await getCoachesWithUnread(req.params.userId);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: "Erreur" }); }
+});
+
+app.get('/api/users/:userId/unread', async (req, res) => {
+  try {
+    const count = await getUnreadCount(req.params.userId);
+    res.json({ count });
+  } catch (err) { res.status(500).json({ error: "Erreur" }); }
+});
+
+app.post('/api/messages/read', async (req, res) => {
+  try {
+    const { senderId, receiverId } = req.body;
+    await markMessagesAsRead(senderId, receiverId);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: "Erreur" }); }
 });
 
 app.get('/api/messages/:userId1/:userId2', async (req, res) => {
