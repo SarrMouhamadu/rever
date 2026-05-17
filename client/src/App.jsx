@@ -3,7 +3,9 @@ import axios from 'axios';
 import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
 
-axios.defaults.baseURL = `http://${window.location.hostname}:5001`;
+axios.defaults.baseURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? `http://${window.location.hostname}:5001`
+  : window.location.origin;
 
 function App() {
   const [theme, setTheme] = useState(() => {
