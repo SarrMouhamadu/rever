@@ -664,22 +664,19 @@ function App() {
           <h1 className="text-lg sm:text-xl font-light tracking-widest text-slate-900 dark:text-slate-200 uppercase">Anonyme Pro</h1>
           
           <div className="flex gap-3 sm:gap-4 md:gap-8 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider font-medium">
-            {user.role === 'user' || user.role === 'coach' ? (
-              <>
-                <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
-                <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
-                  Messages
-                  {totalUnread > 0 && (
-                    <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
-                      {totalUnread}
-                    </span>
-                  )}
-                </button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => setView('admin-dashboard')} className={`${view === 'admin-dashboard' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Admin</button>
-              </>
+            <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
+            {(user.role === 'user' || user.role === 'coach') && (
+              <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
+                Messages
+                {totalUnread > 0 && (
+                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
+                    {totalUnread}
+                  </span>
+                )}
+              </button>
+            )}
+            {user.role === 'admin' && (
+              <button onClick={() => setView('admin-dashboard')} className={`${view === 'admin-dashboard' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Admin</button>
             )}
           </div>
 
@@ -902,22 +899,22 @@ function App() {
                   📄 Rapport PDF
                 </button>
                 
-                <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-700/30">
+                <div className="flex bg-white/40 dark:bg-slate-800/40 p-1 rounded-2xl border border-slate-200/40 dark:border-slate-700/30 backdrop-blur-md shadow-inner">
                   <button 
                     onClick={() => setAdminTab('metrics')}
-                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'metrics' ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${adminTab === 'metrics' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:scale-[1.02]' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
                   >
                     📊 Métriques
                   </button>
                   <button 
                     onClick={() => setAdminTab('users')}
-                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'users' ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${adminTab === 'users' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:scale-[1.02]' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
                   >
                     👥 Utilisateurs
                   </button>
                   <button 
                     onClick={() => setAdminTab('moderation')}
-                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'moderation' ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${adminTab === 'moderation' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:scale-[1.02]' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
                   >
                     🚨 Signalements {reportedPosts.length > 0 && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full">{reportedPosts.length}</span>}
                   </button>
@@ -927,7 +924,7 @@ function App() {
 
             {/* TAB CONTENT: METRICS */}
             {adminTab === 'metrics' && (
-              <div className="space-y-12 animate-[fadeIn_0.3s_ease-out]">
+              <div className="space-y-12 animate-[slideUp_0.4s_ease-out]">
                 {adminMetrics ? (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -1007,7 +1004,7 @@ function App() {
 
             {/* TAB CONTENT: USERS MANAGEMENT */}
             {adminTab === 'users' && (
-              <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[fadeIn_0.3s_ease-out]">
+              <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[slideUp_0.4s_ease-out]">
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
                     Membres inscrits <span className="text-xs text-purple-600 font-bold ml-2">({adminUsers.length})</span>
@@ -1052,7 +1049,7 @@ function App() {
                               <select 
                                 value={u.role}
                                 onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-bold shadow-sm"
+                                className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-700 dark:text-slate-300 transition-all duration-300 cursor-pointer font-semibold shadow-sm hover:border-purple-500/50"
                               >
                                 <option value="user">🌱 Simple User</option>
                                 <option value="coach">🧘 Professional Coach</option>
@@ -1072,7 +1069,7 @@ function App() {
 
             {/* TAB CONTENT: MODERATION */}
             {adminTab === 'moderation' && (
-              <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[fadeIn_0.3s_ease-out]">
+              <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[slideUp_0.4s_ease-out]">
                 <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
                   Publications signalées par la communauté <span className="text-xs text-rose-500 font-bold ml-2">({reportedPosts.length})</span>
                 </h3>
@@ -1080,7 +1077,7 @@ function App() {
                 {reportedPosts.length > 0 ? (
                   <div className="space-y-6">
                     {reportedPosts.map(post => (
-                      <div key={post.id} className="p-6 bg-slate-50/50 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/60 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 transition-all hover:shadow-md">
+                      <div key={post.id} className="p-6 bg-rose-50/10 dark:bg-rose-950/5 border border-rose-200/40 dark:border-rose-900/20 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 transition-all hover:shadow-md hover:border-rose-500/30 dark:hover:border-rose-500/20 shadow-sm animate-[fadeIn_0.3s_ease-out]">
                         <div className="flex-1 space-y-3">
                           <div className="flex flex-wrap items-center gap-3">
                             <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{post.username}</span>
