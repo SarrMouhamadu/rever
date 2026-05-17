@@ -8,38 +8,59 @@ services:
       POSTGRES_USER: rever_user
       POSTGRES_PASSWORD: rever_password
       POSTGRES_DB: rever
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - default
     restart: unless-stopped
 
   server:
     build:
       context: ./server
     container_name: rever_server
-    ports:
-      - "5001:5001"
+    expose:
+      - "5001"
     environment:
-      # Inject Docker database URL instead of localhost
       - DATABASE_URL=postgresql://rever_user:rever_password@db:5432/rever
-      # Inject Gemini Key if available in host environment
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # Variables pour nginx-proxy & acme-companion (SSL automatique)
+      - VIRTUAL_HOST=api.annonyme.pro
+      - VIRTUAL_PORT=5001
+      - LETSENCRYPT_HOST=api.annonyme.pro
+      - LETSENCRYPT_EMAIL=sarrmouhamadoulamin99@gmail.com
     depends_on:
       - db
     volumes:
       - ./server/uploads:/app/uploads
+    networks:
+      - default
+      - proxy-tier
     restart: unless-stopped
 
   client:
     build:
       context: ./client
     container_name: rever_client
-    ports:
-      - "8080:80"
+    expose:
+      - "80"
+    environment:
+      # Variables pour nginx-proxy & acme-companion (SSL automatique)
+      - VIRTUAL_HOST=annonyme.pro,www.annonyme.pro
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=annonyme.pro,www.annonyme.pro
+      - LETSENCRYPT_EMAIL=sarrmouhamadoulamin99@gmail.com
     depends_on:
       - server
+    networks:
+      - default
+      - proxy-tier
     restart: unless-stopped
 
 volumes:
   pgdata:
+
+networks:
+  proxy-tier:
+    external: true

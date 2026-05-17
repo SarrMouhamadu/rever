@@ -5,7 +5,7 @@ import ContactPage from './ContactPage';
 
 axios.defaults.baseURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? `http://${window.location.hostname}:5001`
-  : window.location.origin;
+  : `https://api.annonyme.pro`;
 
 function App() {
   const [theme, setTheme] = useState(() => {
