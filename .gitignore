@@ -1,0 +1,9 @@
+node_modules/
+.env
+dist/
+build/
+*.sqlite
+*.sqlite3
+.DS_Store
+.npm
+uploads/
