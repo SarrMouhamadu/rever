@@ -186,14 +186,14 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
                 </svg>
                 <p className="text-base text-slate-700 dark:text-slate-200 mb-6 font-light leading-relaxed">
-                  "Anonyme Pro m'a permis de trouver le courage de parler de ce que je traversais. La bienveillance de cette communauté m'a sauvée."
+                  "Rever m'a permis de surmonter le stress énorme des examens et de la pression sociale. Pouvoir s'exprimer sans filtre m'a libérée."
                 </p>
               </div>
               <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white">SM</div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white">FD</div>
                 <div>
-                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Sophie M.</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Membre active</p>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Fatoumata Diop</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Étudiante en Master 2 (UCAD)</p>
                 </div>
               </div>
             </div>
@@ -205,14 +205,14 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
                 </svg>
                 <p className="text-base text-slate-700 dark:text-slate-200 mb-6 font-light leading-relaxed">
-                  "En tant que psychologue, cette plateforme me permet d'apporter un soutien direct et ciblé à des personnes qui n'oseraient jamais consulter en cabinet."
+                  "L'anonymat complet me permet d'évoquer mes doutes et mes peines quotidiennes sans craindre le jugement de mon entourage universitaire."
                 </p>
               </div>
               <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-xs font-bold text-white">TL</div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-xs font-bold text-white">MD</div>
                 <div>
-                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Dr. Thomas L.</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Psychologue & Coach Certifié</p>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Mariama Diallo</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Étudiante en Licence 3 (UGB)</p>
                 </div>
               </div>
             </div>
@@ -224,14 +224,14 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
                 </svg>
                 <p className="text-base text-slate-700 dark:text-slate-200 mb-6 font-light leading-relaxed">
-                  "L'anonymat complet garantit une liberté d'expression totale. C'est l'espace d'écoute le plus sain et le plus sécurisant du web."
+                  "Échanger en toute confiance avec des coachs bienveillants et d'autres étudiantes m'a redonné le courage de poursuivre mes études sereinement."
                 </p>
               </div>
               <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center text-xs font-bold text-white">AD</div>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center text-xs font-bold text-white">AN</div>
                 <div>
-                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Amadou D.</p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Membre actif</p>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Aïda Ndiaye</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Étudiante en Médecine (UIDT)</p>
                 </div>
               </div>
             </div>
