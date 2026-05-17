@@ -1,367 +1,74 @@
 const express = require('express');
 const cors = require('cors');
-const multer = require('multer');
+const helmet = require('helmet');
+const morgan = require('morgan');
 const path = require('path');
-const { chatWithAI } = require('./geminiService');
-const { 
-  registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
-  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote, getPostById, updatePost
-} = require('./database');
+require('dotenv').config();
+
+const authRoutes = require('./routes/auth');
+const postsRoutes = require('./routes/posts');
+const { messagesRouter, usersRouter } = require('./routes/messages');
+const adminRoutes = require('./routes/admin');
+const quoteRoutes = require('./routes/quote');
+const chatRoutes = require('./routes/chat');
+const contactRoutes = require('./routes/contact');
+const { pool } = require('./database');
 
 const app = express();
-const port = 5001; 
+const port = process.env.PORT || 5001;
 
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173,https://annonyme.pro,https://www.annonyme.pro')
+  .split(',')
+  .map((o) => o.trim());
+
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origine non autorisée'));
+    }
+  },
+  credentials: true,
+}));
+app.use(express.json({ limit: '1mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+app.get('/health', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ status: 'error' });
   }
 });
 
-const upload = multer({ 
-  storage: storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images are allowed!'), false);
-    }
+app.use('/api', authRoutes);
+app.use('/api/posts', postsRoutes);
+app.use('/api/messages', messagesRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/admin', adminRoutes);
+app.use('/api/quote', quoteRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/contact', contactRoutes);
+
+app.use((err, _req, res, _next) => {
+  if (err.message === 'Origine non autorisée') {
+    return res.status(403).json({ error: err.message });
   }
-});
-
-// --- ROUTES AUTHENTIFICATION ---
-
-app.post('/api/register', async (req, res) => {
-  try {
-    const { firstName, lastName, contact, password, pseudo } = req.body;
-    if (!firstName || !lastName || !contact || !password || !pseudo) {
-      return res.status(400).json({ error: "Tous les champs sont requis." });
-    }
-    const user = await registerUser(firstName, lastName, contact, password, pseudo);
-    res.json(user);
-  } catch (error) {
-    if (error.message.includes('UNIQUE')) {
-      res.status(400).json({ error: "Ce pseudo ou contact existe déjà." });
-    } else {
-      res.status(500).json({ error: "Erreur lors de l'inscription." });
-    }
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ error: 'Fichier trop volumineux (max 5 Mo).' });
   }
+  console.error(err);
+  res.status(500).json({ error: 'Erreur serveur.' });
 });
 
-app.post('/api/login', async (req, res) => {
-  try {
-    const { login, password } = req.body;
-    if (!login || !password) return res.status(400).json({ error: "Identifiant et mot de passe requis." });
-    const user = await loginUser(login, password);
-    if (!user) {
-      return res.status(401).json({ error: "Identifiants incorrects." });
-    }
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur de connexion." });
-  }
-});
+if (require.main === module) {
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Serveur démarré sur http://0.0.0.0:${port}`);
+  });
+}
 
-// --- ROUTES FEED (PUBLICATIONS) ---
-
-app.get('/api/posts', async (req, res) => {
-  try {
-    const feed = await getFeed();
-    res.json(feed);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération du feed" });
-  }
-});
-
-app.post('/api/posts', upload.single('image'), async (req, res) => {
-  try {
-    const { userId, text } = req.body;
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-    await createPost(userId, text, imageUrl);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la création" });
-  }
-});
-
-app.post('/api/posts/:id/like', async (req, res) => {
-  try {
-    await likePost(req.params.id);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors du like" });
-  }
-});
-
-app.post('/api/posts/:id/comment', async (req, res) => {
-  try {
-    const { userId, text } = req.body;
-    await addComment(req.params.id, userId, text);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de l'ajout du commentaire" });
-  }
-});
-
-app.put('/api/posts/:id', async (req, res) => {
-  try {
-    const { userId, text } = req.body;
-    const post = await getPostById(req.params.id);
-    if (!post) {
-      return res.status(404).json({ error: "Post non trouvé." });
-    }
-    if (post.user_id !== parseInt(userId)) {
-      return res.status(403).json({ error: "Action non autorisée." });
-    }
-    await updatePost(req.params.id, text);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la modification de la publication." });
-  }
-});
-
-app.delete('/api/posts/:id', async (req, res) => {
-  try {
-    const reqUserId = req.query.userId || req.body.userId;
-    const post = await getPostById(req.params.id);
-    if (!post) {
-      return res.status(404).json({ error: "Post non trouvé." });
-    }
-    
-    const user = await getUserById(reqUserId);
-    const isAdmin = user && user.role === 'admin';
-    
-    if (post.user_id !== parseInt(reqUserId) && !isAdmin) {
-      return res.status(403).json({ error: "Action non autorisée." });
-    }
-    await deletePost(req.params.id);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la suppression de la publication." });
-  }
-});
-
-// --- ROUTE CHATBOT (IA) ---
-
-app.post('/api/chat', async (req, res) => {
-  try {
-    const { message, history } = req.body;
-    const aiResponse = await chatWithAI(message, history);
-    res.json(aiResponse);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur Chat IA" });
-  }
-});
-
-// --- ROUTES CHAT COACH (HUMAIN) ---
-
-app.get('/api/users/:userId/conversations', async (req, res) => {
-  try {
-    const data = await getConversations(req.params.userId);
-    res.json(data);
-  } catch (err) { res.status(500).json({ error: "Erreur" }); }
-});
-
-app.get('/api/users/:userId/coaches', async (req, res) => {
-  try {
-    const data = await getCoachesWithUnread(req.params.userId);
-    res.json(data);
-  } catch (err) { res.status(500).json({ error: "Erreur" }); }
-});
-
-app.get('/api/users/:userId/unread', async (req, res) => {
-  try {
-    const count = await getUnreadCount(req.params.userId);
-    res.json({ count });
-  } catch (err) { res.status(500).json({ error: "Erreur" }); }
-});
-
-app.post('/api/messages/read', async (req, res) => {
-  try {
-    const { senderId, receiverId } = req.body;
-    await markMessagesAsRead(senderId, receiverId);
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ error: "Erreur" }); }
-});
-
-app.get('/api/messages/:userId1/:userId2', async (req, res) => {
-  try {
-    const messages = await getMessages(req.params.userId1, req.params.userId2);
-    res.json(messages);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur récupération messages." });
-  }
-});
-
-app.post('/api/messages', async (req, res) => {
-  try {
-    const { senderId, receiverId, text } = req.body;
-    await sendMessage(senderId, receiverId, text);
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur envoi message." });
-  }
-});
-
-// --- ROUTES ADMIN ---
-
-app.get('/api/admin/users', async (req, res) => {
-  try {
-    const stats = await getAdminUsers();
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération des utilisateurs" });
-  }
-});
-
-app.get('/api/admin/metrics', async (req, res) => {
-  try {
-    const metrics = await getMetrics();
-    res.json(metrics);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération des métriques" });
-  }
-});
-
-app.put('/api/admin/users/:userId/role', async (req, res) => {
-  try {
-    const { role } = req.body;
-    if (!role || !['user', 'coach', 'admin'].includes(role)) {
-      return res.status(400).json({ error: "Rôle invalide" });
-    }
-    const updatedUser = await updateUserRole(req.params.userId, role);
-    res.json(updatedUser);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la mise à jour du rôle" });
-  }
-});
-
-app.post('/api/admin/users', async (req, res) => {
-  try {
-    const { firstName, lastName, contact, password, pseudo, role } = req.body;
-    if (!firstName || !lastName || !contact || !password || !pseudo || !role) {
-      return res.status(400).json({ error: "Tous les champs sont requis" });
-    }
-    if (!['user', 'coach', 'admin'].includes(role)) {
-      return res.status(400).json({ error: "Rôle invalide" });
-    }
-    const user = await createUserWithRole(firstName, lastName, contact, password, pseudo, role);
-    res.json(user);
-  } catch (error) {
-    if (error.message.includes('UNIQUE')) {
-      res.status(400).json({ error: "Ce pseudo ou contact existe déjà" });
-    } else {
-      res.status(500).json({ error: "Erreur lors de la création de l'utilisateur" });
-    }
-  }
-});
-
-// Nouvelle route pour récupérer les informations d'un utilisateur
-app.get('/api/users/:userId', async (req, res) => {
-  try {
-    const user = await getOtherUser(req.params.userId);
-    if (!user) {
-      return res.status(404).json({ error: "Utilisateur non trouvé" });
-    }
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération de l'utilisateur" });
-  }
-});
-
-app.get('/api/users/by-id/:userId', async (req, res) => {
-  try {
-    const user = await getUserById(req.params.userId);
-    if (!user) {
-      return res.status(404).json({ error: "Utilisateur non trouvé" });
-    }
-    res.json(user);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération de l'utilisateur" });
-  }
-});
-
-app.put('/api/users/:userId/avatar', async (req, res) => {
-  try {
-    const { avatarUrl } = req.body;
-    if (!avatarUrl) {
-      return res.status(400).json({ error: "URL de l'avatar requis" });
-    }
-    const updatedUser = await updateAvatar(req.params.userId, avatarUrl);
-    res.json(updatedUser);
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la mise à jour de l'avatar" });
-  }
-});
-
-// --- ROUTES MODÉRATION CONTENU ---
-
-app.post('/api/posts/:postId/report', async (req, res) => {
-  try {
-    await reportPost(req.params.postId);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur lors du signalement du post" });
-  }
-});
-
-app.get('/api/admin/reported-posts', async (req, res) => {
-  try {
-    const data = await getReportedPosts();
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Erreur lors de la récupération des posts signalés" });
-  }
-});
-
-app.post('/api/admin/posts/:postId/approve', async (req, res) => {
-  try {
-    await approvePost(req.params.postId);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur lors de l'approbation du post" });
-  }
-});
-
-app.delete('/api/admin/posts/:postId', async (req, res) => {
-  try {
-    await deletePost(req.params.postId);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: "Erreur lors de la suppression du post" });
-  }
-});
-
-// --- ROUTES CITATION DU JOUR ---
-
-app.get('/api/quote', async (req, res) => {
-  try {
-    const quote = await getLatestQuote();
-    res.json({ text: quote });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la récupération de la citation" });
-  }
-});
-
-app.post('/api/quote', async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text) {
-      return res.status(400).json({ error: "Le texte de la citation est requis." });
-    }
-    await createQuote(text);
-    res.json({ success: true, text });
-  } catch (error) {
-    res.status(500).json({ error: "Erreur lors de la mise à jour de la citation" });
-  }
-});
-
-app.listen(port, '0.0.0.0', () => console.log(`Serveur démarré sur http://0.0.0.0:${port}`));
+module.exports = app;

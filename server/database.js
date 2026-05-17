@@ -1,14 +1,20 @@
 const { Pool } = require('pg');
+const { hashPassword, verifyPassword, isBcryptHash } = require('./lib/password');
+const { publicUser } = require('./lib/auth');
 require('dotenv').config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/rever',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: process.env.DATABASE_SSL === 'true'
+    ? { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' }
+    : false,
 });
+
+const query = (text, params) => pool.query(text, params);
 
 const initDb = async () => {
   try {
-    await pool.query(`
+    await query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         first_name VARCHAR(255) NOT NULL,
@@ -21,58 +27,55 @@ const initDb = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT
-    `);
 
-    await pool.query(`
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`);
+
+    await query(`
       CREATE TABLE IF NOT EXISTS posts (
         id SERIAL PRIMARY KEY,
-        user_id INTEGER,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         text TEXT NOT NULL,
         image_url TEXT,
         likes INTEGER DEFAULT 0,
+        is_reported BOOLEAN DEFAULT FALSE,
+        reports_count INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
-    await pool.query(`
-      ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_url TEXT
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS post_likes (
+        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (post_id, user_id)
+      )
     `);
 
-    await pool.query(`
-      ALTER TABLE posts 
-      ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE,
-      ADD COLUMN IF NOT EXISTS reports_count INTEGER DEFAULT 0
-    `);
-
-    await pool.query(`
+    await query(`
       CREATE TABLE IF NOT EXISTS comments (
         id SERIAL PRIMARY KEY,
-        post_id INTEGER,
-        user_id INTEGER,
+        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         text TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    await pool.query(`
+    await query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
-        sender_id INTEGER,
-        receiver_id INTEGER,
+        sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         text TEXT NOT NULL,
         is_read BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    await pool.query(`
-      ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE
-    `);
+    await query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE`);
 
-    await pool.query(`
+    await query(`
       CREATE TABLE IF NOT EXISTS quotes (
         id SERIAL PRIMARY KEY,
         text TEXT NOT NULL,
@@ -80,413 +83,455 @@ const initDb = async () => {
       )
     `);
 
-    const insertUser = async (firstName, lastName, contact, password, pseudo, role) => {
-      await pool.query(`
-        INSERT INTO users (first_name, last_name, contact, password, pseudo, role) 
-        VALUES ($1, $2, $3, $4, $5, $6)
-        ON CONFLICT (contact) DO NOTHING
-      `, [firstName, lastName, contact, password, pseudo, role]);
-    };
+    await query(`
+      CREATE TABLE IF NOT EXISTS contact_messages (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-    await insertUser('Coach', 'Admin', 'admin', 'admin', 'admin', 'admin');
+    await query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id, is_read)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(sender_id, receiver_id)`);
 
-    const result = await pool.query('SELECT COUNT(*) as count FROM quotes');
-    if (parseInt(result.rows[0].count) === 0) {
-      await pool.query("INSERT INTO quotes (text) VALUES ('Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.')");
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'ChangeMeAdmin2026!';
+    const adminHash = await hashPassword(adminPassword);
+    await query(
+      `INSERT INTO users (first_name, last_name, contact, password, pseudo, role)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (contact) DO UPDATE SET password = EXCLUDED.password, role = 'admin'`,
+      ['Coach', 'Admin', 'admin', adminHash, 'admin', 'admin']
+    );
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[dev] Compte admin : contact "admin" — définir ADMIN_INITIAL_PASSWORD en production.');
     }
 
+    const quoteCount = await query('SELECT COUNT(*)::int AS count FROM quotes');
+    if (quoteCount.rows[0].count === 0) {
+      await query(
+        `INSERT INTO quotes (text) VALUES ($1)`,
+        ['Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.']
+      );
+    }
+
+    await migratePlainPasswords();
     console.log('Base de données initialisée avec succès');
   } catch (error) {
     console.error('Erreur lors de l\'initialisation de la base de données:', error);
   }
 };
 
-initDb();
-
-const registerUser = (firstName, lastName, contact, password, pseudo) => {
-  return new Promise((resolve, reject) => {
-    pool.query(
-      `INSERT INTO users (first_name, last_name, contact, password, pseudo) VALUES ($1, $2, $3, $4, $5) RETURNING id, pseudo, role`, 
-      [firstName, lastName, contact, password, pseudo], 
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result.rows[0]);
-      }
-    );
-  });
-};
-
-const loginUser = (loginIdentifier, password) => {
-  return new Promise((resolve, reject) => {
-    pool.query(
-      `SELECT id, first_name, last_name, pseudo, role FROM users WHERE (contact = $1 OR pseudo = $1) AND password = $2`, 
-      [loginIdentifier, password], 
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result.rows[0]);
-      }
-    );
-  });
-};
-
-const createPost = (userId, text, imageUrl) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`INSERT INTO posts (user_id, text, image_url) VALUES ($1, $2, $3) RETURNING id`, [userId, text, imageUrl], (err, result) => {
-      if (err) reject(err); else resolve({ id: result.rows[0].id });
-    });
-  });
-};
-
-const likePost = (postId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`UPDATE posts SET likes = likes + 1 WHERE id = $1`, [postId], (err) => {
-      if (err) reject(err); else resolve();
-    });
-  });
-};
-
-const addComment = (postId, userId, text) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`INSERT INTO comments (post_id, user_id, text) VALUES ($1, $2, $3) RETURNING id`, [postId, userId, text], (err, result) => {
-      if (err) reject(err); else resolve({ id: result.rows[0].id });
-    });
-  });
-};
-
-const getFeed = async () => {
-  try {
-    const postsResult = await pool.query(`
-      SELECT p.*, u.pseudo as username, u.avatar as user_avatar 
-      FROM posts p 
-      JOIN users u ON p.user_id = u.id 
-      ORDER BY p.created_at DESC
-    `);
-    
-    const posts = postsResult.rows;
-    
-    for (let post of posts) {
-      const commentsResult = await pool.query(`
-        SELECT c.*, u.pseudo as username 
-        FROM comments c 
-        JOIN users u ON c.user_id = u.id 
-        WHERE c.post_id = $1 
-        ORDER BY c.created_at ASC
-      `, [post.id]);
-      post.comments = commentsResult.rows;
-    }
-    
-    return posts;
-  } catch (error) {
-    throw error;
+const migratePlainPasswords = async () => {
+  const { rows } = await query(`SELECT id, password FROM users WHERE password NOT LIKE '$2%'`);
+  for (const row of rows) {
+    const hashed = await hashPassword(row.password);
+    await query('UPDATE users SET password = $1 WHERE id = $2', [hashed, row.id]);
   }
 };
 
-const getMessages = (userId1, userId2) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT m.*, 
-             u1.pseudo as sender_pseudo, 
-             u1.first_name as sender_first_name,
-             u1.last_name as sender_last_name,
-             u1.avatar as sender_avatar,
-             u2.pseudo as receiver_pseudo,
-             u2.first_name as receiver_first_name,
-             u2.last_name as receiver_last_name,
-             u2.avatar as receiver_avatar
-      FROM messages m
-      JOIN users u1 ON m.sender_id = u1.id
-      JOIN users u2 ON m.receiver_id = u2.id
-      WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)
-      ORDER BY m.created_at ASC
-    `, [userId1, userId2], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows);
-    });
-  });
+const registerUser = async (firstName, lastName, contact, password, pseudo) => {
+  const hashed = await hashPassword(password);
+  const { rows } = await query(
+    `INSERT INTO users (first_name, last_name, contact, password, pseudo)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, first_name, last_name, pseudo, role, avatar`,
+    [firstName, lastName, contact, hashed, pseudo]
+  );
+  return publicUser(rows[0]);
 };
 
-const getOtherUser = (userId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT id, first_name, last_name, pseudo, role, avatar 
-      FROM users 
-      WHERE id = $1
-    `, [userId], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows[0]);
-    });
-  });
+const loginUser = async (loginIdentifier, password) => {
+  const { rows } = await query(
+    `SELECT id, first_name, last_name, pseudo, role, avatar, password
+     FROM users WHERE contact = $1 OR pseudo = $1`,
+    [loginIdentifier]
+  );
+  const user = rows[0];
+  if (!user || !(await verifyPassword(password, user.password))) {
+    return null;
+  }
+  if (!isBcryptHash(user.password)) {
+    const hashed = await hashPassword(password);
+    await query('UPDATE users SET password = $1 WHERE id = $2', [hashed, user.id]);
+  }
+  return publicUser(user);
 };
 
-const sendMessage = (senderId, receiverId, text) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`INSERT INTO messages (sender_id, receiver_id, text) VALUES ($1, $2, $3) RETURNING id`, 
-      [senderId, receiverId, text], (err, result) => {
-      if (err) reject(err);
-      else resolve({ id: result.rows[0].id });
-    });
-  });
+const createPost = async (userId, text, imageUrl) => {
+  const { rows } = await query(
+    `INSERT INTO posts (user_id, text, image_url) VALUES ($1, $2, $3) RETURNING id`,
+    [userId, text, imageUrl]
+  );
+  return { id: rows[0].id };
 };
 
-const getCoaches = () => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT id, first_name, last_name, pseudo, role, avatar 
-      FROM users 
-      WHERE role = 'coach'
-    `, [], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows);
-    });
-  });
-};
-
-const getConversations = (userId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT 
-        u.id, u.first_name, u.last_name, u.pseudo, u.role, u.avatar,
-        (SELECT COUNT(*) FROM messages WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE) as unread_count
-      FROM users u
-      WHERE u.id IN (
-        SELECT sender_id FROM messages WHERE receiver_id = $1
-        UNION
-        SELECT receiver_id FROM messages WHERE sender_id = $1
-      )
-    `, [userId], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows);
-    });
-  });
-};
-
-const getCoachesWithUnread = (userId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT 
-        u.id, u.first_name, u.last_name, u.pseudo, u.role, u.avatar,
-        (SELECT COUNT(*) FROM messages WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE) as unread_count
-      FROM users u 
-      WHERE u.role = 'coach' AND u.id != $1
-    `, [userId], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows);
-    });
-  });
-};
-
-const getUnreadCount = (userId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`SELECT COUNT(*) as count FROM messages WHERE receiver_id = $1 AND is_read = FALSE`, [userId], (err, result) => {
-      if(err) reject(err); else resolve(parseInt(result.rows[0].count) || 0);
-    });
-  });
-};
-
-const markMessagesAsRead = (senderId, receiverId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`UPDATE messages SET is_read = TRUE WHERE sender_id = $1 AND receiver_id = $2 AND is_read = FALSE`, [senderId, receiverId], (err) => {
-      if(err) reject(err); else resolve();
-    });
-  });
-};
-
-const getAdminUsers = () => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT u.id, u.first_name, u.last_name, u.contact, u.pseudo, u.avatar, u.created_at, COUNT(p.id) as post_count
-      FROM users u
-      LEFT JOIN posts p ON u.id = p.user_id
-      WHERE u.role != 'admin'
-      GROUP BY u.id
-      ORDER BY u.created_at DESC
-    `, [], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows);
-    });
-  });
-};
-
-const updateAvatar = (userId, avatarUrl) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      UPDATE users SET avatar = $1 WHERE id = $2
-      RETURNING id, first_name, last_name, pseudo, role, avatar
-    `, [avatarUrl, userId], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows[0]);
-    });
-  });
-};
-
-const getUserById = (userId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT id, first_name, last_name, pseudo, role, avatar 
-      FROM users 
-      WHERE id = $1
-    `, [userId], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows[0]);
-    });
-  });
-};
-
-const updateUserRole = (userId, role) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      UPDATE users SET role = $1 WHERE id = $2
-      RETURNING id, first_name, last_name, pseudo, role, avatar
-    `, [role, userId], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows[0]);
-    });
-  });
-};
-
-const createUserWithRole = (firstName, lastName, contact, password, pseudo, role) => {
-  return new Promise((resolve, reject) => {
-    pool.query(
-      `INSERT INTO users (first_name, last_name, contact, password, pseudo, role) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING id, first_name, last_name, pseudo, role`, 
-      [firstName, lastName, contact, password, pseudo, role], 
-      (err, result) => {
-        if (err) reject(err);
-        else resolve(result.rows[0]);
-      }
+const likePost = async (postId, userId) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const inserted = await client.query(
+      `INSERT INTO post_likes (post_id, user_id) VALUES ($1, $2)
+       ON CONFLICT DO NOTHING RETURNING post_id`,
+      [postId, userId]
     );
-  });
-};
-
-const getMetrics = () => {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const [usersResult, postsResult, commentsResult, messagesResult] = await Promise.all([
-        pool.query('SELECT COUNT(*) as total FROM users'),
-        pool.query('SELECT COUNT(*) as total FROM posts'),
-        pool.query('SELECT COUNT(*) as total FROM comments'),
-        pool.query('SELECT COUNT(*) as total FROM messages')
-      ]);
-      
-      const usersByRoleResult = await pool.query(`
-        SELECT role, COUNT(*) as count 
-        FROM users 
-        GROUP BY role
-      `);
-      
-      const totalUsers = parseInt(usersResult.rows[0].total);
-      const totalPosts = parseInt(postsResult.rows[0].total);
-      const totalComments = parseInt(commentsResult.rows[0].total);
-      const totalMessages = parseInt(messagesResult.rows[0].total);
-      
-      const usersByRole = {};
-      usersByRoleResult.rows.forEach(row => {
-        usersByRole[row.role] = parseInt(row.count);
-      });
-      
-      resolve({
-        totalUsers,
-        totalPosts,
-        totalComments,
-        totalMessages,
-        usersByRole: {
-          user: usersByRole.user || 0,
-          coach: usersByRole.coach || 0,
-          admin: usersByRole.admin || 0
-        }
-      });
-    } catch (error) {
-      reject(error);
+    if (inserted.rowCount > 0) {
+      await client.query(`UPDATE posts SET likes = likes + 1 WHERE id = $1`, [postId]);
     }
-  });
+    await client.query('COMMIT');
+    const { rows } = await query(
+      `SELECT p.likes,
+              EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $2) AS liked_by_me
+       FROM posts p WHERE p.id = $1`,
+      [postId, userId]
+    );
+    return rows[0] || { likes: 0, liked_by_me: false };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 };
 
-const reportPost = (postId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      UPDATE posts 
-      SET is_reported = TRUE, reports_count = reports_count + 1 
-      WHERE id = $1
-    `, [postId], (err) => {
-      if (err) reject(err); else resolve();
-    });
-  });
+const addComment = async (postId, userId, text) => {
+  const { rows } = await query(
+    `INSERT INTO comments (post_id, user_id, text) VALUES ($1, $2, $3)
+     RETURNING id, post_id, user_id, text, created_at`,
+    [postId, userId, text]
+  );
+  const comment = rows[0];
+  const userRow = await query('SELECT pseudo FROM users WHERE id = $1', [userId]);
+  return { ...comment, username: userRow.rows[0].pseudo };
 };
 
-const getReportedPosts = () => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      SELECT p.*, u.pseudo as username 
-      FROM posts p 
-      JOIN users u ON p.user_id = u.id 
-      WHERE p.is_reported = TRUE 
-      ORDER BY p.reports_count DESC
-    `, [], (err, result) => {
-      if (err) reject(err); else resolve(result.rows);
-    });
-  });
+const getFeed = async (userId, limit = 20, offset = 0) => {
+  const { rows: posts } = await query(
+    `SELECT p.id, p.user_id, p.text, p.image_url, p.likes, p.created_at,
+            p.is_reported, p.reports_count,
+            u.pseudo AS username, u.avatar AS user_avatar,
+            EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $3) AS liked_by_me
+     FROM posts p
+     JOIN users u ON p.user_id = u.id
+     ORDER BY p.created_at DESC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset, userId]
+  );
+
+  if (posts.length === 0) {
+    return { posts: [], hasMore: false };
+  }
+
+  const postIds = posts.map((p) => p.id);
+  const { rows: comments } = await query(
+    `SELECT c.id, c.post_id, c.user_id, c.text, c.created_at, u.pseudo AS username
+     FROM comments c
+     JOIN users u ON c.user_id = u.id
+     WHERE c.post_id = ANY($1::int[])
+     ORDER BY c.created_at ASC`,
+    [postIds]
+  );
+
+  const commentsByPost = {};
+  for (const c of comments) {
+    if (!commentsByPost[c.post_id]) commentsByPost[c.post_id] = [];
+    commentsByPost[c.post_id].push(c);
+  }
+
+  const enriched = posts.map((p) => ({
+    ...p,
+    liked_by_me: p.liked_by_me,
+    comments: commentsByPost[p.id] || [],
+  }));
+
+  const { rows: countRows } = await query(`SELECT COUNT(*)::int AS total FROM posts`);
+  const total = countRows[0].total;
+
+  return {
+    posts: enriched,
+    hasMore: offset + limit < total,
+    total,
+  };
 };
 
-const approvePost = (postId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`
-      UPDATE posts SET is_reported = FALSE, reports_count = 0 WHERE id = $1
-    `, [postId], (err) => {
-      if (err) reject(err); else resolve();
-    });
-  });
+const getMessages = async (userId1, userId2, limit = 50, offset = 0) => {
+  const { rows } = await query(
+    `SELECT m.*,
+            u1.pseudo AS sender_pseudo,
+            u2.pseudo AS receiver_pseudo
+     FROM messages m
+     JOIN users u1 ON m.sender_id = u1.id
+     JOIN users u2 ON m.receiver_id = u2.id
+     WHERE (m.sender_id = $1 AND m.receiver_id = $2)
+        OR (m.sender_id = $2 AND m.receiver_id = $1)
+     ORDER BY m.created_at ASC
+     LIMIT $3 OFFSET $4`,
+    [userId1, userId2, limit, offset]
+  );
+  return rows;
 };
 
-const deletePost = (postId) => {
-  return new Promise((resolve, reject) => {
-    pool.query(`DELETE FROM comments WHERE post_id = $1`, [postId], (err) => {
-      if (err) return reject(err);
-      pool.query(`DELETE FROM posts WHERE id = $1`, [postId], (err) => {
-        if (err) reject(err); else resolve();
-      });
-    });
-  });
+const getOtherUser = async (userId) => {
+  const { rows } = await query(
+    `SELECT id, first_name, last_name, pseudo, role, avatar FROM users WHERE id = $1`,
+    [userId]
+  );
+  return rows[0];
 };
 
-const getLatestQuote = () => {
-  return new Promise((resolve, reject) => {
-    pool.query('SELECT text FROM quotes ORDER BY created_at DESC LIMIT 1', (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows[0] ? result.rows[0].text : "Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.");
-    });
-  });
+const sendMessage = async (senderId, receiverId, text) => {
+  const { rows } = await query(
+    `INSERT INTO messages (sender_id, receiver_id, text) VALUES ($1, $2, $3) RETURNING id`,
+    [senderId, receiverId, text]
+  );
+  return { id: rows[0].id };
 };
 
-const createQuote = (text) => {
-  return new Promise((resolve, reject) => {
-    pool.query('INSERT INTO quotes (text) VALUES ($1) RETURNING id', [text], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows[0]);
-    });
-  });
+const getConversations = async (userId) => {
+  const { rows } = await query(
+    `SELECT u.id, u.first_name, u.last_name, u.pseudo, u.role, u.avatar,
+            (SELECT COUNT(*)::int FROM messages
+             WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE) AS unread_count
+     FROM users u
+     WHERE u.id IN (
+       SELECT sender_id FROM messages WHERE receiver_id = $1
+       UNION
+       SELECT receiver_id FROM messages WHERE sender_id = $1
+     )`,
+    [userId]
+  );
+  return rows;
 };
 
-const getPostById = (postId) => {
-  return new Promise((resolve, reject) => {
-    pool.query('SELECT * FROM posts WHERE id = $1', [postId], (err, result) => {
-      if (err) reject(err);
-      else resolve(result.rows[0]);
-    });
-  });
+const getCoachesWithUnread = async (userId) => {
+  const { rows } = await query(
+    `SELECT u.id, u.first_name, u.last_name, u.pseudo, u.role, u.avatar,
+            (SELECT COUNT(*)::int FROM messages
+             WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE) AS unread_count
+     FROM users u
+     WHERE u.role = 'coach' AND u.id != $1`,
+    [userId]
+  );
+  return rows;
 };
 
-const updatePost = (postId, text) => {
-  return new Promise((resolve, reject) => {
-    pool.query('UPDATE posts SET text = $1 WHERE id = $2', [text, postId], (err) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
+const getUnreadCount = async (userId) => {
+  const { rows } = await query(
+    `SELECT COUNT(*)::int AS count FROM messages WHERE receiver_id = $1 AND is_read = FALSE`,
+    [userId]
+  );
+  return rows[0].count;
 };
 
-module.exports = { 
-  pool, registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
-  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote, getPostById, updatePost
+const markMessagesAsRead = async (senderId, receiverId) => {
+  await query(
+    `UPDATE messages SET is_read = TRUE
+     WHERE sender_id = $1 AND receiver_id = $2 AND is_read = FALSE`,
+    [senderId, receiverId]
+  );
+};
+
+const getAdminUsers = async () => {
+  const { rows } = await query(
+    `SELECT u.id, u.first_name, u.last_name, u.contact, u.pseudo, u.avatar, u.role, u.created_at,
+            COUNT(p.id)::int AS post_count
+     FROM users u
+     LEFT JOIN posts p ON u.id = p.user_id
+     WHERE u.role != 'admin'
+     GROUP BY u.id
+     ORDER BY u.created_at DESC`
+  );
+  return rows;
+};
+
+const updateAvatar = async (userId, avatarUrl) => {
+  const { rows } = await query(
+    `UPDATE users SET avatar = $1 WHERE id = $2
+     RETURNING id, first_name, last_name, pseudo, role, avatar`,
+    [avatarUrl, userId]
+  );
+  return publicUser(rows[0]);
+};
+
+const getUserById = async (userId) => {
+  const { rows } = await query(
+    `SELECT id, first_name, last_name, pseudo, role, avatar FROM users WHERE id = $1`,
+    [userId]
+  );
+  return rows[0] ? publicUser(rows[0]) : null;
+};
+
+const updateUserRole = async (userId, role) => {
+  const { rows } = await query(
+    `UPDATE users SET role = $1 WHERE id = $2
+     RETURNING id, first_name, last_name, pseudo, role, avatar`,
+    [role, userId]
+  );
+  return publicUser(rows[0]);
+};
+
+const createUserWithRole = async (firstName, lastName, contact, password, pseudo, role) => {
+  const hashed = await hashPassword(password);
+  const { rows } = await query(
+    `INSERT INTO users (first_name, last_name, contact, password, pseudo, role)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, first_name, last_name, pseudo, role, avatar`,
+    [firstName, lastName, contact, hashed, pseudo, role]
+  );
+  return publicUser(rows[0]);
+};
+
+const getMetrics = async () => {
+  const [usersResult, postsResult, commentsResult, messagesResult, usersByRoleResult] =
+    await Promise.all([
+      query('SELECT COUNT(*)::int AS total FROM users'),
+      query('SELECT COUNT(*)::int AS total FROM posts'),
+      query('SELECT COUNT(*)::int AS total FROM comments'),
+      query('SELECT COUNT(*)::int AS total FROM messages'),
+      query('SELECT role, COUNT(*)::int AS count FROM users GROUP BY role'),
+    ]);
+
+  const usersByRole = { user: 0, coach: 0, admin: 0 };
+  usersByRoleResult.rows.forEach((row) => {
+    usersByRole[row.role] = row.count;
+  });
+
+  return {
+    totalUsers: usersResult.rows[0].total,
+    totalPosts: postsResult.rows[0].total,
+    totalComments: commentsResult.rows[0].total,
+    totalMessages: messagesResult.rows[0].total,
+    usersByRole,
+  };
+};
+
+const reportPost = async (postId) => {
+  await query(
+    `UPDATE posts SET is_reported = TRUE, reports_count = reports_count + 1 WHERE id = $1`,
+    [postId]
+  );
+};
+
+const getReportedPosts = async () => {
+  const { rows } = await query(
+    `SELECT p.*, u.pseudo AS username
+     FROM posts p
+     JOIN users u ON p.user_id = u.id
+     WHERE p.is_reported = TRUE
+     ORDER BY p.reports_count DESC`
+  );
+  return rows;
+};
+
+const approvePost = async (postId) => {
+  await query(`UPDATE posts SET is_reported = FALSE, reports_count = 0 WHERE id = $1`, [postId]);
+};
+
+const deletePost = async (postId) => {
+  await query(`DELETE FROM post_likes WHERE post_id = $1`, [postId]);
+  await query(`DELETE FROM comments WHERE post_id = $1`, [postId]);
+  await query(`DELETE FROM posts WHERE id = $1`, [postId]);
+};
+
+const getLatestQuote = async () => {
+  const { rows } = await query('SELECT text FROM quotes ORDER BY created_at DESC LIMIT 1');
+  return rows[0]?.text ||
+    'Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.';
+};
+
+const createQuote = async (text) => {
+  const { rows } = await query('INSERT INTO quotes (text) VALUES ($1) RETURNING id', [text]);
+  return rows[0];
+};
+
+const getPostById = async (postId) => {
+  const { rows } = await query('SELECT * FROM posts WHERE id = $1', [postId]);
+  return rows[0];
+};
+
+const updatePost = async (postId, text) => {
+  await query('UPDATE posts SET text = $1 WHERE id = $2', [text, postId]);
+};
+
+const saveContactMessage = async (name, email, message) => {
+  await query(
+    `INSERT INTO contact_messages (name, email, message) VALUES ($1, $2, $3)`,
+    [name, email, message]
+  );
+};
+
+const deleteUserAccount = async (userId) => {
+  await query('DELETE FROM users WHERE id = $1', [userId]);
+};
+
+const exportUserData = async (userId) => {
+  const [user, posts, comments, sent, received] = await Promise.all([
+    query(
+      `SELECT id, first_name, last_name, contact, pseudo, role, created_at FROM users WHERE id = $1`,
+      [userId]
+    ),
+    query('SELECT id, text, image_url, likes, created_at FROM posts WHERE user_id = $1', [userId]),
+    query(
+      `SELECT c.id, c.text, c.created_at, c.post_id FROM comments c WHERE c.user_id = $1`,
+      [userId]
+    ),
+    query(
+      `SELECT id, receiver_id, text, created_at FROM messages WHERE sender_id = $1`,
+      [userId]
+    ),
+    query(
+      `SELECT id, sender_id, text, created_at FROM messages WHERE receiver_id = $1`,
+      [userId]
+    ),
+  ]);
+
+  return {
+    profile: user.rows[0],
+    posts: posts.rows,
+    comments: comments.rows,
+    messagesSent: sent.rows,
+    messagesReceived: received.rows,
+    exportedAt: new Date().toISOString(),
+  };
+};
+
+initDb();
+
+module.exports = {
+  pool,
+  query,
+  registerUser,
+  loginUser,
+  createPost,
+  likePost,
+  addComment,
+  getFeed,
+  getAdminUsers,
+  getMessages,
+  sendMessage,
+  getOtherUser,
+  updateAvatar,
+  getUserById,
+  getMetrics,
+  updateUserRole,
+  createUserWithRole,
+  getConversations,
+  getCoachesWithUnread,
+  getUnreadCount,
+  markMessagesAsRead,
+  reportPost,
+  getReportedPosts,
+  approvePost,
+  deletePost,
+  getLatestQuote,
+  createQuote,
+  getPostById,
+  updatePost,
+  saveContactMessage,
+  deleteUserAccount,
+  exportUserData,
 };

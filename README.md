@@ -1,17 +1,67 @@
-# Projet Fullstack : rever
+# Anonyme Pro (Rever)
 
-Bienvenue dans le projet **rever**.
+Plateforme bienveillante d'expression anonyme : feed, messagerie coach, modération admin.
 
-## 📂 Structure du projet
+## Structure
 
-Ce dépôt est organisé en mode monorepo avec la séparation suivante :
+- `client/` — React 18 + Vite + Tailwind
+- `server/` — Express + PostgreSQL + JWT
+- `shared/` — configuration partagée (référence)
 
-- `/client` : Le frontend développé avec React et stylisé via Tailwind CSS.
-- `/server` : Le backend propulsé par Node.js et Express.
-- `/shared` : Les configurations, types ou utilitaires communs partagés entre le client et le serveur.
+## Démarrage local
 
-## 🚀 Prochaines étapes
+### Prérequis
 
-1. Initialiser le projet Node.js dans le dossier `/server` (`npm init -y` et `npm install express`).
-2. Initialiser le projet React dans le dossier `/client` (par exemple via Vite ou Create React App) et configurer Tailwind CSS.
-3. Lier les dossiers si nécessaire (ex: via des workspaces npm/yarn/pnpm).
+- Node.js 18+
+- PostgreSQL 15+ (ou Docker)
+
+### Backend
+
+```bash
+cd server
+cp .env.example .env
+# Éditer .env : DATABASE_URL, JWT_SECRET, GEMINI_API_KEY, ADMIN_INITIAL_PASSWORD
+npm install
+npm run dev
+```
+
+API : `http://localhost:5001` — Health : `GET /health`
+
+### Frontend
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+App : `http://localhost:5173`
+
+### Docker
+
+```bash
+export JWT_SECRET="votre-secret-long"
+export ADMIN_INITIAL_PASSWORD="mot-de-passe-admin-fort"
+export GEMINI_API_KEY="..."
+docker compose up -d --build
+```
+
+## Sécurité
+
+- Mots de passe hachés (bcrypt)
+- Authentification JWT sur les routes protégées
+- Rôles : `user`, `coach`, `admin`
+- Compte admin initial : contact `admin` — définir `ADMIN_INITIAL_PASSWORD` en production
+
+## Tests & CI
+
+```bash
+cd server && npm test
+```
+
+GitHub Actions : build client + tests server.
+
+## RGPD
+
+- `GET /api/me/export` — export JSON des données utilisateur
+- `DELETE /api/me` — suppression du compte

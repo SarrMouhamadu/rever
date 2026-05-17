@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from './api/client';
 
 function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -19,10 +20,22 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const handleSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Merci pour votre message ! Nous vous répondrons rapidement.');
-    setFormData({ name: '', email: '', message: '' });
+    setSubmitting(true);
+    setError('');
+    try {
+      await api.post('/api/contact', formData);
+      alert('Merci pour votre message ! Nous vous répondrons rapidement.');
+      setFormData({ name: '', email: '', message: '' });
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erreur lors de l\'envoi.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -169,9 +182,11 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
                   onChange={(e) => setFormData({...formData, message: e.target.value})}
                   className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-600 rounded-lg p-3 text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 resize-none transition-all"
                 />
+                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                 <button 
                   type="submit"
-                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg font-bold text-base transition-all hover:shadow-lg hover:shadow-purple-500/25"
+                  disabled={submitting}
+                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg font-bold text-base transition-all hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50"
                 >
                   Envoyer
                 </button>

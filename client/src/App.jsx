@@ -1,53 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
+import api from './api/client';
+import { useAuth } from './context/AuthContext';
+import { useTheme } from './hooks/useTheme';
+import { getFullImageUrl } from './utils/imageUrl';
 import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
-
-axios.defaults.baseURL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? `http://${window.location.hostname}:5001`
-  : `https://api.annonyme.pro`;
-
 function App() {
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved;
-    
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
-    
-    const hour = new Date().getHours();
-    return (hour >= 19 || hour < 7) ? 'dark' : 'light';
-  });
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e) => {
-      if (!localStorage.getItem('theme')) setTheme(e.matches ? 'dark' : 'light');
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-  };
+  const { user, login, register, logout, exportData, deleteAccount } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [showLanding, setShowLanding] = useState(true);
   const [showContact, setShowContact] = useState(false);
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('rever_user');
-    return saved ? JSON.parse(saved) : null;
-  });
   const [view, setView] = useState(() => {
     const savedUser = localStorage.getItem('rever_user');
     if (savedUser) {
@@ -61,6 +24,9 @@ function App() {
   const [authError, setAuthError] = useState('');
 
   const [feed, setFeed] = useState([]);
+  const [feedOffset, setFeedOffset] = useState(0);
+  const [feedHasMore, setFeedHasMore] = useState(false);
+  const [feedLoading, setFeedLoading] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingPostText, setEditingPostText] = useState('');
   const [quote, setQuote] = useState("Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.");
@@ -82,22 +48,11 @@ function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [newChatMessage, setNewChatMessage] = useState('');
 
-  const getFullImageUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith('http')) {
-      return url.replace('localhost', window.location.hostname);
-    }
-    return `http://${window.location.hostname}:5001${url}`;
-  };
-
   const handleRegister = async (e) => {
     e.preventDefault();
     setAuthError('');
     try {
-      const res = await axios.post('/api/register', authForm);
-      const userData = res.data;
-      setUser(userData);
-      localStorage.setItem('rever_user', JSON.stringify(userData));
+      const userData = await register(authForm);
       setView('feed');
     } catch (err) {
       setAuthError(err.response?.data?.error || "Erreur lors de l'inscription");
@@ -108,31 +63,33 @@ function App() {
     e.preventDefault();
     setAuthError('');
     try {
-      const res = await axios.post('/api/login', { 
-        login: authForm.loginId, password: authForm.password 
-      });
-      const userData = res.data;
-      setUser(userData);
-      localStorage.setItem('rever_user', JSON.stringify(userData));
+      const userData = await login(authForm.loginId, authForm.password);
       setView(userData.role === 'admin' ? 'admin-dashboard' : 'feed');
     } catch (err) {
       setAuthError(err.response?.data?.error || "Identifiants incorrects");
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('rever_user');
+  const handleLogout = () => {
+    logout();
     setView('login');
     setAuthForm({ firstName: '', lastName: '', contact: '', password: '', pseudo: '', loginId: '' });
   };
 
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async (offset = 0, append = false) => {
+    setFeedLoading(true);
     try {
-      const res = await axios.get('/api/posts');
-      setFeed(res.data);
-    } catch (error) { console.error(error); }
-  };
+      const res = await api.get('/api/posts', { params: { limit: 20, offset } });
+      const { posts, hasMore } = res.data;
+      setFeed((prev) => (append ? [...prev, ...posts] : posts));
+      setFeedOffset(offset + posts.length);
+      setFeedHasMore(hasMore);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setFeedLoading(false);
+    }
+  }, []);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -149,28 +106,39 @@ function App() {
     if (!newPostText.trim()) return;
     
     const formData = new FormData();
-    formData.append('userId', user.id);
     formData.append('text', newPostText);
     if (newPostImage) {
       formData.append('image', newPostImage);
     }
     
-    await axios.post('/api/posts', formData, {
+    await api.post('/api/posts', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     
     setNewPostText('');
     setNewPostImage(null);
     setNewPostImagePreview(null);
-    fetchFeed();
+    fetchFeed(0, false);
   };
 
   const handleLike = async (postId) => {
+    const post = feed.find((p) => p.id === postId);
+    if (post?.liked_by_me) return;
+    setFeed((prev) =>
+      prev.map((p) =>
+        p.id === postId ? { ...p, likes: p.likes + 1, liked_by_me: true } : p
+      )
+    );
     try {
-      await axios.post(`/api/posts/${postId}/like`);
-      fetchFeed();
+      const res = await api.post(`/api/posts/${postId}/like`);
+      setFeed((prev) =>
+        prev.map((p) =>
+          p.id === postId ? { ...p, likes: res.data.likes, liked_by_me: res.data.liked_by_me } : p
+        )
+      );
     } catch (error) {
       console.error(error);
+      fetchFeed(0, false);
     }
   };
 
@@ -183,12 +151,15 @@ function App() {
     if (!text?.trim()) return;
     
     try {
-      await axios.post(`/api/posts/${postId}/comment`, { 
-        userId: user.id, 
-        text: text 
-      });
+      const comment = await api.post(`/api/posts/${postId}/comment`, { text });
       setCommentInputs({ ...commentInputs, [postId]: '' });
-      fetchFeed();
+      setFeed((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, comments: [...(p.comments || []), comment.data] }
+            : p
+        )
+      );
     } catch (error) {
       console.error(error);
     }
@@ -197,10 +168,12 @@ function App() {
   const handleUpdatePost = async (postId) => {
     if (!editingPostText.trim()) return;
     try {
-      await axios.put(`/api/posts/${postId}`, { userId: user.id, text: editingPostText });
+      await api.put(`/api/posts/${postId}`, { text: editingPostText });
       setEditingPostId(null);
       setEditingPostText('');
-      fetchFeed();
+      setFeed((prev) =>
+        prev.map((p) => (p.id === postId ? { ...p, text: editingPostText } : p))
+      );
     } catch (error) {
       console.error(error);
       alert('Erreur lors de la modification de la publication.');
@@ -210,8 +183,8 @@ function App() {
   const handleDeleteUserPost = async (postId) => {
     if (!window.confirm('Voulez-vous vraiment supprimer cette publication ?')) return;
     try {
-      await axios.delete(`/api/posts/${postId}`, { params: { userId: user.id } });
-      fetchFeed();
+      await api.delete(`/api/posts/${postId}`);
+      setFeed((prev) => prev.filter((p) => p.id !== postId));
     } catch (error) {
       console.error(error);
       alert('Erreur lors de la suppression de la publication.');
@@ -220,7 +193,7 @@ function App() {
 
   const fetchQuote = async () => {
     try {
-      const res = await axios.get('/api/quote');
+      const res = await api.get('/api/quote');
       if (res.data && res.data.text) {
         setQuote(res.data.text);
       }
@@ -231,7 +204,7 @@ function App() {
     e.preventDefault();
     if (!adminNewQuote.trim()) return;
     try {
-      await axios.post('/api/quote', { text: adminNewQuote });
+      await api.post('/api/quote', { text: adminNewQuote });
       setQuote(adminNewQuote);
       setAdminNewQuote('');
       alert('La citation du jour a été mise à jour avec succès !');
@@ -247,19 +220,19 @@ function App() {
 
   useEffect(() => {
     if (user && view === 'feed') {
-      fetchFeed();
+      fetchFeed(0, false);
       fetchQuote();
     }
-  }, [user, view]);
+  }, [user, view, fetchFeed]);
 
   const fetchContacts = async () => {
     try {
       if (!user) return;
       if (user.role === 'coach') {
-        const res = await axios.get(`/api/users/${user.id}/conversations`);
+        const res = await api.get(`/api/users/${user.id}/conversations`);
         setContacts(res.data);
       } else {
-        const res = await axios.get(`/api/users/${user.id}/coaches`);
+        const res = await api.get(`/api/users/${user.id}/coaches`);
         setContacts(res.data);
       }
     } catch (error) { console.error(error); }
@@ -268,17 +241,14 @@ function App() {
   const fetchUnreadCount = async () => {
     if (!user) return;
     try {
-      const res = await axios.get(`/api/users/${user.id}/unread`);
+      const res = await api.get(`/api/users/${user.id}/unread`);
       setTotalUnread(res.data.count);
     } catch (error) { console.error(error); }
   };
 
   const markAsRead = async (contactId) => {
     try {
-      await axios.post('/api/messages/read', {
-        senderId: contactId,
-        receiverId: user.id
-      });
+      await api.post('/api/messages/read', { senderId: contactId });
       fetchContacts();
       fetchUnreadCount();
     } catch (error) { console.error(error); }
@@ -286,7 +256,7 @@ function App() {
 
   const fetchChatMessages = async (coachId) => {
     try {
-      const res = await axios.get(`/api/messages/${user.id}/${coachId}`);
+      const res = await api.get(`/api/messages/${user.id}/${coachId}`);
       setChatMessages(res.data);
     } catch (error) { console.error(error); }
   };
@@ -320,7 +290,7 @@ function App() {
 
   const handleReportPost = async (postId) => {
     try {
-      await axios.post(`/api/posts/${postId}/report`);
+      await api.post(`/api/posts/${postId}/report`);
       alert("Merci pour votre signalement. Notre équipe de modération va examiner ce contenu.");
       fetchFeed();
     } catch (error) { console.error(error); }
@@ -328,28 +298,28 @@ function App() {
 
   const fetchReportedPosts = async () => {
     try {
-      const res = await axios.get('/api/admin/reported-posts');
+      const res = await api.get('/api/admin/reported-posts');
       setReportedPosts(res.data);
     } catch (error) { console.error(error); }
   };
 
   const fetchAdminMetrics = async () => {
     try {
-      const res = await axios.get('/api/admin/metrics');
+      const res = await api.get('/api/admin/metrics');
       setAdminMetrics(res.data);
     } catch (error) { console.error(error); }
   };
 
   const fetchAdminUsers = async () => {
     try {
-      const res = await axios.get('/api/admin/users');
+      const res = await api.get('/api/admin/users');
       setAdminUsers(res.data);
     } catch (error) { console.error(error); }
   };
 
   const handleUpdateUserRole = async (userId, newRole) => {
     try {
-      await axios.put(`/api/admin/users/${userId}/role`, { role: newRole });
+      await api.put(`/api/admin/users/${userId}/role`, { role: newRole });
       fetchAdminUsers();
       fetchAdminMetrics();
     } catch (error) { console.error(error); }
@@ -357,7 +327,7 @@ function App() {
 
   const handleApprovePost = async (postId) => {
     try {
-      await axios.post(`/api/admin/posts/${postId}/approve`);
+      await api.post(`/api/admin/posts/${postId}/approve`);
       fetchReportedPosts();
     } catch (error) { console.error(error); }
   };
@@ -365,7 +335,7 @@ function App() {
   const handleDeletePost = async (postId) => {
     try {
       if (confirm("Voulez-vous vraiment supprimer définitivement ce post ?")) {
-        await axios.delete(`/api/admin/posts/${postId}`);
+        await api.delete(`/api/admin/posts/${postId}`);
         fetchReportedPosts();
         fetchAdminMetrics();
         fetchFeed();
@@ -628,8 +598,7 @@ function App() {
     e.preventDefault();
     if (!newChatMessage.trim() || !selectedCoach) return;
     try {
-      await axios.post('/api/messages', {
-        senderId: user.id,
+      await api.post('/api/messages', {
         receiverId: selectedCoach.id,
         text: newChatMessage
       });
@@ -699,7 +668,7 @@ function App() {
                 value={authForm.contact} onChange={(e) => setAuthForm({...authForm, contact: e.target.value})} />
               <input type="text" placeholder="Pseudo (Public)" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 value={authForm.pseudo} onChange={(e) => setAuthForm({...authForm, pseudo: e.target.value})} />
-              <input type="password" placeholder="Mot de passe" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+              <input type="password" placeholder="Mot de passe (8 car. min.)" required minLength={8} className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 value={authForm.password} onChange={(e) => setAuthForm({...authForm, password: e.target.value})} />
               <button className="w-full py-3.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white font-bold rounded-xl mt-2 transition-all uppercase text-xs tracking-wider shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">
                 Créer mon compte
@@ -753,7 +722,25 @@ function App() {
                 <span className="hidden sm:inline font-medium tracking-wide"> {user.role === 'admin' ? 'Admin' : user.role === 'coach' ? 'Coach' : user.pseudo}</span>
               </span>
             </div>
-            <button onClick={logout} className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400">🚪</button>
+            <button onClick={handleLogout} className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400" aria-label="Déconnexion">🚪</button>
+            {user.role !== 'admin' && (
+              <>
+                <button type="button" onClick={exportData} className="text-[10px] text-slate-500 hover:text-purple-600" title="Exporter mes données (RGPD)">Export</button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (window.confirm('Supprimer définitivement votre compte et toutes vos données ?')) {
+                      await deleteAccount();
+                      setView('login');
+                    }
+                  }}
+                  className="text-[10px] text-slate-500 hover:text-rose-500"
+                  title="Supprimer mon compte"
+                >
+                  Supprimer
+                </button>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -873,13 +860,15 @@ function App() {
                   )}
                   {post.image_url && (
                     <div className="mb-3 sm:mb-4">
-                      <img src={getFullImageUrl(post.image_url)} alt="Post image" className="w-full max-h-64 sm:max-h-96 object-cover rounded-xl" />
+                      <img src={getFullImageUrl(post.image_url)} alt="Publication" loading="lazy" className="w-full max-h-64 sm:max-h-96 object-cover rounded-xl" />
                     </div>
                   )}
                   <div className="flex items-center gap-4 sm:gap-6 mb-3 sm:mb-4 border-t border-slate-200 dark:border-slate-800 pt-3 sm:pt-4">
                     <button 
                       onClick={() => handleLike(post.id)} 
-                      className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors text-xs sm:text-sm"
+                      disabled={post.liked_by_me}
+                      className={`flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${post.liked_by_me ? 'text-rose-500 opacity-70 cursor-default' : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400'}`}
+                      aria-label={post.liked_by_me ? 'Déjà aimé' : 'Aimer'}
                     >
                       ❤️ {post.likes}
                     </button>
@@ -931,6 +920,18 @@ function App() {
                   </div>
                 </div>
               ))}
+              {feedHasMore && (
+                <div className="text-center pt-4">
+                  <button
+                    type="button"
+                    onClick={() => fetchFeed(feedOffset, true)}
+                    disabled={feedLoading}
+                    className="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50"
+                  >
+                    {feedLoading ? 'Chargement…' : 'Charger plus'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

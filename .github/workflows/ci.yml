@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: rever_user
+          POSTGRES_PASSWORD: rever_password
+          POSTGRES_DB: rever
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - name: Install & test server
+        working-directory: server
+        env:
+          DATABASE_URL: postgresql://rever_user:rever_password@localhost:5432/rever
+          JWT_SECRET: ci-test-secret
+          ADMIN_INITIAL_PASSWORD: CiAdminTest2026!
+        run: |
+          npm ci
+          npm test
+
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+      - name: Build client
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
