@@ -42,6 +42,12 @@ const initDb = async () => {
     `);
 
     await pool.query(`
+      ALTER TABLE posts 
+      ADD COLUMN IF NOT EXISTS is_reported BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS reports_count INTEGER DEFAULT 0
+    `);
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS comments (
         id SERIAL PRIMARY KEY,
         post_id INTEGER,
@@ -385,7 +391,55 @@ const getMetrics = () => {
   });
 };
 
+const reportPost = (postId) => {
+  return new Promise((resolve, reject) => {
+    pool.query(`
+      UPDATE posts 
+      SET is_reported = TRUE, reports_count = reports_count + 1 
+      WHERE id = $1
+    `, [postId], (err) => {
+      if (err) reject(err); else resolve();
+    });
+  });
+};
+
+const getReportedPosts = () => {
+  return new Promise((resolve, reject) => {
+    pool.query(`
+      SELECT p.*, u.pseudo as username 
+      FROM posts p 
+      JOIN users u ON p.user_id = u.id 
+      WHERE p.is_reported = TRUE 
+      ORDER BY p.reports_count DESC
+    `, [], (err, result) => {
+      if (err) reject(err); else resolve(result.rows);
+    });
+  });
+};
+
+const approvePost = (postId) => {
+  return new Promise((resolve, reject) => {
+    pool.query(`
+      UPDATE posts SET is_reported = FALSE, reports_count = 0 WHERE id = $1
+    `, [postId], (err) => {
+      if (err) reject(err); else resolve();
+    });
+  });
+};
+
+const deletePost = (postId) => {
+  return new Promise((resolve, reject) => {
+    pool.query(`DELETE FROM comments WHERE post_id = $1`, [postId], (err) => {
+      if (err) return reject(err);
+      pool.query(`DELETE FROM posts WHERE id = $1`, [postId], (err) => {
+        if (err) reject(err); else resolve();
+      });
+    });
+  });
+};
+
 module.exports = { 
   pool, registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead
+  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
+  reportPost, getReportedPosts, approvePost, deletePost
 };

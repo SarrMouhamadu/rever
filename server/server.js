@@ -5,7 +5,8 @@ const path = require('path');
 const { chatWithAI } = require('./geminiService');
 const { 
   registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead
+  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
+  reportPost, getReportedPosts, approvePost, deletePost
 } = require('./database');
 
 const app = express();
@@ -260,6 +261,44 @@ app.put('/api/users/:userId/avatar', async (req, res) => {
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ error: "Erreur lors de la mise à jour de l'avatar" });
+  }
+});
+
+// --- ROUTES MODÉRATION CONTENU ---
+
+app.post('/api/posts/:postId/report', async (req, res) => {
+  try {
+    await reportPost(req.params.postId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors du signalement du post" });
+  }
+});
+
+app.get('/api/admin/reported-posts', async (req, res) => {
+  try {
+    const data = await getReportedPosts();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la récupération des posts signalés" });
+  }
+});
+
+app.post('/api/admin/posts/:postId/approve', async (req, res) => {
+  try {
+    await approvePost(req.params.postId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de l'approbation du post" });
+  }
+});
+
+app.delete('/api/admin/posts/:postId', async (req, res) => {
+  try {
+    await deletePost(req.params.postId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de la suppression du post" });
   }
 });
 

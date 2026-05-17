@@ -66,6 +66,7 @@ function App() {
 
   const [contacts, setContacts] = useState([]);
   const [selectedCoach, setSelectedCoach] = useState(null);
+  const [reportedPosts, setReportedPosts] = useState([]);
   const [totalUnread, setTotalUnread] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
   const [newChatMessage, setNewChatMessage] = useState('');
@@ -251,6 +252,43 @@ function App() {
       return () => clearInterval(interval);
     }
   }, [selectedCoach, view]);
+
+  const handleReportPost = async (postId) => {
+    try {
+      await axios.post(`/api/posts/${postId}/report`);
+      alert("Merci pour votre signalement. Notre équipe de modération va examiner ce contenu.");
+      fetchFeed();
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchReportedPosts = async () => {
+    try {
+      const res = await axios.get('/api/admin/reported-posts');
+      setReportedPosts(res.data);
+    } catch (error) { console.error(error); }
+  };
+
+  const handleApprovePost = async (postId) => {
+    try {
+      await axios.post(`/api/admin/posts/${postId}/approve`);
+      fetchReportedPosts();
+    } catch (error) { console.error(error); }
+  };
+
+  const handleDeletePost = async (postId) => {
+    try {
+      if (confirm("Voulez-vous vraiment supprimer définitivement ce post ?")) {
+        await axios.delete(`/api/admin/posts/${postId}`);
+        fetchReportedPosts();
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  useEffect(() => {
+    if (user && user.role === 'admin' && view === 'admin-dashboard') {
+      fetchReportedPosts();
+    }
+  }, [user, view]);
 
   const handleSendChatMessage = async (e) => {
     e.preventDefault();
@@ -455,6 +493,13 @@ function App() {
                     <span className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
                       💬 {post.comments?.length || 0}
                     </span>
+                    <button 
+                      onClick={() => handleReportPost(post.id)} 
+                      className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors text-[10px] sm:text-xs ml-auto uppercase tracking-wider font-semibold"
+                      title="Signaler ce post"
+                    >
+                      ⚠️ Signaler
+                    </button>
                   </div>
                   
                   <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 sm:pt-5">
@@ -571,9 +616,58 @@ function App() {
         )}
 
         {view === 'admin-dashboard' && (
-          <div className="animate-[fadeIn_0.4s_ease-out]">
-            <h2 className="text-xl text-slate-900 dark:text-slate-200 mb-8">Dashboard Admin</h2>
-            <p className="text-slate-600 dark:text-slate-400">Le dashboard admin sera ajouté plus tard...</p>
+          <div className="animate-[fadeIn_0.4s_ease-out] relative z-10">
+            <h2 className="text-2xl font-light tracking-wider text-slate-900 dark:text-slate-200 mb-8 uppercase">Dashboard Modération</h2>
+            
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg">
+              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
+                🚨 Contenus Signalés ({reportedPosts.length})
+              </h3>
+              
+              {reportedPosts.length > 0 ? (
+                <div className="space-y-6">
+                  {reportedPosts.map(post => (
+                    <div key={post.id} className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/50 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all hover:shadow-md">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{post.username}</span>
+                          <span className="text-[10px] text-slate-400">{new Date(post.created_at).toLocaleString('fr-FR')}</span>
+                          <span className="ml-2 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                            ⚠️ {post.reports_count} signalement(s)
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-light">{post.text}</p>
+                        {post.image_url && (
+                          <div className="mt-2">
+                            <img src={getFullImageUrl(post.image_url)} alt="Reported image" className="max-h-32 rounded-lg object-cover" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex gap-2 shrink-0 w-full md:w-auto">
+                        <button 
+                          onClick={() => handleApprovePost(post.id)}
+                          className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/30"
+                        >
+                          ✓ Approuver
+                        </button>
+                        <button 
+                          onClick={() => handleDeletePost(post.id)}
+                          className="flex-1 md:flex-none px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-500/10 hover:shadow-rose-500/30"
+                        >
+                          🗑️ Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                  <div className="text-4xl mb-3">🛡️</div>
+                  <p className="text-sm">Aucun contenu suspect ou signalé pour le moment. La communauté est saine !</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
