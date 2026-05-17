@@ -310,6 +310,249 @@ function App() {
     } catch (error) { console.error(error); }
   };
 
+  const handleGeneratePDF = () => {
+    if (!adminMetrics) return;
+    
+    const printWindow = window.open('', '_blank');
+    const today = new Date().toLocaleDateString('fr-FR', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+    
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Rever - Rapport d'Administration</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            body {
+              font-family: 'Inter', sans-serif;
+              color: #0f172a;
+              padding: 50px;
+              line-height: 1.6;
+              background-color: #ffffff;
+            }
+            .header {
+              border-bottom: 2px solid #f1f5f9;
+              padding-bottom: 24px;
+              margin-bottom: 40px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .logo {
+              font-size: 26px;
+              font-weight: 700;
+              letter-spacing: 0.05em;
+              color: #7c3aed;
+              text-transform: uppercase;
+            }
+            .date {
+              font-size: 13px;
+              color: #64748b;
+              font-weight: 500;
+            }
+            .title {
+              font-size: 32px;
+              font-weight: 300;
+              margin-top: 0;
+              margin-bottom: 8px;
+              color: #0f172a;
+              letter-spacing: -0.03em;
+            }
+            .subtitle {
+              font-size: 14px;
+              color: #64748b;
+              margin-bottom: 48px;
+              font-weight: 300;
+              max-width: 700px;
+            }
+            .section-title {
+              font-size: 14px;
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.1em;
+              color: #475569;
+              margin-top: 48px;
+              margin-bottom: 24px;
+              border-bottom: 1px solid #f1f5f9;
+              padding-bottom: 8px;
+            }
+            .grid {
+              display: grid;
+              grid-template-cols: repeat(4, 1fr);
+              gap: 24px;
+              margin-bottom: 48px;
+            }
+            .card {
+              border: 1px solid #e2e8f0;
+              border-radius: 20px;
+              padding: 24px;
+              background-color: #f8fafc;
+            }
+            .card-title {
+              font-size: 10px;
+              text-transform: uppercase;
+              color: #64748b;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              margin: 0 0 10px 0;
+            }
+            .card-value {
+              font-size: 36px;
+              font-weight: 700;
+              color: #0f172a;
+              margin: 0;
+            }
+            .table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 48px;
+            }
+            .table th {
+              background-color: #f8fafc;
+              padding: 14px 20px;
+              font-size: 10px;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              font-weight: 600;
+              color: #475569;
+              text-align: left;
+              border-bottom: 1px solid #e2e8f0;
+            }
+            .table td {
+              padding: 16px 20px;
+              font-size: 13px;
+              border-bottom: 1px solid #f1f5f9;
+              color: #334155;
+            }
+            .decision-box {
+              background-color: #faf5ff;
+              border: 1px dashed #d8b4fe;
+              border-radius: 20px;
+              padding: 30px;
+              margin-top: 60px;
+            }
+            .decision-title {
+              font-size: 13px;
+              font-weight: 600;
+              color: #6b21a8;
+              margin-top: 0;
+              margin-bottom: 12px;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+            }
+            .decision-text {
+              font-size: 13px;
+              color: #581c87;
+              margin: 0;
+              line-height: 1.7;
+            }
+            @media print {
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">Rever</div>
+            <div class="date">${today}</div>
+          </div>
+          
+          <h1 class="title">Rapport d'Administration et Décisions</h1>
+          <p class="subtitle">Ce rapport consolide les métriques clés d'engagement de Rever pour guider la stratégie de modération et d'animation communautaire.</p>
+          
+          <div class="section-title">Mesures d'Engagement</div>
+          <div class="grid">
+            <div class="card">
+              <p class="card-title">Membres Inscrits</p>
+              <p class="card-value">${adminMetrics.totalUsers}</p>
+            </div>
+            <div class="card">
+              <p class="card-title">Confessions</p>
+              <p class="card-value">${adminMetrics.totalPosts}</p>
+            </div>
+            <div class="card">
+              <p class="card-title">Commentaires</p>
+              <p class="card-value">${adminMetrics.totalComments}</p>
+            </div>
+            <div class="card">
+              <p class="card-title">Discussions</p>
+              <p class="card-value">${adminMetrics.totalMessages}</p>
+            </div>
+          </div>
+          
+          <div class="section-title">Breakdown des Utilisateurs</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Type d'Utilisateur</th>
+                <th>Membres</th>
+                <th>Proportion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>🌱 Membres de la communauté (Simple Users)</strong></td>
+                <td>${adminMetrics.usersByRole?.user || 0}</td>
+                <td>${Math.round(((adminMetrics.usersByRole?.user || 0) / adminMetrics.totalUsers) * 100)}%</td>
+              </tr>
+              <tr>
+                <td><strong>🧘 Coachs Professionnels</strong></td>
+                <td>${adminMetrics.usersByRole?.coach || 0}</td>
+                <td>${Math.round(((adminMetrics.usersByRole?.coach || 0) / adminMetrics.totalUsers) * 100)}%</td>
+              </tr>
+              <tr>
+                <td><strong>👑 Administrateurs</strong></td>
+                <td>${adminMetrics.usersByRole?.admin || 0}</td>
+                <td>${Math.round(((adminMetrics.usersByRole?.admin || 0) / adminMetrics.totalUsers) * 100)}%</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div class="section-title">Sécurité et Modération</div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Indicateur</th>
+                <th>Mesure</th>
+                <th>Sévérité recommandée</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Publications Signalées actives</td>
+                <td><strong>${reportedPosts.length} post(s) en attente</strong></td>
+                <td>
+                  <span style="background-color: ${reportedPosts.length > 0 ? '#ffe4e6' : '#d1fae5'}; color: ${reportedPosts.length > 0 ? '#9f1239' : '#065f46'}; padding: 3px 10px; border-radius: 9999px; font-size: 11px; font-weight: bold;">
+                    ${reportedPosts.length > 5 ? 'CRITIQUE' : reportedPosts.length > 0 ? 'MOYENNE' : 'SÛRE'}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div class="decision-box">
+            <h3 class="decision-title">💡 Recommandations de Pilotage</h3>
+            <p class="decision-text">
+              • <strong>Ratio Confessions/Membres</strong> : Actuellement à <strong>${(adminMetrics.totalPosts / adminMetrics.totalUsers).toFixed(1)}</strong>, traduisant une dynamique d'expression saine.<br/>
+              • <strong>Encadrement Psychologique</strong> : Le ratio de membres par coach est de <strong>${adminMetrics.usersByRole?.coach ? Math.round(adminMetrics.totalUsers / adminMetrics.usersByRole.coach) : adminMetrics.totalUsers}:1</strong>. Idéalement, ce ratio devrait se maintenir sous 30:1 pour assurer des réponses qualitatives et rapides aux membres en souffrance.<br/>
+              • <strong>Modération active</strong> : Résoudre en priorité les <strong>${reportedPosts.length} signalements</strong> restants sur la plateforme pour préserver la bienveillance du flux.
+            </p>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
+
   useEffect(() => {
     if (user && user.role === 'admin' && view === 'admin-dashboard') {
       fetchReportedPosts();
@@ -644,160 +887,172 @@ function App() {
         )}
 
         {view === 'admin-dashboard' && (
-          <div className="animate-[fadeIn_0.4s_ease-out] relative z-10 space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h2 className="text-2xl font-light tracking-wider text-slate-900 dark:text-slate-200 uppercase">Dashboard Administration</h2>
-                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 font-light">Supervision de l'activité, gestion des membres et modération de Rever.</p>
+          <div className="animate-[fadeIn_0.4s_ease-out] relative z-10 space-y-12 max-w-6xl mx-auto px-4 py-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-slate-100 dark:border-slate-800/60">
+              <div className="space-y-1">
+                <h2 className="text-3xl font-light tracking-wide text-slate-900 dark:text-slate-200">Dashboard Administration</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-light">Supervision de l'activité globale et modération communautaire.</p>
               </div>
               
-              <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/30">
+              <div className="flex flex-wrap items-center gap-4">
                 <button 
-                  onClick={() => setAdminTab('metrics')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'metrics' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                  onClick={handleGeneratePDF}
+                  className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-xs font-bold rounded-2xl transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:scale-[1.02] flex items-center gap-2"
                 >
-                  📊 Métriques
+                  📄 Rapport PDF
                 </button>
-                <button 
-                  onClick={() => setAdminTab('users')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'users' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                >
-                  👥 Utilisateurs
-                </button>
-                <button 
-                  onClick={() => setAdminTab('moderation')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'moderation' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                >
-                  🚨 Signalements {reportedPosts.length > 0 && <span className="ml-1 px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full">{reportedPosts.length}</span>}
-                </button>
+                
+                <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-700/30">
+                  <button 
+                    onClick={() => setAdminTab('metrics')}
+                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'metrics' ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                  >
+                    📊 Métriques
+                  </button>
+                  <button 
+                    onClick={() => setAdminTab('users')}
+                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'users' ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                  >
+                    👥 Utilisateurs
+                  </button>
+                  <button 
+                    onClick={() => setAdminTab('moderation')}
+                    className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'moderation' ? 'bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                  >
+                    🚨 Signalements {reportedPosts.length > 0 && <span className="ml-1.5 px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full">{reportedPosts.length}</span>}
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* TAB CONTENT: METRICS */}
             {adminTab === 'metrics' && (
-              <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
+              <div className="space-y-12 animate-[fadeIn_0.3s_ease-out]">
                 {adminMetrics ? (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-3xl">👥</span>
-                          <span className="text-xs font-bold px-2.5 py-1 bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 rounded-full">Total</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                      <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                          <span className="text-4xl">👥</span>
+                          <span className="text-[10px] font-bold px-3 py-1 bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 rounded-full tracking-wider uppercase">Membres</span>
                         </div>
-                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Membres</h4>
-                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalUsers}</p>
-                        <div className="flex gap-3 mt-4 text-[10px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
-                          <span>🌱 Users: <strong>{adminMetrics.usersByRole?.user || 0}</strong></span>
-                          <span>🧘 Coachs: <strong>{adminMetrics.usersByRole?.coach || 0}</strong></span>
-                        </div>
-                      </div>
-
-                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-3xl">📝</span>
-                          <span className="text-xs font-bold px-2.5 py-1 bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded-full">Confessions</span>
-                        </div>
-                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Publications</h4>
-                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalPosts}</p>
-                        <div className="mt-4 text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
-                          Flux communautaire actif
+                        <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Utilisateurs</h4>
+                        <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalUsers}</p>
+                        <div className="flex flex-col gap-2 mt-6 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/40 pt-4 font-light">
+                          <div className="flex justify-between"><span>🌱 Users:</span> <strong>{adminMetrics.usersByRole?.user || 0}</strong></div>
+                          <div className="flex justify-between"><span>🧘 Coachs:</span> <strong>{adminMetrics.usersByRole?.coach || 0}</strong></div>
+                          <div className="flex justify-between"><span>👑 Admins:</span> <strong>{adminMetrics.usersByRole?.admin || 0}</strong></div>
                         </div>
                       </div>
 
-                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-3xl">💬</span>
-                          <span className="text-xs font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-full">Réponses</span>
+                      <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                          <span className="text-4xl">📝</span>
+                          <span className="text-[10px] font-bold px-3 py-1 bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-full tracking-wider uppercase">Contenu</span>
                         </div>
-                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Commentaires</h4>
-                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalComments}</p>
-                        <div className="mt-4 text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
-                          Soutien mutuel
-                        </div>
+                        <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Confessions</h4>
+                        <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalPosts}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4 font-light leading-relaxed">
+                          L'activité globale traduit le besoin d'expression des confessions anonymes.
+                        </p>
                       </div>
 
-                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-3xl">✉️</span>
-                          <span className="text-xs font-bold px-2.5 py-1 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 rounded-full">Discussions</span>
+                      <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                          <span className="text-4xl">💬</span>
+                          <span className="text-[10px] font-bold px-3 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-full tracking-wider uppercase">Commentaires</span>
                         </div>
-                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Messages Privés</h4>
-                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalMessages}</p>
-                        <div className="mt-4 text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
-                          Échanges confidentiels coach/user
+                        <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Réponses communautaires</h4>
+                        <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalComments}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4 font-light leading-relaxed">
+                          Taux d'échange et d'entraide active sur le feed public de l'application.
+                        </p>
+                      </div>
+
+                      <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                        <div className="flex justify-between items-center mb-6">
+                          <span className="text-4xl">✉️</span>
+                          <span className="text-[10px] font-bold px-3 py-1 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-full tracking-wider uppercase">Messages</span>
                         </div>
+                        <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Discussions Privées</h4>
+                        <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalMessages}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4 font-light leading-relaxed">
+                          Nombre total d'échanges privés ultra-confidentiels entre les coachs et les membres.
+                        </p>
                       </div>
                     </div>
                     
-                    <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-8 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
-                      <div className="space-y-2">
-                        <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-200">État de la modération</h4>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 font-light">
+                    <div className="bg-white/50 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 transition-all">
+                      <div className="space-y-1">
+                        <h4 className="text-lg font-medium text-slate-800 dark:text-slate-200">État général de la modération</h4>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 font-light">
                           {reportedPosts.length > 0 
-                            ? `Attention, il y a actuellement ${reportedPosts.length} publication(s) en attente d'examen.` 
-                            : "Aucun signalement en attente. La plateforme est sûre et respectueuse !"}
+                            ? `Il y a actuellement ${reportedPosts.length} publication(s) suspectes ou signalées en attente de traitement.` 
+                            : "La plateforme est sereine. Aucun contenu n'a été signalé par la communauté."}
                         </p>
                       </div>
                       <button 
                         onClick={() => setAdminTab('moderation')}
-                        className={`px-6 py-3 rounded-2xl text-xs font-bold transition-all shadow-md ${reportedPosts.length > 0 ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20' : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200'}`}
+                        className={`px-6 py-3 rounded-2xl text-xs font-bold transition-all shadow-md ${reportedPosts.length > 0 ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20' : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-800 dark:text-slate-200'}`}
                       >
-                        {reportedPosts.length > 0 ? "🚀 Modérer maintenant" : "Vérifier la modération"}
+                        {reportedPosts.length > 0 ? "🚀 Modérer les signalements" : "Consulter l'historique"}
                       </button>
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-12 text-slate-500">Chargement des statistiques...</div>
+                  <div className="text-center py-16 text-slate-400 font-light">Récupération des indicateurs en cours...</div>
                 )}
               </div>
             )}
 
             {/* TAB CONTENT: USERS MANAGEMENT */}
             {adminTab === 'users' && (
-              <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg space-y-6 animate-[fadeIn_0.3s_ease-out]">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  👥 Liste des Membres ({adminUsers.length})
-                </h3>
+              <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[fadeIn_0.3s_ease-out]">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
+                    Membres inscrits <span className="text-xs text-purple-600 font-bold ml-2">({adminUsers.length})</span>
+                  </h3>
+                </div>
                 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-slate-100 dark:border-slate-700/50 text-slate-400 uppercase text-[10px] tracking-wider font-semibold">
-                        <th className="py-3 px-4">Utilisateur</th>
-                        <th className="py-3 px-4">Pseudo</th>
-                        <th className="py-3 px-4">Contact</th>
-                        <th className="py-3 px-4">Rôle Actuel</th>
-                        <th className="py-3 px-4 text-right">Actions / Modifier Rôle</th>
+                      <tr className="border-b border-slate-100 dark:border-slate-800/60 text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-wider font-semibold">
+                        <th className="py-4 px-6">Identité</th>
+                        <th className="py-4 px-6">Pseudo</th>
+                        <th className="py-4 px-6">Contact unique</th>
+                        <th className="py-4 px-6">Statut / Rôle</th>
+                        <th className="py-4 px-6 text-right">Rôle administratif</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/30 text-sm">
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/40 text-sm">
                       {adminUsers.map(u => (
-                        <tr key={u.id} className="text-slate-700 dark:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
-                          <td className="py-4 px-4 font-medium">
+                        <tr key={u.id} className="text-slate-700 dark:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-900/10 transition-colors">
+                          <td className="py-5 px-6">
                             <div className="flex items-center gap-3">
-                              <span className="text-xl">{u.role === 'admin' ? '👑' : u.role === 'coach' ? '🧘' : '🌱'}</span>
-                              <span>{u.first_name} {u.last_name}</span>
+                              <span className="text-2xl">{u.role === 'admin' ? '👑' : u.role === 'coach' ? '🧘' : '🌱'}</span>
+                              <span className="font-semibold">{u.first_name} {u.last_name}</span>
                             </div>
                           </td>
-                          <td className="py-4 px-4 font-mono text-xs">{u.pseudo}</td>
-                          <td className="py-4 px-4 text-xs text-slate-500">{u.contact}</td>
-                          <td className="py-4 px-4">
-                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          <td className="py-5 px-6 font-mono text-xs text-slate-500">{u.pseudo}</td>
+                          <td className="py-5 px-6 text-xs text-slate-400 dark:text-slate-500">{u.contact}</td>
+                          <td className="py-5 px-6">
+                            <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                               u.role === 'admin' 
-                                ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300' 
+                                ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300' 
                                 : u.role === 'coach' 
-                                  ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300' 
+                                  ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300' 
                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                             }`}>
                               {u.role}
                             </span>
                           </td>
-                          <td className="py-4 px-4 text-right">
+                          <td className="py-5 px-6 text-right">
                             {u.id !== user.id ? (
                               <select 
                                 value={u.role}
                                 onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-purple-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-bold shadow-sm"
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs outline-none focus:border-purple-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-bold shadow-sm"
                               >
                                 <option value="user">🌱 Simple User</option>
                                 <option value="coach">🧘 Professional Coach</option>
@@ -817,41 +1072,41 @@ function App() {
 
             {/* TAB CONTENT: MODERATION */}
             {adminTab === 'moderation' && (
-              <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg space-y-6 animate-[fadeIn_0.3s_ease-out]">
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                  🚨 Contenus Signalés ({reportedPosts.length})
+              <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[fadeIn_0.3s_ease-out]">
+                <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
+                  Publications signalées par la communauté <span className="text-xs text-rose-500 font-bold ml-2">({reportedPosts.length})</span>
                 </h3>
                 
                 {reportedPosts.length > 0 ? (
                   <div className="space-y-6">
                     {reportedPosts.map(post => (
-                      <div key={post.id} className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/50 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all hover:shadow-md">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-2">
+                      <div key={post.id} className="p-6 bg-slate-50/50 dark:bg-slate-900/10 border border-slate-200/50 dark:border-slate-800/60 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 transition-all hover:shadow-md">
+                        <div className="flex-1 space-y-3">
+                          <div className="flex flex-wrap items-center gap-3">
                             <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{post.username}</span>
                             <span className="text-[10px] text-slate-400">{new Date(post.created_at).toLocaleString('fr-FR')}</span>
-                            <span className="ml-2 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                            <span className="bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 text-[10px] px-3 py-1 rounded-full font-bold">
                               ⚠️ {post.reports_count} signalement(s)
                             </span>
                           </div>
-                          <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-light">{post.text}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-light leading-relaxed">{post.text}</p>
                           {post.image_url && (
-                            <div className="mt-2">
-                              <img src={getFullImageUrl(post.image_url)} alt="Reported image" className="max-h-32 rounded-lg object-cover" />
+                            <div className="mt-3">
+                              <img src={getFullImageUrl(post.image_url)} alt="Reported image" className="max-h-48 rounded-xl object-cover" />
                             </div>
                           )}
                         </div>
                         
-                        <div className="flex gap-2 shrink-0 w-full md:w-auto">
+                        <div className="flex md:flex-col lg:flex-row gap-3 shrink-0 w-full md:w-auto">
                           <button 
                             onClick={() => handleApprovePost(post.id)}
-                            className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/30"
+                            className="flex-1 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/30"
                           >
                             ✓ Approuver
                           </button>
                           <button 
                             onClick={() => handleDeletePost(post.id)}
-                            className="flex-1 md:flex-none px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-500/10 hover:shadow-rose-500/30"
+                            className="flex-1 px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-500/10 hover:shadow-rose-500/30"
                           >
                             🗑️ Supprimer
                           </button>
@@ -860,9 +1115,9 @@ function App() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                    <div className="text-4xl mb-3">🛡️</div>
-                    <p className="text-sm">Aucun contenu suspect ou signalé pour le moment. La communauté est saine !</p>
+                  <div className="text-center py-16 text-slate-500 dark:text-slate-400">
+                    <div className="text-5xl mb-4 opacity-40">🛡️</div>
+                    <p className="text-sm font-light">Aucun contenu n'a été signalé. La communauté est saine et bienveillante !</p>
                   </div>
                 )}
               </div>
