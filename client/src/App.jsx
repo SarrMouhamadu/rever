@@ -62,6 +62,11 @@ function App() {
   const [newPostImagePreview, setNewPostImagePreview] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
 
+  const [coaches, setCoaches] = useState([]);
+  const [selectedCoach, setSelectedCoach] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newChatMessage, setNewChatMessage] = useState('');
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -170,6 +175,46 @@ function App() {
     if (user && view === 'feed') fetchFeed();
   }, [user, view]);
 
+  const fetchCoaches = async () => {
+    try {
+      const res = await axios.get('http://localhost:5001/api/coaches');
+      setCoaches(res.data);
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchChatMessages = async (coachId) => {
+    try {
+      const res = await axios.get(`http://localhost:5001/api/messages/${user.id}/${coachId}`);
+      setChatMessages(res.data);
+    } catch (error) { console.error(error); }
+  };
+
+  useEffect(() => {
+    if (user && view === 'messages') fetchCoaches();
+  }, [user, view]);
+
+  useEffect(() => {
+    if (selectedCoach && view === 'messages') {
+      fetchChatMessages(selectedCoach.id);
+      const interval = setInterval(() => fetchChatMessages(selectedCoach.id), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [selectedCoach, view]);
+
+  const handleSendChatMessage = async (e) => {
+    e.preventDefault();
+    if (!newChatMessage.trim() || !selectedCoach) return;
+    try {
+      await axios.post('http://localhost:5001/api/messages', {
+        senderId: user.id,
+        receiverId: selectedCoach.id,
+        text: newChatMessage
+      });
+      setNewChatMessage('');
+      fetchChatMessages(selectedCoach.id);
+    } catch (error) { console.error(error); }
+  };
+
   if (showContact && !user) {
     return <ContactPage onBack={() => setShowContact(false)} onGetStarted={() => { setShowContact(false); setShowLanding(false); }} theme={theme} toggleTheme={toggleTheme} />;
   }
@@ -262,6 +307,7 @@ function App() {
             {user.role === 'user' || user.role === 'coach' ? (
               <>
                 <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
+                <button onClick={() => setView('messages')} className={`${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Messages</button>
               </>
             ) : (
               <>
@@ -379,6 +425,81 @@ function App() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {view === 'messages' && (
+          <div className="relative z-10 flex flex-col md:flex-row gap-6 animate-[fadeIn_0.4s_ease-out]">
+            {/* Coaches List */}
+            <div className="w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-4 shadow-lg h-[600px] overflow-y-auto">
+              <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">Coachs</h2>
+              {coaches.length > 0 ? coaches.map(coach => (
+                <div 
+                  key={coach.id} 
+                  onClick={() => setSelectedCoach(coach)}
+                  className={`p-3 rounded-2xl cursor-pointer transition-all mb-2 flex items-center gap-3 ${selectedCoach?.id === coach.id ? 'bg-purple-100 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-500/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border border-transparent'}`}
+                >
+                  <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                    {coach.pseudo.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="truncate">
+                    <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{coach.pseudo}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Professionnel</p>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-sm text-slate-500 px-2">Aucun coach disponible.</p>
+              )}
+            </div>
+
+            {/* Chat Area */}
+            <div className="w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl flex flex-col shadow-lg h-[600px] overflow-hidden">
+              {selectedCoach ? (
+                <>
+                  <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex items-center gap-3">
+                    <div className="w-8 h-8 shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                      {selectedCoach.pseudo.charAt(0).toUpperCase()}
+                    </div>
+                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Discussion avec {selectedCoach.pseudo}</h3>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse">
+                    <div className="flex flex-col gap-4">
+                      {chatMessages.map(msg => {
+                        const isMe = msg.sender_id === user.id;
+                        return (
+                          <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50'}`}>
+                              <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                              <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                                {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <form onSubmit={handleSendChatMessage} className="p-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex gap-2">
+                    <input 
+                      type="text" 
+                      value={newChatMessage} 
+                      onChange={(e) => setNewChatMessage(e.target.value)}
+                      placeholder="Votre message..."
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100 shadow-sm"
+                    />
+                    <button type="submit" disabled={!newChatMessage.trim()} className="px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md">
+                      Envoyer
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 p-6 text-center">
+                  <div className="text-5xl mb-4 opacity-50">💬</div>
+                  <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">Vos messages privés</h3>
+                  <p className="text-sm">Sélectionnez un coach dans la liste pour commencer une discussion en toute confidentialité.</p>
+                </div>
+              )}
             </div>
           </div>
         )}

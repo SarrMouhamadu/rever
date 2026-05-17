@@ -206,6 +206,19 @@ const sendMessage = (senderId, receiverId, text) => {
   });
 };
 
+const getCoaches = () => {
+  return new Promise((resolve, reject) => {
+    pool.query(`
+      SELECT id, first_name, last_name, pseudo, role, avatar 
+      FROM users 
+      WHERE role = 'coach'
+    `, [], (err, result) => {
+      if (err) reject(err);
+      else resolve(result.rows);
+    });
+  });
+};
+
 const getAdminUsers = () => {
   return new Promise((resolve, reject) => {
     pool.query(`
@@ -319,5 +332,5 @@ const getMetrics = () => {
 
 module.exports = { 
   pool, registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole
+  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches
 };

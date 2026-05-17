@@ -5,7 +5,7 @@ const path = require('path');
 const { chatWithAI } = require('./geminiService');
 const { 
   registerUser, loginUser, createPost, likePost, addComment, getFeed, 
-  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole
+  getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches
 } = require('./database');
 
 const app = express();
@@ -124,6 +124,15 @@ app.post('/api/chat', async (req, res) => {
 
 // --- ROUTES CHAT COACH (HUMAIN) ---
 
+app.get('/api/coaches', async (req, res) => {
+  try {
+    const coaches = await getCoaches();
+    res.json(coaches);
+  } catch (error) {
+    res.status(500).json({ error: "Erreur lors de la récupération des coachs" });
+  }
+});
+
 app.get('/api/messages/:userId1/:userId2', async (req, res) => {
   try {
     const messages = await getMessages(req.params.userId1, req.params.userId2);
@@ -234,4 +243,4 @@ app.put('/api/users/:userId/avatar', async (req, res) => {
   }
 });
 
-app.listen(port, '127.0.0.1', () => console.log(`Serveur démarré sur http://127.0.0.1:${port}`));
+app.listen(port, '0.0.0.0', () => console.log(`Serveur démarré sur http://0.0.0.0:${port}`));
