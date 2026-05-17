@@ -266,6 +266,69 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         </div>
       </section>
 
+      {/* Smooth Section Transition */}
+      <div className="h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700/50 to-transparent w-full"></div>
+
+      {/* Contact Coordinates Section */}
+      <section className="px-4 sm:px-6 py-16 sm:py-20 md:py-24 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute bottom-10 left-10 w-48 h-48 bg-purple-600/5 rounded-full blur-3xl animate-pulse"></div>
+        </div>
+        
+        <div className="relative max-w-6xl mx-auto text-center">
+          <h3 className="text-xs sm:text-sm uppercase tracking-[0.25em] sm:tracking-[0.3em] text-purple-500 dark:text-purple-400 mb-3 sm:mb-4">Nous contacter</h3>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-slate-900 dark:text-white mb-10 sm:mb-16">
+            Besoin d'aide ? <span className="font-normal text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-300 dark:to-blue-300">Restons en contact</span>
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left animate-[slideUp_0.8s_ease-out_both]">
+            {/* Email Card */}
+            <a 
+              href="mailto:contact@annonyme.pro" 
+              className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-slate-800/80 hover:border-purple-300 dark:hover:border-purple-500/30 transition-all duration-500 shadow-md hover:shadow-2xl hover:shadow-purple-500/10 hover:scale-[1.03] group block"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-xl sm:text-2xl mb-6 group-hover:scale-110 transition-transform">
+                📧
+              </div>
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">E-mail</h4>
+              <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Notre équipe vous répond sous 24 heures.</p>
+              <p className="text-purple-600 dark:text-purple-300 font-medium text-base sm:text-lg">contact@annonyme.pro</p>
+            </a>
+
+            {/* WhatsApp Card */}
+            <a 
+              href="https://wa.me/221777091913" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-slate-800/80 hover:border-emerald-300 dark:hover:border-emerald-500/30 transition-all duration-500 shadow-md hover:shadow-2xl hover:shadow-emerald-500/10 hover:scale-[1.03] group block"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center text-xl sm:text-2xl mb-6 group-hover:scale-110 transition-transform">
+                💬
+              </div>
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">WhatsApp</h4>
+              <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Discutez en direct avec un coach bienveillant.</p>
+              <p className="text-emerald-600 dark:text-emerald-300 font-medium text-base sm:text-lg">+221 77 709 19 13</p>
+            </a>
+
+            {/* Phone Card */}
+            <a 
+              href="tel:+221777091913" 
+              className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-slate-800/80 hover:border-blue-300 dark:hover:border-blue-500/30 transition-all duration-500 shadow-md hover:shadow-2xl hover:shadow-blue-500/10 hover:scale-[1.03] group block"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-xl sm:text-2xl mb-6 group-hover:scale-110 transition-transform">
+                📞
+              </div>
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">Téléphone</h4>
+              <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Appelez-nous directement pour toute urgence.</p>
+              <p className="text-blue-600 dark:text-blue-300 font-medium text-base sm:text-lg">+221 77 709 19 13</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Smooth Section Transition */}
+      <div className="h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700/50 to-transparent w-full"></div>
+
       {/* Footer - Improved */}
       <footer className="px-4 sm:px-6 py-8 sm:py-12 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-5xl sm:max-w-6xl mx-auto">
