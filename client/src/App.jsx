@@ -308,6 +308,7 @@ function App() {
         await axios.delete(`/api/admin/posts/${postId}`);
         fetchReportedPosts();
         fetchAdminMetrics();
+        fetchFeed();
       }
     } catch (error) { console.error(error); }
   };
@@ -763,13 +764,23 @@ function App() {
                     <span className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
                       💬 {post.comments?.length || 0}
                     </span>
-                    <button 
-                      onClick={() => handleReportPost(post.id)} 
-                      className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors text-[10px] sm:text-xs ml-auto uppercase tracking-wider font-semibold"
-                      title="Signaler ce post"
-                    >
-                      ⚠️ Signaler
-                    </button>
+                    {user.role === 'admin' ? (
+                      <button 
+                        onClick={() => handleDeletePost(post.id)} 
+                        className="flex items-center gap-1 sm:gap-2 text-rose-500 hover:text-rose-600 transition-colors text-[10px] sm:text-xs ml-auto uppercase tracking-wider font-bold"
+                        title="Supprimer ce post définitivement"
+                      >
+                        🗑️ Supprimer
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleReportPost(post.id)} 
+                        className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors text-[10px] sm:text-xs ml-auto uppercase tracking-wider font-semibold"
+                        title="Signaler ce post"
+                      >
+                        ⚠️ Signaler
+                      </button>
+                    )}
                   </div>
                   
                   <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 sm:pt-5">
