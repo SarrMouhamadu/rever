@@ -110,35 +110,35 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
             <div className="space-y-6 animate-[slideUp_0.8s_ease-out_1s_both]">
               <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white mb-6">Nos coordonnées</h3>
               
-              <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 transition-all shadow-sm backdrop-blur-sm">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+              <a href="mailto:contact@annonyme.pro" className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 hover:scale-[1.02] transition-all shadow-sm backdrop-blur-sm group block">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
                   📧
                 </div>
                 <div>
                   <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">Email</h4>
-                  <p className="text-slate-600 dark:text-slate-200 font-medium">contact@anonyme-pro.fr</p>
+                  <p className="text-slate-600 dark:text-slate-200 font-medium">contact@annonyme.pro</p>
                 </div>
-              </div>
+              </a>
               
-              <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 transition-all shadow-sm backdrop-blur-sm">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                  🐦
+              <a href="https://wa.me/221777091913" target="_blank" rel="noopener noreferrer" className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 hover:scale-[1.02] transition-all shadow-sm backdrop-blur-sm group block">
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
+                  💬
                 </div>
                 <div>
-                  <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">Twitter</h4>
-                  <p className="text-slate-600 dark:text-slate-200 font-medium">@AnonymePro</p>
+                  <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">WhatsApp</h4>
+                  <p className="text-slate-600 dark:text-slate-200 font-medium">+221 77 709 19 13</p>
                 </div>
-              </div>
+              </a>
               
-              <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 transition-all shadow-sm backdrop-blur-sm">
-                <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                  📱
+              <a href="tel:+221777091913" className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 hover:scale-[1.02] transition-all shadow-sm backdrop-blur-sm group block">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
+                  📞
                 </div>
                 <div>
-                  <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">Instagram</h4>
-                  <p className="text-slate-600 dark:text-slate-200 font-medium">@anonyme.pro</p>
+                  <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">Téléphone</h4>
+                  <p className="text-slate-600 dark:text-slate-200 font-medium">+221 77 709 19 13</p>
                 </div>
-              </div>
+              </a>
             </div>
 
             {/* Contact Form */}
