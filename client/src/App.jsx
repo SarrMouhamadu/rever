@@ -67,6 +67,9 @@ function App() {
   const [contacts, setContacts] = useState([]);
   const [selectedCoach, setSelectedCoach] = useState(null);
   const [reportedPosts, setReportedPosts] = useState([]);
+  const [adminMetrics, setAdminMetrics] = useState(null);
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminTab, setAdminTab] = useState('metrics');
   const [totalUnread, setTotalUnread] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
   const [newChatMessage, setNewChatMessage] = useState('');
@@ -268,6 +271,28 @@ function App() {
     } catch (error) { console.error(error); }
   };
 
+  const fetchAdminMetrics = async () => {
+    try {
+      const res = await axios.get('/api/admin/metrics');
+      setAdminMetrics(res.data);
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchAdminUsers = async () => {
+    try {
+      const res = await axios.get('/api/admin/users');
+      setAdminUsers(res.data);
+    } catch (error) { console.error(error); }
+  };
+
+  const handleUpdateUserRole = async (userId, newRole) => {
+    try {
+      await axios.put(`/api/admin/users/${userId}/role`, { role: newRole });
+      fetchAdminUsers();
+      fetchAdminMetrics();
+    } catch (error) { console.error(error); }
+  };
+
   const handleApprovePost = async (postId) => {
     try {
       await axios.post(`/api/admin/posts/${postId}/approve`);
@@ -280,6 +305,7 @@ function App() {
       if (confirm("Voulez-vous vraiment supprimer définitivement ce post ?")) {
         await axios.delete(`/api/admin/posts/${postId}`);
         fetchReportedPosts();
+        fetchAdminMetrics();
       }
     } catch (error) { console.error(error); }
   };
@@ -287,6 +313,8 @@ function App() {
   useEffect(() => {
     if (user && user.role === 'admin' && view === 'admin-dashboard') {
       fetchReportedPosts();
+      fetchAdminMetrics();
+      fetchAdminUsers();
     }
   }, [user, view]);
 
@@ -616,58 +644,229 @@ function App() {
         )}
 
         {view === 'admin-dashboard' && (
-          <div className="animate-[fadeIn_0.4s_ease-out] relative z-10">
-            <h2 className="text-2xl font-light tracking-wider text-slate-900 dark:text-slate-200 mb-8 uppercase">Dashboard Modération</h2>
-            
-            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-6 flex items-center gap-2">
-                🚨 Contenus Signalés ({reportedPosts.length})
-              </h3>
+          <div className="animate-[fadeIn_0.4s_ease-out] relative z-10 space-y-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-2xl font-light tracking-wider text-slate-900 dark:text-slate-200 uppercase">Dashboard Administration</h2>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 font-light">Supervision de l'activité, gestion des membres et modération de Rever.</p>
+              </div>
               
-              {reportedPosts.length > 0 ? (
-                <div className="space-y-6">
-                  {reportedPosts.map(post => (
-                    <div key={post.id} className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/50 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all hover:shadow-md">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{post.username}</span>
-                          <span className="text-[10px] text-slate-400">{new Date(post.created_at).toLocaleString('fr-FR')}</span>
-                          <span className="ml-2 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold">
-                            ⚠️ {post.reports_count} signalement(s)
-                          </span>
+              <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/30">
+                <button 
+                  onClick={() => setAdminTab('metrics')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'metrics' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                >
+                  📊 Métriques
+                </button>
+                <button 
+                  onClick={() => setAdminTab('users')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'users' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                >
+                  👥 Utilisateurs
+                </button>
+                <button 
+                  onClick={() => setAdminTab('moderation')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${adminTab === 'moderation' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                >
+                  🚨 Signalements {reportedPosts.length > 0 && <span className="ml-1 px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full">{reportedPosts.length}</span>}
+                </button>
+              </div>
+            </div>
+
+            {/* TAB CONTENT: METRICS */}
+            {adminTab === 'metrics' && (
+              <div className="space-y-8 animate-[fadeIn_0.3s_ease-out]">
+                {adminMetrics ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-3xl">👥</span>
+                          <span className="text-xs font-bold px-2.5 py-1 bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 rounded-full">Total</span>
                         </div>
-                        <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-light">{post.text}</p>
-                        {post.image_url && (
-                          <div className="mt-2">
-                            <img src={getFullImageUrl(post.image_url)} alt="Reported image" className="max-h-32 rounded-lg object-cover" />
-                          </div>
-                        )}
+                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Membres</h4>
+                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalUsers}</p>
+                        <div className="flex gap-3 mt-4 text-[10px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
+                          <span>🌱 Users: <strong>{adminMetrics.usersByRole?.user || 0}</strong></span>
+                          <span>🧘 Coachs: <strong>{adminMetrics.usersByRole?.coach || 0}</strong></span>
+                        </div>
                       </div>
-                      
-                      <div className="flex gap-2 shrink-0 w-full md:w-auto">
-                        <button 
-                          onClick={() => handleApprovePost(post.id)}
-                          className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/30"
-                        >
-                          ✓ Approuver
-                        </button>
-                        <button 
-                          onClick={() => handleDeletePost(post.id)}
-                          className="flex-1 md:flex-none px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-500/10 hover:shadow-rose-500/30"
-                        >
-                          🗑️ Supprimer
-                        </button>
+
+                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-3xl">📝</span>
+                          <span className="text-xs font-bold px-2.5 py-1 bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded-full">Confessions</span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Publications</h4>
+                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalPosts}</p>
+                        <div className="mt-4 text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
+                          Flux communautaire actif
+                        </div>
+                      </div>
+
+                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-3xl">💬</span>
+                          <span className="text-xs font-bold px-2.5 py-1 bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-full">Réponses</span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Commentaires</h4>
+                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalComments}</p>
+                        <div className="mt-4 text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
+                          Soutien mutuel
+                        </div>
+                      </div>
+
+                      <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg transition-transform hover:-translate-y-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-3xl">✉️</span>
+                          <span className="text-xs font-bold px-2.5 py-1 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 rounded-full">Discussions</span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Messages Privés</h4>
+                        <p className="text-3xl font-extrabold text-slate-900 dark:text-white mt-2">{adminMetrics.totalMessages}</p>
+                        <div className="mt-4 text-[10px] text-slate-400 border-t border-slate-100 dark:border-slate-700/30 pt-3">
+                          Échanges confidentiels coach/user
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    
+                    <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-8 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="space-y-2">
+                        <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-200">État de la modération</h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 font-light">
+                          {reportedPosts.length > 0 
+                            ? `Attention, il y a actuellement ${reportedPosts.length} publication(s) en attente d'examen.` 
+                            : "Aucun signalement en attente. La plateforme est sûre et respectueuse !"}
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => setAdminTab('moderation')}
+                        className={`px-6 py-3 rounded-2xl text-xs font-bold transition-all shadow-md ${reportedPosts.length > 0 ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/20' : 'bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200'}`}
+                      >
+                        {reportedPosts.length > 0 ? "🚀 Modérer maintenant" : "Vérifier la modération"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-12 text-slate-500">Chargement des statistiques...</div>
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT: USERS MANAGEMENT */}
+            {adminTab === 'users' && (
+              <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  👥 Liste des Membres ({adminUsers.length})
+                </h3>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-100 dark:border-slate-700/50 text-slate-400 uppercase text-[10px] tracking-wider font-semibold">
+                        <th className="py-3 px-4">Utilisateur</th>
+                        <th className="py-3 px-4">Pseudo</th>
+                        <th className="py-3 px-4">Contact</th>
+                        <th className="py-3 px-4">Rôle Actuel</th>
+                        <th className="py-3 px-4 text-right">Actions / Modifier Rôle</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700/30 text-sm">
+                      {adminUsers.map(u => (
+                        <tr key={u.id} className="text-slate-700 dark:text-slate-300 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 transition-colors">
+                          <td className="py-4 px-4 font-medium">
+                            <div className="flex items-center gap-3">
+                              <span className="text-xl">{u.role === 'admin' ? '👑' : u.role === 'coach' ? '🧘' : '🌱'}</span>
+                              <span>{u.first_name} {u.last_name}</span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 font-mono text-xs">{u.pseudo}</td>
+                          <td className="py-4 px-4 text-xs text-slate-500">{u.contact}</td>
+                          <td className="py-4 px-4">
+                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              u.role === 'admin' 
+                                ? 'bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300' 
+                                : u.role === 'coach' 
+                                  ? 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300' 
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            {u.id !== user.id ? (
+                              <select 
+                                value={u.role}
+                                onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
+                                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs outline-none focus:border-purple-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-bold shadow-sm"
+                              >
+                                <option value="user">🌱 Simple User</option>
+                                <option value="coach">🧘 Professional Coach</option>
+                                <option value="admin">👑 Administrator</option>
+                              </select>
+                            ) : (
+                              <span className="text-xs text-slate-400 dark:text-slate-600 font-semibold italic">Vous-même</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ) : (
-                <div className="text-center py-12 text-slate-500 dark:text-slate-400">
-                  <div className="text-4xl mb-3">🛡️</div>
-                  <p className="text-sm">Aucun contenu suspect ou signalé pour le moment. La communauté est saine !</p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT: MODERATION */}
+            {adminTab === 'moderation' && (
+              <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-6 shadow-lg space-y-6 animate-[fadeIn_0.3s_ease-out]">
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  🚨 Contenus Signalés ({reportedPosts.length})
+                </h3>
+                
+                {reportedPosts.length > 0 ? (
+                  <div className="space-y-6">
+                    {reportedPosts.map(post => (
+                      <div key={post.id} className="p-5 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/50 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all hover:shadow-md">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{post.username}</span>
+                            <span className="text-[10px] text-slate-400">{new Date(post.created_at).toLocaleString('fr-FR')}</span>
+                            <span className="ml-2 bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                              ⚠️ {post.reports_count} signalement(s)
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap font-light">{post.text}</p>
+                          {post.image_url && (
+                            <div className="mt-2">
+                              <img src={getFullImageUrl(post.image_url)} alt="Reported image" className="max-h-32 rounded-lg object-cover" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-2 shrink-0 w-full md:w-auto">
+                          <button 
+                            onClick={() => handleApprovePost(post.id)}
+                            className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/30"
+                          >
+                            ✓ Approuver
+                          </button>
+                          <button 
+                            onClick={() => handleDeletePost(post.id)}
+                            className="flex-1 md:flex-none px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-500/10 hover:shadow-rose-500/30"
+                          >
+                            🗑️ Supprimer
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                    <div className="text-4xl mb-3">🛡️</div>
+                    <p className="text-sm">Aucun contenu suspect ou signalé pour le moment. La communauté est saine !</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
