@@ -83,7 +83,7 @@ app.get('/api/posts', async (req, res) => {
 app.post('/api/posts', upload.single('image'), async (req, res) => {
   try {
     const { userId, text } = req.body;
-    const imageUrl = req.file ? `http://localhost:5001/uploads/${req.file.filename}` : null;
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
     await createPost(userId, text, imageUrl);
     res.json({ success: true });
   } catch (error) {

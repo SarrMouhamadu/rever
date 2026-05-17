@@ -27,6 +27,8 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       - db
+    volumes:
+      - ./server/uploads:/app/uploads
     restart: unless-stopped
 
   client:

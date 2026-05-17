@@ -3,6 +3,8 @@ import axios from 'axios';
 import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
 
+axios.defaults.baseURL = `http://${window.location.hostname}:5001`;
+
 function App() {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -68,11 +70,19 @@ function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [newChatMessage, setNewChatMessage] = useState('');
 
+  const getFullImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http')) {
+      return url.replace('localhost', window.location.hostname);
+    }
+    return `http://${window.location.hostname}:5001${url}`;
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
     setAuthError('');
     try {
-      const res = await axios.post('http://localhost:5001/api/register', authForm);
+      const res = await axios.post('/api/register', authForm);
       const userData = res.data;
       setUser(userData);
       localStorage.setItem('rever_user', JSON.stringify(userData));
@@ -86,7 +96,7 @@ function App() {
     e.preventDefault();
     setAuthError('');
     try {
-      const res = await axios.post('http://localhost:5001/api/login', { 
+      const res = await axios.post('/api/login', { 
         login: authForm.loginId, password: authForm.password 
       });
       const userData = res.data;
@@ -107,7 +117,7 @@ function App() {
 
   const fetchFeed = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/posts');
+      const res = await axios.get('/api/posts');
       setFeed(res.data);
     } catch (error) { console.error(error); }
   };
@@ -133,7 +143,7 @@ function App() {
       formData.append('image', newPostImage);
     }
     
-    await axios.post('http://localhost:5001/api/posts', formData, {
+    await axios.post('/api/posts', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     
@@ -145,7 +155,7 @@ function App() {
 
   const handleLike = async (postId) => {
     try {
-      await axios.post(`http://localhost:5001/api/posts/${postId}/like`);
+      await axios.post(`/api/posts/${postId}/like`);
       fetchFeed();
     } catch (error) {
       console.error(error);
@@ -161,7 +171,7 @@ function App() {
     if (!text?.trim()) return;
     
     try {
-      await axios.post(`http://localhost:5001/api/posts/${postId}/comment`, { 
+      await axios.post(`/api/posts/${postId}/comment`, { 
         userId: user.id, 
         text: text 
       });
@@ -180,10 +190,10 @@ function App() {
     try {
       if (!user) return;
       if (user.role === 'coach') {
-        const res = await axios.get(`http://localhost:5001/api/users/${user.id}/conversations`);
+        const res = await axios.get(`/api/users/${user.id}/conversations`);
         setContacts(res.data);
       } else {
-        const res = await axios.get(`http://localhost:5001/api/users/${user.id}/coaches`);
+        const res = await axios.get(`/api/users/${user.id}/coaches`);
         setContacts(res.data);
       }
     } catch (error) { console.error(error); }
@@ -192,14 +202,14 @@ function App() {
   const fetchUnreadCount = async () => {
     if (!user) return;
     try {
-      const res = await axios.get(`http://localhost:5001/api/users/${user.id}/unread`);
+      const res = await axios.get(`/api/users/${user.id}/unread`);
       setTotalUnread(res.data.count);
     } catch (error) { console.error(error); }
   };
 
   const markAsRead = async (contactId) => {
     try {
-      await axios.post('http://localhost:5001/api/messages/read', {
+      await axios.post('/api/messages/read', {
         senderId: contactId,
         receiverId: user.id
       });
@@ -210,7 +220,7 @@ function App() {
 
   const fetchChatMessages = async (coachId) => {
     try {
-      const res = await axios.get(`http://localhost:5001/api/messages/${user.id}/${coachId}`);
+      const res = await axios.get(`/api/messages/${user.id}/${coachId}`);
       setChatMessages(res.data);
     } catch (error) { console.error(error); }
   };
@@ -246,7 +256,7 @@ function App() {
     e.preventDefault();
     if (!newChatMessage.trim() || !selectedCoach) return;
     try {
-      await axios.post('http://localhost:5001/api/messages', {
+      await axios.post('/api/messages', {
         senderId: user.id,
         receiverId: selectedCoach.id,
         text: newChatMessage
@@ -432,7 +442,7 @@ function App() {
                   <p className="text-slate-700 dark:text-slate-300 mb-3 sm:mb-4 font-light whitespace-pre-wrap text-sm">{post.text}</p>
                   {post.image_url && (
                     <div className="mb-3 sm:mb-4">
-                      <img src={post.image_url} alt="Post image" className="w-full max-h-64 sm:max-h-96 object-cover rounded-xl" />
+                      <img src={getFullImageUrl(post.image_url)} alt="Post image" className="w-full max-h-64 sm:max-h-96 object-cover rounded-xl" />
                     </div>
                   )}
                   <div className="flex items-center gap-4 sm:gap-6 mb-3 sm:mb-4 border-t border-slate-200 dark:border-slate-800 pt-3 sm:pt-4">
