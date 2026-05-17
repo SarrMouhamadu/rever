@@ -61,6 +61,8 @@ function App() {
   const [authError, setAuthError] = useState('');
 
   const [feed, setFeed] = useState([]);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editingPostText, setEditingPostText] = useState('');
   const [quote, setQuote] = useState("Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.");
   const [adminNewQuote, setAdminNewQuote] = useState("");
   const [newPostText, setNewPostText] = useState('');
@@ -189,6 +191,30 @@ function App() {
       fetchFeed();
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleUpdatePost = async (postId) => {
+    if (!editingPostText.trim()) return;
+    try {
+      await axios.put(`/api/posts/${postId}`, { userId: user.id, text: editingPostText });
+      setEditingPostId(null);
+      setEditingPostText('');
+      fetchFeed();
+    } catch (error) {
+      console.error(error);
+      alert('Erreur lors de la modification de la publication.');
+    }
+  };
+
+  const handleDeleteUserPost = async (postId) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer cette publication ?')) return;
+    try {
+      await axios.delete(`/api/posts/${postId}`, { params: { userId: user.id } });
+      fetchFeed();
+    } catch (error) {
+      console.error(error);
+      alert('Erreur lors de la suppression de la publication.');
     }
   };
 
@@ -796,13 +822,55 @@ function App() {
                   className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-3xl p-5 sm:p-7 shadow-lg hover:border-purple-300 dark:hover:border-purple-500/40 transition-all duration-500 hover:shadow-purple-500/15 hover:-translate-y-1 animate-[slideUp_0.6s_ease-out_both]"
                   style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
                 >
-                  <div className="flex items-center gap-3 mb-4 sm:mb-5">
-                    <div>
-                      <p className="text-sm font-medium text-slate-900 dark:text-slate-300">{post.username}</p>
-                      <p className="text-[10px] text-slate-500 dark:text-slate-600">{new Date(post.created_at).toLocaleString('fr-FR')}</p>
+                  <div className="flex items-center justify-between mb-4 sm:mb-5">
+                    <div className="flex items-center gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-300">{post.username}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-600">{new Date(post.created_at).toLocaleString('fr-FR')}</p>
+                      </div>
                     </div>
+                    {post.user_id === user.id && (
+                      <div className="flex gap-2 text-xs">
+                        <button 
+                          onClick={() => { setEditingPostId(post.id); setEditingPostText(post.text); }}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg transition-colors font-medium flex items-center gap-1"
+                        >
+                          ✏️ Modifier
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUserPost(post.id)}
+                          className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-lg transition-colors font-medium flex items-center gap-1"
+                        >
+                          🗑️ Supprimer
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <p className="text-slate-700 dark:text-slate-300 mb-3 sm:mb-4 font-light whitespace-pre-wrap text-sm">{post.text}</p>
+                  {editingPostId === post.id ? (
+                    <div className="mb-4 space-y-3">
+                      <textarea
+                        value={editingPostText}
+                        onChange={(e) => setEditingPostText(e.target.value)}
+                        className="w-full h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleUpdatePost(post.id)}
+                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md"
+                        >
+                          Sauvegarder
+                        </button>
+                        <button
+                          onClick={() => { setEditingPostId(null); setEditingPostText(''); }}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl transition-all"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-700 dark:text-slate-300 mb-3 sm:mb-4 font-light whitespace-pre-wrap text-sm">{post.text}</p>
+                  )}
                   {post.image_url && (
                     <div className="mb-3 sm:mb-4">
                       <img src={getFullImageUrl(post.image_url)} alt="Post image" className="w-full max-h-64 sm:max-h-96 object-cover rounded-xl" />

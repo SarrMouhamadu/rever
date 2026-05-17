@@ -6,7 +6,7 @@ const { chatWithAI } = require('./geminiService');
 const { 
   registerUser, loginUser, createPost, likePost, addComment, getFeed, 
   getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
-  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote
+  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote, getPostById, updatePost
 } = require('./database');
 
 const app = express();
@@ -108,6 +108,44 @@ app.post('/api/posts/:id/comment', async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Erreur lors de l'ajout du commentaire" });
+  }
+});
+
+app.put('/api/posts/:id', async (req, res) => {
+  try {
+    const { userId, text } = req.body;
+    const post = await getPostById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: "Post non trouvé." });
+    }
+    if (post.user_id !== parseInt(userId)) {
+      return res.status(403).json({ error: "Action non autorisée." });
+    }
+    await updatePost(req.params.id, text);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Erreur lors de la modification de la publication." });
+  }
+});
+
+app.delete('/api/posts/:id', async (req, res) => {
+  try {
+    const reqUserId = req.query.userId || req.body.userId;
+    const post = await getPostById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ error: "Post non trouvé." });
+    }
+    
+    const user = await getUserById(reqUserId);
+    const isAdmin = user && user.role === 'admin';
+    
+    if (post.user_id !== parseInt(reqUserId) && !isAdmin) {
+      return res.status(403).json({ error: "Action non autorisée." });
+    }
+    await deletePost(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Erreur lors de la suppression de la publication." });
   }
 });
 

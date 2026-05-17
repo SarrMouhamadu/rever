@@ -467,8 +467,26 @@ const createQuote = (text) => {
   });
 };
 
+const getPostById = (postId) => {
+  return new Promise((resolve, reject) => {
+    pool.query('SELECT * FROM posts WHERE id = $1', [postId], (err, result) => {
+      if (err) reject(err);
+      else resolve(result.rows[0]);
+    });
+  });
+};
+
+const updatePost = (postId, text) => {
+  return new Promise((resolve, reject) => {
+    pool.query('UPDATE posts SET text = $1 WHERE id = $2', [text, postId], (err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
+
 module.exports = { 
   pool, registerUser, loginUser, createPost, likePost, addComment, getFeed, 
   getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
-  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote
+  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote, getPostById, updatePost
 };
