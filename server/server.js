@@ -6,7 +6,7 @@ const { chatWithAI } = require('./geminiService');
 const { 
   registerUser, loginUser, createPost, likePost, addComment, getFeed, 
   getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
-  reportPost, getReportedPosts, approvePost, deletePost
+  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote
 } = require('./database');
 
 const app = express();
@@ -299,6 +299,30 @@ app.delete('/api/admin/posts/:postId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Erreur lors de la suppression du post" });
+  }
+});
+
+// --- ROUTES CITATION DU JOUR ---
+
+app.get('/api/quote', async (req, res) => {
+  try {
+    const quote = await getLatestQuote();
+    res.json({ text: quote });
+  } catch (error) {
+    res.status(500).json({ error: "Erreur lors de la récupération de la citation" });
+  }
+});
+
+app.post('/api/quote', async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: "Le texte de la citation est requis." });
+    }
+    await createQuote(text);
+    res.json({ success: true, text });
+  } catch (error) {
+    res.status(500).json({ error: "Erreur lors de la mise à jour de la citation" });
   }
 });
 

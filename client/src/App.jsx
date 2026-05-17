@@ -61,6 +61,8 @@ function App() {
   const [authError, setAuthError] = useState('');
 
   const [feed, setFeed] = useState([]);
+  const [quote, setQuote] = useState("Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.");
+  const [adminNewQuote, setAdminNewQuote] = useState("");
   const [newPostText, setNewPostText] = useState('');
   const [newPostImage, setNewPostImage] = useState(null);
   const [newPostImagePreview, setNewPostImagePreview] = useState(null);
@@ -190,8 +192,38 @@ function App() {
     }
   };
 
+  const fetchQuote = async () => {
+    try {
+      const res = await axios.get('/api/quote');
+      if (res.data && res.data.text) {
+        setQuote(res.data.text);
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const handlePublishQuote = async (e) => {
+    e.preventDefault();
+    if (!adminNewQuote.trim()) return;
+    try {
+      await axios.post('/api/quote', { text: adminNewQuote });
+      setQuote(adminNewQuote);
+      setAdminNewQuote('');
+      alert('La citation du jour a été mise à jour avec succès !');
+    } catch (error) {
+      console.error(error);
+      alert('Erreur lors de la mise à jour de la citation.');
+    }
+  };
+
   useEffect(() => {
-    if (user && view === 'feed') fetchFeed();
+    fetchQuote();
+  }, []);
+
+  useEffect(() => {
+    if (user && view === 'feed') {
+      fetchFeed();
+      fetchQuote();
+    }
   }, [user, view]);
 
   const fetchContacts = async () => {
@@ -704,6 +736,26 @@ function App() {
         
         {view === 'feed' && (
           <div className="relative z-10">
+            {/* Daily Quote / Motivation Banner */}
+            {quote && (
+              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border border-purple-200/50 dark:border-purple-500/30 rounded-3xl p-6 sm:p-8 mb-6 sm:mb-8 shadow-xl shadow-purple-500/5 hover:shadow-purple-500/10 transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+                <div className="flex gap-4 items-start relative z-10">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg shadow-purple-500/20 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                    ✨
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xs sm:text-sm font-bold tracking-widest text-purple-600 dark:text-purple-300 uppercase mb-2">
+                      Motivation du jour
+                    </h3>
+                    <p className="text-base sm:text-lg text-slate-800 dark:text-slate-200 font-light leading-relaxed italic">
+                      "{quote}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-5 sm:p-7 mb-8 sm:mb-10 shadow-lg shadow-purple-500/5 animate-[slideUp_0.6s_ease-out_both] hover:shadow-purple-500/10 transition-shadow duration-500">
               <form onSubmit={handleCreatePost}>
                 <textarea 
@@ -945,6 +997,12 @@ function App() {
                 >
                   <span>🚨</span> Centre de Modération {reportedPosts.length > 0 && <span className="ml-auto px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full animate-bounce">{reportedPosts.length}</span>}
                 </button>
+                <button 
+                  onClick={() => setAdminTab('quote')}
+                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-3 ${adminTab === 'quote' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:translate-x-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                >
+                  <span>✨</span> Citation du Jour
+                </button>
               </nav>
 
               {/* Admin profile detail */}
@@ -967,11 +1025,13 @@ function App() {
                     {adminTab === 'metrics' && "📊 Métriques & Analytics"}
                     {adminTab === 'users' && "👥 Gestion des Comptes"}
                     {adminTab === 'moderation' && "🚨 Centre de Modération"}
+                    {adminTab === 'quote' && "✨ Citation du Jour"}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-light mt-1">
                     {adminTab === 'metrics' && "Indicateurs d'engagement de la plateforme en temps réel."}
                     {adminTab === 'users' && "Contrôle des privilèges et rôles des membres de la communauté."}
                     {adminTab === 'moderation' && "Suivi des publications signalées par les membres."}
+                    {adminTab === 'quote' && "Publiez une motivation inspirante quotidienne pour tous les utilisateurs."}
                   </p>
                 </div>
 
@@ -1267,6 +1327,64 @@ function App() {
                       <p className="text-sm font-light">Aucun contenu n'a été signalé. La communauté est saine et bienveillante !</p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* TAB CONTENT: QUOTE OF THE DAY */}
+              {adminTab === 'quote' && (
+                <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[slideUp_0.4s_ease-out]">
+                  <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
+                    Publier la Citation / Motivation du Jour
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* Left: Input Form */}
+                    <div className="lg:col-span-7 bg-white/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/30 rounded-2xl p-6 shadow-inner space-y-4">
+                      <form onSubmit={handlePublishQuote} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">
+                            Texte de la citation
+                          </label>
+                          <textarea
+                            value={adminNewQuote}
+                            onChange={(e) => setAdminNewQuote(e.target.value)}
+                            placeholder="Entrez une citation inspirante ou un message de motivation..."
+                            rows="4"
+                            required
+                            className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:shadow-lg hover:shadow-purple-500/25"
+                        >
+                          🚀 Publier pour tous les utilisateurs
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Right: Real-time Live Preview */}
+                    <div className="lg:col-span-5 space-y-4">
+                      <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                        Aperçu en direct
+                      </h4>
+                      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border border-purple-200/50 dark:border-purple-500/30 rounded-3xl p-6 shadow-xl shadow-purple-500/5">
+                        <div className="flex gap-4 items-start">
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-xl flex-shrink-0 shadow-md">
+                            ✨
+                          </div>
+                          <div>
+                            <h3 className="text-[10px] font-bold tracking-widest text-purple-600 dark:text-purple-300 uppercase mb-1">
+                              Motivation du jour
+                            </h3>
+                            <p className="text-sm text-slate-800 dark:text-slate-200 font-light leading-relaxed italic">
+                              "{adminNewQuote.trim() || quote || "Votre texte de motivation s'affichera ici..."}"
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

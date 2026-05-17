@@ -72,6 +72,14 @@ const initDb = async () => {
       ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS quotes (
+        id SERIAL PRIMARY KEY,
+        text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     const insertUser = async (firstName, lastName, contact, password, pseudo, role) => {
       await pool.query(`
         INSERT INTO users (first_name, last_name, contact, password, pseudo, role) 
@@ -81,6 +89,11 @@ const initDb = async () => {
     };
 
     await insertUser('Coach', 'Admin', 'admin', 'admin', 'admin', 'admin');
+
+    const result = await pool.query('SELECT COUNT(*) as count FROM quotes');
+    if (parseInt(result.rows[0].count) === 0) {
+      await pool.query("INSERT INTO quotes (text) VALUES ('Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.')");
+    }
 
     console.log('Base de données initialisée avec succès');
   } catch (error) {
@@ -436,8 +449,26 @@ const deletePost = (postId) => {
   });
 };
 
+const getLatestQuote = () => {
+  return new Promise((resolve, reject) => {
+    pool.query('SELECT text FROM quotes ORDER BY created_at DESC LIMIT 1', (err, result) => {
+      if (err) reject(err);
+      else resolve(result.rows[0] ? result.rows[0].text : "Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.");
+    });
+  });
+};
+
+const createQuote = (text) => {
+  return new Promise((resolve, reject) => {
+    pool.query('INSERT INTO quotes (text) VALUES ($1) RETURNING id', [text], (err, result) => {
+      if (err) reject(err);
+      else resolve(result.rows[0]);
+    });
+  });
+};
+
 module.exports = { 
   pool, registerUser, loginUser, createPost, likePost, addComment, getFeed, 
   getAdminUsers, getMessages, sendMessage, getOtherUser, updateAvatar, getUserById, getMetrics, updateUserRole, createUserWithRole, getCoaches, getConversations, getCoachesWithUnread, getUnreadCount, markMessagesAsRead,
-  reportPost, getReportedPosts, approvePost, deletePost
+  reportPost, getReportedPosts, approvePost, deletePost, getLatestQuote, createQuote
 };
