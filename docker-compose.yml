@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: rever_db
+    environment:
+      POSTGRES_USER: rever_user
+      POSTGRES_PASSWORD: rever_password
+      POSTGRES_DB: rever
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+    container_name: rever_server
+    ports:
+      - "5001:5001"
+    environment:
+      # Inject Docker database URL instead of localhost
+      - DATABASE_URL=postgresql://rever_user:rever_password@db:5432/rever
+      # Inject Gemini Key if available in host environment
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+    container_name: rever_client
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  pgdata:
