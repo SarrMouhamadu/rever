@@ -724,8 +724,8 @@ function App() {
             </div>
             <button onClick={handleLogout} className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400" aria-label="Déconnexion">🚪</button>
             {user.role !== 'admin' && (
-              <>
-                <button type="button" onClick={exportData} className="text-[10px] text-slate-500 hover:text-purple-600" title="Exporter mes données (RGPD)">Export</button>
+              <div className="hidden md:flex items-center gap-2">
+                <button type="button" onClick={exportData} className="text-[10px] text-slate-500 hover:text-purple-600 font-medium" title="Exporter mes données (RGPD)">Export</button>
                 <button
                   type="button"
                   onClick={async () => {
@@ -734,12 +734,12 @@ function App() {
                       setView('login');
                     }
                   }}
-                  className="text-[10px] text-slate-500 hover:text-rose-500"
+                  className="text-[10px] text-slate-500 hover:text-rose-500 font-medium"
                   title="Supprimer mon compte"
                 >
                   Supprimer
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -939,7 +939,7 @@ function App() {
         {view === 'messages' && (
           <div className="relative z-10 flex flex-col md:flex-row gap-6 animate-[fadeIn_0.4s_ease-out]">
             {/* Coaches List */}
-            <div className="w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-4 shadow-lg h-[600px] overflow-y-auto">
+            <div className={`w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-4 shadow-lg h-[500px] md:h-[600px] overflow-y-auto ${selectedCoach ? 'hidden md:block' : 'block'}`}>
               <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">{user.role === 'coach' ? 'Discussions' : 'Coachs'}</h2>
               {contacts.length > 0 ? contacts.map(coach => (
                 <div 
@@ -969,22 +969,30 @@ function App() {
             </div>
 
             {/* Chat Area */}
-            <div className="w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl flex flex-col shadow-lg h-[600px] overflow-hidden">
+            <div className={`w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl flex flex-col shadow-lg h-[500px] md:h-[600px] overflow-hidden ${selectedCoach ? 'flex' : 'hidden md:flex'}`}>
               {selectedCoach ? (
                 <>
                   <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex items-center gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setSelectedCoach(null)} 
+                      className="md:hidden p-1.5 hover:bg-slate-200 dark:hover:bg-slate-850 rounded-lg text-slate-500 hover:text-slate-850 dark:hover:text-slate-200 transition-colors"
+                      title="Retour"
+                    >
+                      ⬅️
+                    </button>
                     <div className="w-8 h-8 shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
                       {selectedCoach.pseudo.charAt(0).toUpperCase()}
                     </div>
                     <h3 className="font-bold text-slate-900 dark:text-slate-100">Discussion avec {selectedCoach.pseudo}</h3>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse font-sans">
                     <div className="flex flex-col gap-4">
                       {chatMessages.map(msg => {
                         const isMe = msg.sender_id === user.id;
                         return (
                           <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50'}`}>
+                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-sm animate-[slideUp_0.2s_ease-out]' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50 animate-[slideUp_0.2s_ease-out]'}`}>
                               <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                               <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                 {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -1010,7 +1018,7 @@ function App() {
                 </>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 p-6 text-center">
-                  <div className="text-5xl mb-4 opacity-50">💬</div>
+                  <div className="text-5xl mb-4 opacity-50 animate-bounce" style={{ animationDuration: '3s' }}>💬</div>
                   <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">Vos messages privés</h3>
                   <p className="text-sm">Sélectionnez un coach dans la liste pour commencer une discussion en toute confidentialité.</p>
                 </div>
@@ -1023,19 +1031,29 @@ function App() {
           <div className="animate-[fadeIn_0.4s_ease-out] relative z-10 flex flex-col lg:flex-row gap-8 items-start max-w-7xl mx-auto w-full px-4 py-6">
             
             {/* LEFT SIDEBAR NAVIGATION */}
-            <aside className="w-full lg:w-64 shrink-0 bg-white/60 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm space-y-8 sticky top-24 self-start">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-md">
-                  👑
+            <aside className="w-full lg:w-64 shrink-0 bg-white/60 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-4 lg:p-6 shadow-sm space-y-4 lg:space-y-8 lg:sticky lg:top-24 lg:self-start">
+              <div className="flex items-center justify-between lg:justify-start lg:gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-md">
+                    👑
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black tracking-widest text-slate-900 dark:text-slate-100 uppercase">Rever Admin</h3>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Console de contrôle</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xs font-black tracking-widest text-slate-900 dark:text-slate-100 uppercase">Rever Admin</h3>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Console de contrôle</p>
+                {/* Live Status indicator on mobile */}
+                <div className="lg:hidden flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Live</span>
                 </div>
               </div>
 
-              {/* Heartbeat Status Indicator */}
-              <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/10 dark:border-emerald-500/20 rounded-2xl p-4 flex items-center gap-3 shadow-inner">
+              {/* Heartbeat Status Indicator (hidden on mobile, shown on lg) */}
+              <div className="hidden lg:flex bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/10 dark:border-emerald-500/20 rounded-2xl p-4 items-center gap-3 shadow-inner">
                 <span className="relative flex h-3.5 w-3.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
@@ -1046,36 +1064,36 @@ function App() {
                 </div>
               </div>
 
-              {/* Navigation Tabs */}
-              <nav className="flex flex-col gap-2">
+              {/* Navigation Tabs (scrollable row on mobile, column on lg) */}
+              <nav className="flex flex-row overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 scrollbar-none">
                 <button 
                   onClick={() => setAdminTab('metrics')}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-3 ${adminTab === 'metrics' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:translate-x-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'metrics' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
-                  <span>📊</span> Métriques & Analytics
+                  <span>📊</span> Métriques
                 </button>
                 <button 
                   onClick={() => setAdminTab('users')}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-3 ${adminTab === 'users' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:translate-x-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'users' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
-                  <span>👥</span> Comptes & Rôles
+                  <span>👥</span> Comptes
                 </button>
                 <button 
                   onClick={() => setAdminTab('moderation')}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-3 ${adminTab === 'moderation' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:translate-x-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'moderation' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
-                  <span>🚨</span> Centre de Modération {reportedPosts.length > 0 && <span className="ml-auto px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full animate-bounce">{reportedPosts.length}</span>}
+                  <span>🚨</span> Modération {reportedPosts.length > 0 && <span className="px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full ml-1">{reportedPosts.length}</span>}
                 </button>
                 <button 
                   onClick={() => setAdminTab('quote')}
-                  className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-3 ${adminTab === 'quote' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md hover:translate-x-1' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'quote' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
-                  <span>✨</span> Citation du Jour
+                  <span>✨</span> Citation
                 </button>
               </nav>
 
-              {/* Admin profile detail */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/40 flex items-center gap-3 text-xs">
+              {/* Admin profile detail (hidden on mobile, shown on lg) */}
+              <div className="hidden lg:flex pt-4 border-t border-slate-100 dark:border-slate-800/40 items-center gap-3 text-xs">
                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-base">
                   👑
                 </div>
@@ -1461,6 +1479,28 @@ function App() {
         )}
 
       </main>
+
+      <footer className="w-full py-8 mt-12 border-t border-slate-200/60 dark:border-slate-800/40 bg-white/40 dark:bg-slate-950/20 backdrop-blur-sm text-center text-xs text-slate-400 dark:text-slate-600 space-y-3 relative z-10 font-sans">
+        <p className="font-light">© {new Date().getFullYear()} Anonyme Pro. Tous droits réservés.</p>
+        {user && user.role !== 'admin' && (
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-[10px] uppercase tracking-wider font-semibold">
+            <button type="button" onClick={exportData} className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">📦 Exporter mes données (RGPD)</button>
+            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm('Supprimer définitivement votre compte et toutes vos données ?')) {
+                  await deleteAccount();
+                  setView('login');
+                }
+              }}
+              className="hover:text-rose-500 transition-colors"
+            >
+              🗑️ Supprimer mon compte
+            </button>
+          </div>
+        )}
+      </footer>
 
       <style>{`
         @keyframes fadeIn {
