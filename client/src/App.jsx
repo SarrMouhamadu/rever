@@ -617,7 +617,7 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 text-slate-800 dark:text-slate-300 font-sans relative overflow-hidden transition-colors duration-500">
+      <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 text-slate-800 dark:text-slate-300 font-sans relative overflow-hidden transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
         {/* Animated Background Orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-500/10 dark:bg-purple-600/15 rounded-full blur-3xl animate-pulse"></div>
@@ -641,12 +641,12 @@ function App() {
             <form onSubmit={handleLogin} className="flex flex-col gap-3 sm:gap-4">
               <input 
                 type="text" placeholder="Pseudo, Email ou Numéro" required
-                className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 value={authForm.loginId} onChange={(e) => setAuthForm({...authForm, loginId: e.target.value})}
               />
               <input 
                 type="password" placeholder="Mot de passe" required
-                className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+                className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 value={authForm.password} onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
               />
               <button className="w-full py-3.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white font-bold rounded-xl mt-2 transition-all uppercase text-xs tracking-wider shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">
@@ -659,16 +659,16 @@ function App() {
           ) : (
             <form onSubmit={handleRegister} className="flex flex-col gap-3 sm:gap-4">
               <div className="flex gap-3 sm:gap-4">
-                <input type="text" placeholder="Prénom" required className="w-1/2 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+                <input type="text" placeholder="Prénom" required className="w-1/2 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                   value={authForm.firstName} onChange={(e) => setAuthForm({...authForm, firstName: e.target.value})} />
-                <input type="text" placeholder="Nom" required className="w-1/2 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+                <input type="text" placeholder="Nom" required className="w-1/2 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                   value={authForm.lastName} onChange={(e) => setAuthForm({...authForm, lastName: e.target.value})} />
               </div>
-              <input type="text" placeholder="Email ou Numéro" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+              <input type="text" placeholder="Email ou Numéro" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 value={authForm.contact} onChange={(e) => setAuthForm({...authForm, contact: e.target.value})} />
-              <input type="text" placeholder="Pseudo (Public)" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+              <input type="text" placeholder="Pseudo (Public)" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 value={authForm.pseudo} onChange={(e) => setAuthForm({...authForm, pseudo: e.target.value})} />
-              <input type="password" placeholder="Mot de passe (8 car. min.)" required minLength={8} className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+              <input type="password" placeholder="Mot de passe (8 car. min.)" required minLength={8} className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
                 value={authForm.password} onChange={(e) => setAuthForm({...authForm, password: e.target.value})} />
               <button className="w-full py-3.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white font-bold rounded-xl mt-2 transition-all uppercase text-xs tracking-wider shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">
                 Créer mon compte
@@ -684,7 +684,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-300 font-sans relative overflow-x-hidden transition-colors duration-500">
+    <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-300 font-sans relative overflow-x-hidden transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none fixed">
         <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-purple-500/10 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
@@ -774,7 +774,7 @@ function App() {
                 <textarea 
                   value={newPostText} onChange={(e) => setNewPostText(e.target.value)}
                   placeholder="Partagez vos pensées..."
-                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
                 />
                 {newPostImagePreview && (
                   <div className="mt-3 sm:mt-4 relative">
@@ -907,7 +907,7 @@ function App() {
                         placeholder="Écrire un commentaire..."
                         value={commentInputs[post.id] || ''}
                         onChange={(e) => handleCommentInputChange(post.id, e.target.value)}
-                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
                       />
                       <button 
                         onClick={() => handleComment(post.id)}
@@ -1009,7 +1009,7 @@ function App() {
                       value={newChatMessage} 
                       onChange={(e) => setNewChatMessage(e.target.value)}
                       placeholder="Votre message..."
-                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100 shadow-sm"
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100 shadow-sm"
                     />
                     <button type="submit" disabled={!newChatMessage.trim()} className="px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md">
                       Envoyer
@@ -1521,6 +1521,13 @@ function App() {
           0% { transform: translateY(0px); }
           50% { transform: translateY(-8px); }
           100% { transform: translateY(0px); }
+        }
+        .scrollbar-none::-webkit-scrollbar {
+          display: none !important;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
         }
       `}</style>
     </div>
