@@ -15,6 +15,11 @@ services:
     networks:
       - default
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rever_user -d rever"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   server:
     build:
@@ -25,11 +30,20 @@ services:
     environment:
       - DATABASE_URL=postgresql://rever_user:rever_password@db:5432/rever
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD}
+      - CORS_ORIGINS=https://annonyme.pro,https://www.annonyme.pro
+      - NODE_ENV=production
       # Variables pour nginx-proxy & acme-companion (SSL automatique)
       - VIRTUAL_HOST=api.annonyme.pro
       - VIRTUAL_PORT=5001
       - LETSENCRYPT_HOST=api.annonyme.pro
       - LETSENCRYPT_EMAIL=sarrmouhamadoulamin99@gmail.com
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     depends_on:
       - db
     volumes:
