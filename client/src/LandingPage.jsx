@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import heroImage from '../image.png';
 
 function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
   const [scrollY, setScrollY] = useState(0);
@@ -37,7 +38,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           ></div>
         </div>
         
-        <div className="relative max-w-3xl sm:max-w-4xl mx-auto w-full">
+        <div className="relative max-w-6xl mx-auto w-full">
           {/* Navigation - Balanced */}
           <nav 
             className="flex justify-between items-center mb-12 sm:mb-16 md:mb-20 lg:mb-24 transition-all duration-300"
@@ -63,38 +64,52 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
             </div>
           </nav>
           
-          {/* Hero Content - Perfectly centered with better hierarchy */}
-          <div 
-            className="text-center"
-            style={{ transform: `translateY(${scrollY * 0.04}px)` }}
-          >
-            {/* Emotional micro-message */}
-            <div className="mb-6 sm:mb-8">
-              <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-300 font-medium tracking-widest uppercase text-center animate-[fadeIn_1s_ease-out]">
-                Un espace sûr pour écouter
+          {/* Two-Column Hero Content */}
+          <div className="grid lg:grid-cols-12 gap-12 items-center text-left mt-8 lg:mt-16">
+            <div 
+              className="lg:col-span-7 space-y-6 sm:space-y-8 animate-[slideUp_1s_ease-out_both]"
+              style={{ transform: `translateY(${scrollY * 0.04}px)` }}
+            >
+              {/* Emotional micro-message */}
+              <div className="inline-block px-4 py-1.5 bg-purple-500/10 dark:bg-purple-400/10 border border-purple-500/20 rounded-full">
+                <p className="text-xs text-purple-600 dark:text-purple-300 font-bold tracking-widest uppercase animate-[fadeIn_1s_ease-out]">
+                  ✨ Un espace sûr pour écouter & s'exprimer
+                </p>
+              </div>
+              
+              {/* Main Heading */}
+              <h2 className="text-3xl sm:text-5xl md:text-6xl font-light leading-tight text-slate-900 dark:text-white">
+                Parce que <span className="font-normal text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-300 dark:to-blue-300">vos émotions</span> méritent d'être entendues
+              </h2>
+              
+              {/* Subtext */}
+              <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-300 font-light leading-relaxed">
+                Rejoignez une communauté bienveillante où vous pouvez partager vos confessions anonymement, écouter et trouver du soutien professionnel sans jugement.
               </p>
+              
+              {/* CTA Button */}
+              <div>
+                <button 
+                  onClick={onGetStarted}
+                  className="group relative inline-flex items-center gap-2 sm:gap-3 px-8 sm:px-10 py-4 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white rounded-full font-semibold text-base sm:text-lg tracking-wide transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <span className="relative z-10">Commencer le voyage</span>
+                  <span className="group-hover:translate-x-1.5 transition-transform duration-300 relative z-10">→</span>
+                  <span className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-300"></span>
+                </button>
+              </div>
             </div>
-            
-            {/* Main Heading - Dominant with improved weight */}
-            <h2 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-light leading-tight mb-6 sm:mb-8 max-w-3xl sm:max-w-4xl mx-auto text-slate-900 dark:text-white animate-[slideUp_1s_ease-out_0.1s_both]">
-              Parce que <span className="font-normal text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-300 dark:to-blue-300">vos émotions</span> méritent d'être entendues
-            </h2>
-            
-            {/* Subtext - Improved readability */}
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-slate-600 dark:text-slate-300 max-w-2xl sm:max-w-3xl mx-auto mb-8 sm:mb-10 md:mb-12 font-normal leading-relaxed animate-[slideUp_1s_ease-out_0.3s_both]">
-              Rejoignez une communauté bienveillante où vous pouvez partager, écouter et trouver du soutien sans jugement.
-            </p>
-            
-            {/* CTA Button - Better anchored with premium hover */}
-            <div className="animate-[slideUp_1s_ease-out_0.5s_both]">
-              <button 
-                onClick={onGetStarted}
-                className="group relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 md:px-10 py-3 sm:py-4 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white rounded-full font-semibold text-base sm:text-lg tracking-wide transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <span className="relative z-10">Commencer le voyage</span>
-                <span className="group-hover:translate-x-1.5 transition-transform duration-300 relative z-10">→</span>
-                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 blur-lg opacity-40 group-hover:opacity-60 transition-opacity duration-300"></span>
-              </button>
+
+            {/* Right Column: Hero Visual Image */}
+            <div className="lg:col-span-5 w-full flex justify-center animate-[slideUp_1s_ease-out_0.2s_both]">
+              <div className="relative w-full max-w-lg bg-white/5 dark:bg-slate-900/10 backdrop-blur-md p-3 sm:p-4 border border-slate-200/40 dark:border-slate-700/30 rounded-[2.5rem] shadow-2xl shadow-purple-500/5 hover:shadow-purple-500/15 hover:border-purple-500/30 dark:hover:border-purple-400/20 hover:scale-[1.02] transition-all duration-700 animate-[float_6s_ease-in-out_infinite] group overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 via-transparent to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                <img 
+                  src={heroImage} 
+                  alt="Anonyme Health AI Showcase" 
+                  className="w-full h-auto rounded-[2rem] object-cover shadow-inner transition-transform duration-700 group-hover:scale-[1.01]" 
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -233,6 +248,12 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
             opacity: 1; 
             transform: translateY(0);
           }
+        }
+
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+          100% { transform: translateY(0px); }
         }
       `}</style>
     </div>
