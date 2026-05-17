@@ -174,22 +174,65 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           <div className="absolute top-1/2 left-4 sm:left-8 w-40 h-40 sm:w-56 sm:h-56 bg-pink-600/8 rounded-full blur-3xl animate-pulse"></div>
         </div>
         
-        <div className="relative max-w-3xl sm:max-w-4xl mx-auto text-center">
+        <div className="relative max-w-6xl mx-auto text-center">
           <h3 className="text-xs sm:text-sm uppercase tracking-[0.25em] sm:tracking-[0.3em] text-purple-500 dark:text-purple-400 mb-3 sm:mb-4 animate-[fadeIn_0.8s_ease-out]">Témoignages</h3>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light text-slate-900 dark:text-white mb-8 sm:mb-12 animate-[slideUp_0.8s_ease-out_0.2s_both]">Des vies <span className="font-normal">touchées</span></h2>
           
-          <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-3xl p-6 sm:p-8 md:p-12 lg:p-16 hover:bg-white dark:hover:bg-slate-800/70 transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-purple-500/5 animate-[slideUp_0.8s_ease-out_0.4s_both]">
-            <svg className="w-8 h-8 sm:w-10 sm:h-10 text-purple-500 dark:text-purple-400 mx-auto mb-4 sm:mb-6 animate-bounce" style={{ animationDuration: '3s' }} fill="currentColor" viewBox="0 0 24 24">
-              <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
-            </svg>
-            <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-slate-800 dark:text-slate-100 mb-6 sm:mb-8 font-normal leading-relaxed">
-              "Anonyme Pro m'a permis de trouver le courage de parler de ce que je traversais. La bienveillance de cette communauté m'a sauvé."
-            </p>
-            <div className="flex items-center justify-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full animate-pulse"></div>
-              <div className="text-left">
-                <p className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Sophie M.</p>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Membre depuis 1 an</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-left">
+            {/* Testimonial 1 */}
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-slate-800/70 transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-purple-500/5 animate-[slideUp_0.8s_ease-out_0.4s_both] flex flex-col justify-between">
+              <div>
+                <svg className="w-8 h-8 text-purple-500 dark:text-purple-400 mb-4 opacity-80" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                </svg>
+                <p className="text-base text-slate-700 dark:text-slate-200 mb-6 font-light leading-relaxed">
+                  "Anonyme Pro m'a permis de trouver le courage de parler de ce que je traversais. La bienveillance de cette communauté m'a sauvée."
+                </p>
+              </div>
+              <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white">SM</div>
+                <div>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Sophie M.</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Membre active</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonial 2 */}
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-slate-800/70 transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-blue-500/5 animate-[slideUp_0.8s_ease-out_0.5s_both] flex flex-col justify-between">
+              <div>
+                <svg className="w-8 h-8 text-blue-500 dark:text-blue-400 mb-4 opacity-80" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                </svg>
+                <p className="text-base text-slate-700 dark:text-slate-200 mb-6 font-light leading-relaxed">
+                  "En tant que psychologue, cette plateforme me permet d'apporter un soutien direct et ciblé à des personnes qui n'oseraient jamais consulter en cabinet."
+                </p>
+              </div>
+              <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-xs font-bold text-white">TL</div>
+                <div>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Dr. Thomas L.</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Psychologue & Coach Certifié</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonial 3 */}
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-sm border border-slate-200 dark:border-slate-700/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-slate-800/70 transition-all duration-500 shadow-lg hover:shadow-xl hover:shadow-pink-500/5 animate-[slideUp_0.8s_ease-out_0.6s_both] flex flex-col justify-between">
+              <div>
+                <svg className="w-8 h-8 text-pink-500 dark:text-pink-400 mb-4 opacity-80" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
+                </svg>
+                <p className="text-base text-slate-700 dark:text-slate-200 mb-6 font-light leading-relaxed">
+                  "L'anonymat complet garantit une liberté d'expression totale. C'est l'espace d'écoute le plus sain et le plus sécurisant du web."
+                </p>
+              </div>
+              <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center text-xs font-bold text-white">AD</div>
+                <div>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Amadou D.</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Membre actif</p>
+                </div>
               </div>
             </div>
           </div>
