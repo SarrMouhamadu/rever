@@ -102,9 +102,12 @@ const initDb = async () => {
         id SERIAL PRIMARY KEY,
         visitor_id VARCHAR(100) UNIQUE NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        duration_seconds INTEGER DEFAULT 0
       )
     `);
+
+    await query(`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS duration_seconds INTEGER DEFAULT 0`);
 
     await query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)`);
@@ -400,7 +403,7 @@ const createUserWithRole = async (firstName, lastName, contact, password, pseudo
 };
 
 const getMetrics = async () => {
-  const [usersResult, postsResult, commentsResult, messagesResult, usersByRoleResult, visitorsResult] =
+  const [usersResult, postsResult, commentsResult, messagesResult, usersByRoleResult, visitorsResult, visitorTimeResult] =
     await Promise.all([
       query('SELECT COUNT(*)::int AS total FROM users'),
       query('SELECT COUNT(*)::int AS total FROM posts'),
@@ -408,6 +411,7 @@ const getMetrics = async () => {
       query('SELECT COUNT(*)::int AS total FROM messages'),
       query('SELECT role, COUNT(*)::int AS count FROM users GROUP BY role'),
       query('SELECT COUNT(*)::int AS total FROM visitors'),
+      query('SELECT COALESCE(AVG(duration_seconds), 0)::int AS avg_duration, COALESCE(SUM(duration_seconds), 0)::int AS total_duration FROM visitors'),
     ]);
 
   const usersByRole = { user: 0, coach: 0, admin: 0 };
@@ -421,6 +425,8 @@ const getMetrics = async () => {
     totalComments: commentsResult.rows[0].total,
     totalMessages: messagesResult.rows[0].total,
     totalVisitors: visitorsResult.rows[0].total,
+    avgDurationSeconds: visitorTimeResult.rows[0].avg_duration,
+    totalDurationSeconds: visitorTimeResult.rows[0].total_duration,
     usersByRole,
   };
 };
@@ -519,12 +525,20 @@ const exportUserData = async (userId) => {
   };
 };
 
-const recordVisitor = async (visitorId) => {
-  await query(
-    `INSERT INTO visitors (visitor_id, last_active) VALUES ($1, CURRENT_TIMESTAMP)
-     ON CONFLICT (visitor_id) DO UPDATE SET last_active = CURRENT_TIMESTAMP`,
-    [visitorId]
-  );
+const recordVisitor = async (visitorId, isHeartbeat = false) => {
+  if (isHeartbeat) {
+    await query(
+      `INSERT INTO visitors (visitor_id, last_active, duration_seconds) VALUES ($1, CURRENT_TIMESTAMP, 20)
+       ON CONFLICT (visitor_id) DO UPDATE SET last_active = CURRENT_TIMESTAMP, duration_seconds = visitors.duration_seconds + 20`,
+      [visitorId]
+    );
+  } else {
+    await query(
+      `INSERT INTO visitors (visitor_id, last_active) VALUES ($1, CURRENT_TIMESTAMP)
+       ON CONFLICT (visitor_id) DO UPDATE SET last_active = CURRENT_TIMESTAMP`,
+      [visitorId]
+    );
+  }
 };
 
 initDb();

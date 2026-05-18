@@ -5,6 +5,21 @@ import { useTheme } from './hooks/useTheme';
 import { getFullImageUrl } from './utils/imageUrl';
 import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
+
+const formatDuration = (seconds) => {
+  if (!seconds || seconds <= 0) return "0 s";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h} h ${m} m`;
+  }
+  if (m > 0) {
+    return `${m} min ${s} s`;
+  }
+  return `${s} s`;
+};
+
 function App() {
   const { user, login, register, logout, exportData, deleteAccount } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -236,7 +251,22 @@ function App() {
     };
     trackVisitor();
   }, []);
+  useEffect(() => {
+    const visitorId = localStorage.getItem('rever_visitor_id');
+    if (!visitorId) return;
 
+    const interval = setInterval(async () => {
+      try {
+        if (document.visibilityState === 'visible') {
+          await api.post('/api/analytics/ping', { visitorId, isHeartbeat: true });
+        }
+      } catch (err) {
+        console.error('Heartbeat tracking failed:', err);
+      }
+    }, 20000); // 20 seconds
+
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     if (user && view === 'feed') {
       fetchFeed(0, false);
@@ -541,6 +571,18 @@ function App() {
             <div class="card">
               <p class="card-title">Discussions</p>
               <p class="card-value">${adminMetrics.totalMessages}</p>
+            </div>
+          </div>
+          
+          <div class="section-title">Temps d'Activité & Engagement</div>
+          <div class="grid" style="grid-template-cols: repeat(2, 1fr);">
+            <div class="card">
+              <p class="card-title">Durée Active Moyenne / Visiteur</p>
+              <p class="card-value">${formatDuration(adminMetrics.avgDurationSeconds)}</p>
+            </div>
+            <div class="card">
+              <p class="card-title">Durée Active Cumulée (Tous)</p>
+              <p class="card-value">${formatDuration(adminMetrics.totalDurationSeconds)}</p>
             </div>
           </div>
           
@@ -1246,9 +1288,11 @@ function App() {
                           </div>
                           <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Visiteurs Uniques</h4>
                           <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalVisitors || 0}</p>
-                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4 font-light leading-relaxed">
-                            Personnes ayant accédé au site (avec ou sans compte).
-                          </p>
+                          <div className="flex flex-col gap-2 mt-6 text-xs text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800/40 pt-4 font-light">
+                            <div className="flex justify-between"><span>⏱️ Durée Moyenne :</span> <strong>{formatDuration(adminMetrics.avgDurationSeconds)}</strong></div>
+                            <div className="flex justify-between"><span>⌛ Durée Cumulée :</span> <strong>{formatDuration(adminMetrics.totalDurationSeconds)}</strong></div>
+                            <div className="flex justify-between text-[10px] text-slate-400/70"><span>* Temps d'activité réel</span></div>
+                          </div>
                         </div>
 
                         <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
