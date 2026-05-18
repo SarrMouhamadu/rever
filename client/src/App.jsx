@@ -35,6 +35,7 @@ function App() {
   const [newPostText, setNewPostText] = useState('');
   const [newPostImage, setNewPostImage] = useState(null);
   const [newPostImagePreview, setNewPostImagePreview] = useState(null);
+  const [isAnonymous, setIsAnonymous] = useState(true);
   const [commentInputs, setCommentInputs] = useState({});
 
   const [contacts, setContacts] = useState([]);
@@ -108,6 +109,7 @@ function App() {
     
     const formData = new FormData();
     formData.append('text', newPostText);
+    formData.append('isAnonymous', isAnonymous);
     if (newPostImage) {
       formData.append('image', newPostImage);
     }
@@ -119,6 +121,7 @@ function App() {
     setNewPostText('');
     setNewPostImage(null);
     setNewPostImagePreview(null);
+    setIsAnonymous(true);
     fetchFeed(0, false);
   };
 
@@ -840,11 +843,25 @@ function App() {
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-4 gap-3">
-                  <div className="w-full sm:w-auto">
+                  <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
                     <label className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 rounded-xl text-xs sm:text-sm font-medium cursor-pointer transition-all hover:shadow-md">
                       📷 Ajouter une image
                       <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                     </label>
+                    
+                    {/* Toggle Anonyme */}
+                    <button
+                      type="button"
+                      onClick={() => setIsAnonymous(!isAnonymous)}
+                      className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-95 ${
+                        isAnonymous 
+                          ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20' 
+                          : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700/50 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <span className="text-sm">{isAnonymous ? '🔒' : '🔓'}</span>
+                      {isAnonymous ? 'Anonyme' : 'Public'}
+                    </button>
                   </div>
                   <button type="submit" disabled={!newPostText.trim()} className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white rounded-xl text-xs sm:text-sm uppercase font-bold tracking-wide disabled:opacity-50 transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">
                     Publier

@@ -43,6 +43,8 @@ const initDb = async () => {
       )
     `);
 
+    await query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT TRUE`);
+
     await query(`
       CREATE TABLE IF NOT EXISTS post_likes (
         post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
@@ -162,10 +164,10 @@ const loginUser = async (loginIdentifier, password) => {
   return publicUser(user);
 };
 
-const createPost = async (userId, text, imageUrl) => {
+const createPost = async (userId, text, imageUrl, isAnonymous = true) => {
   const { rows } = await query(
-    `INSERT INTO posts (user_id, text, image_url) VALUES ($1, $2, $3) RETURNING id`,
-    [userId, text, imageUrl]
+    `INSERT INTO posts (user_id, text, image_url, is_anonymous) VALUES ($1, $2, $3, $4) RETURNING id`,
+    [userId, text, imageUrl, isAnonymous]
   );
   return { id: rows[0].id };
 };
@@ -212,8 +214,9 @@ const addComment = async (postId, userId, text) => {
 const getFeed = async (userId, limit = 20, offset = 0) => {
   const { rows: posts } = await query(
     `SELECT p.id, p.user_id, p.text, p.image_url, p.likes, p.created_at,
-            p.is_reported, p.reports_count,
-            u.pseudo AS username, u.avatar AS user_avatar,
+            p.is_reported, p.reports_count, p.is_anonymous,
+            CASE WHEN p.is_anonymous = TRUE THEN 'Anonyme' ELSE u.pseudo END AS username,
+            CASE WHEN p.is_anonymous = TRUE THEN NULL ELSE u.avatar END AS user_avatar,
             EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $3) AS liked_by_me
      FROM posts p
      JOIN users u ON p.user_id = u.id

@@ -19,12 +19,13 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, isAnonymous } = req.body;
     if (!text?.trim()) {
       return res.status(400).json({ error: 'Le texte est requis.' });
     }
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-    const post = await db.createPost(req.user.id, text, imageUrl);
+    const isAnon = isAnonymous === undefined ? true : (isAnonymous === 'true' || isAnonymous === true);
+    const post = await db.createPost(req.user.id, text, imageUrl, isAnon);
     res.json({ success: true, id: post.id });
   } catch (err) {
     if (err.message?.includes('autorisées')) {
