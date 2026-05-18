@@ -431,8 +431,8 @@ function App() {
             }
             .grid {
               display: grid;
-              grid-template-cols: repeat(4, 1fr);
-              gap: 24px;
+              grid-template-cols: repeat(5, 1fr);
+              gap: 20px;
               margin-bottom: 48px;
             }
             .card {
@@ -515,6 +515,10 @@ function App() {
           
           <div class="section-title">Mesures d'Engagement</div>
           <div class="grid">
+            <div class="card">
+              <p class="card-title">Visiteurs Uniques</p>
+              <p class="card-value">${adminMetrics.totalVisitors || 0}</p>
+            </div>
             <div class="card">
               <p class="card-title">Membres Inscrits</p>
               <p class="card-value">${adminMetrics.totalUsers}</p>
