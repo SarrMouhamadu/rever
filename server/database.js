@@ -44,8 +44,8 @@ const initDb = async () => {
     `);
 
     await query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE`);
-    // Migration: s'assurer que tous les anciens posts (créés avant aujourd'hui) gardent le nom de l'auteur public
     await query(`UPDATE posts SET is_anonymous = FALSE WHERE created_at < '2026-05-18 09:00:00'`);
+    await query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS report_reasons TEXT`);
 
     await query(`
       CREATE TABLE IF NOT EXISTS post_likes (
@@ -425,10 +425,14 @@ const getMetrics = async () => {
   };
 };
 
-const reportPost = async (postId) => {
+const reportPost = async (postId, reason) => {
   await query(
-    `UPDATE posts SET is_reported = TRUE, reports_count = reports_count + 1 WHERE id = $1`,
-    [postId]
+    `UPDATE posts 
+     SET is_reported = TRUE, 
+         reports_count = reports_count + 1,
+         report_reasons = COALESCE(report_reasons || E'\n' || $2, $2)
+     WHERE id = $1`,
+    [postId, reason || 'Non spécifié']
   );
 };
 

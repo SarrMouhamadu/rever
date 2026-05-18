@@ -88,9 +88,11 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
 router.post('/:postId/report', requireAuth, async (req, res) => {
   try {
-    await db.reportPost(req.params.postId);
+    const { reason } = req.body;
+    await db.reportPost(req.params.postId, reason);
     res.json({ success: true });
-  } catch {
+  } catch (err) {
+    console.error('Error reporting post:', err);
     res.status(500).json({ error: 'Erreur lors du signalement.' });
   }
 });

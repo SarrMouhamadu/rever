@@ -192,7 +192,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center text-xs font-bold text-white">FD</div>
                 <div>
-                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Fatoumata Diop</p>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">F. D.</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Étudiante en Master 2 (UCAD)</p>
                 </div>
               </div>
@@ -211,7 +211,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-xs font-bold text-white">MD</div>
                 <div>
-                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Mariama Diallo</p>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">M. D.</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Étudiante en Licence 3 (UGB)</p>
                 </div>
               </div>
@@ -230,7 +230,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               <div className="flex items-center gap-3 border-t border-slate-100 dark:border-slate-700/40 pt-4">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center text-xs font-bold text-white">AN</div>
                 <div>
-                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">Aïda Ndiaye</p>
+                  <p className="font-semibold text-slate-950 dark:text-white text-xs sm:text-sm">A. N.</p>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-light">Étudiante en Médecine (UIDT)</p>
                 </div>
               </div>

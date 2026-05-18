@@ -308,9 +308,16 @@ function App() {
   }, [selectedCoach, view]);
 
   const handleReportPost = async (postId) => {
+    const reason = window.prompt("⚠️ Signalement : Veuillez indiquer le motif de votre signalement (ex : Harcèlement, Contenu inapproprié, Spam, Publicité...) :");
+    if (reason === null) return; // User cancelled
+    if (!reason.trim()) {
+      alert("Le motif est obligatoire pour signaler une publication.");
+      return;
+    }
+
     try {
-      await api.post(`/api/posts/${postId}/report`);
-      alert("Merci pour votre signalement. Notre équipe de modération va examiner ce contenu.");
+      await api.post(`/api/posts/${postId}/report`, { reason });
+      alert("Merci pour votre signalement. Notre équipe de modération va examiner ce contenu de près.");
       fetchFeed();
     } catch (error) { console.error(error); }
   };
@@ -745,7 +752,14 @@ function App() {
                 <span className="hidden sm:inline font-medium tracking-wide"> {user.role === 'admin' ? 'Admin' : user.role === 'coach' ? 'Coach' : user.pseudo}</span>
               </span>
             </div>
-            <button onClick={handleLogout} className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400" aria-label="Déconnexion">🚪</button>
+            <button 
+              onClick={handleLogout} 
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm" 
+              aria-label="Déconnexion"
+            >
+              <span>🚪</span>
+              <span className="hidden xs:inline">Déconnexion</span>
+            </button>
             {user.role !== 'admin' && (
               <div className="hidden md:flex items-center gap-2">
                 <button type="button" onClick={exportData} className="text-[10px] text-slate-500 hover:text-purple-600 font-medium" title="Exporter mes données (RGPD)">Export</button>
@@ -1486,6 +1500,19 @@ function App() {
                             {post.image_url && (
                               <div className="mt-3">
                                 <img src={getFullImageUrl(post.image_url)} alt="Reported image" className="max-h-48 rounded-xl object-cover" />
+                              </div>
+                            )}
+                            {post.report_reasons && (
+                              <div className="mt-3 bg-rose-500/5 dark:bg-rose-950/10 border border-rose-500/10 rounded-xl p-4 space-y-1.5">
+                                <h4 className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Motif(s) du signalement :</h4>
+                                <div className="text-xs text-rose-600 dark:text-rose-400 font-light whitespace-pre-wrap">
+                                  {post.report_reasons.split('\n').filter(Boolean).map((r, i) => (
+                                    <div key={i} className="flex items-start gap-2">
+                                      <span>•</span>
+                                      <span>{r}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
