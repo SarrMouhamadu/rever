@@ -5,6 +5,23 @@ import { useTheme } from './hooks/useTheme';
 import { getFullImageUrl } from './utils/imageUrl';
 import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
+import { 
+  Crown, 
+  UserFocus, 
+  Sparkles, 
+  SignOut, 
+  Sun, 
+  Moon, 
+  PaperPlaneTilt,
+  Heart,
+  ChatCircle,
+  EyeSlash,
+  Eye,
+  Trash,
+  Warning,
+  Export,
+  Quotes
+} from '@phosphor-icons/react';
 
 const formatDuration = (seconds) => {
   if (!seconds || seconds <= 0) return "0 s";
@@ -810,12 +827,16 @@ function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={toggleTheme} className="text-sm sm:text-lg hover:scale-110 transition-transform">
-              {theme === 'dark' ? '☀️' : '🌙'}
+            <button 
+              onClick={toggleTheme} 
+              className="w-8 h-8 rounded-full bg-white dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-750 flex items-center justify-center hover:scale-105 transition-all text-slate-500 dark:text-slate-400"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
             <div className="flex items-center gap-2">
               <span className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 sm:px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)] dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] dark:hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all duration-300 hover:scale-105 cursor-default flex items-center gap-1.5">
-                <span className="animate-bounce inline-block" style={{ animationDuration: '2s' }}>{user.role === 'admin' ? '👑' : user.role === 'coach' ? '🧘' : `🌱`}</span>
+                <span className="inline-block">{user.role === 'admin' ? <Crown size={14} weight="fill" className="text-amber-500" /> : user.role === 'coach' ? <UserFocus size={14} weight="fill" className="text-emerald-500" /> : <Sparkles size={14} weight="fill" className="text-emerald-400 animate-pulse" />}</span>
                 <span className="hidden sm:inline font-medium tracking-wide"> {user.role === 'admin' ? 'Admin' : user.role === 'coach' ? 'Coach' : user.pseudo}</span>
               </span>
             </div>
@@ -824,7 +845,7 @@ function App() {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm" 
               aria-label="Déconnexion"
             >
-              <span>🚪</span>
+              <SignOut size={12} weight="bold" />
               <span className="hidden xs:inline">Déconnexion</span>
             </button>
             {user.role !== 'admin' && (
