@@ -220,6 +220,21 @@ function App() {
 
   useEffect(() => {
     fetchQuote();
+    
+    // Track anonymous visitor
+    const trackVisitor = async () => {
+      try {
+        let visitorId = localStorage.getItem('rever_visitor_id');
+        if (!visitorId) {
+          visitorId = 'visitor-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+          localStorage.setItem('rever_visitor_id', visitorId);
+        }
+        await api.post('/api/analytics/ping', { visitorId });
+      } catch (err) {
+        console.error('Failed to track visitor:', err);
+      }
+    };
+    trackVisitor();
   }, []);
 
   useEffect(() => {
@@ -1205,8 +1220,20 @@ function App() {
                 <div className="space-y-10 animate-[slideUp_0.4s_ease-out]">
                   {adminMetrics ? (
                     <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
+                          <div className="flex justify-between items-center mb-6">
+                            <span className="text-4xl">🎯</span>
+                            <span className="text-[10px] font-bold px-3 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-full tracking-wider uppercase">Audience</span>
+                          </div>
+                          <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Visiteurs Uniques</h4>
+                          <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalVisitors || 0}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 mt-6 border-t border-slate-100 dark:border-slate-800/40 pt-4 font-light leading-relaxed">
+                            Personnes ayant accédé au site (avec ou sans compte).
+                          </p>
+                        </div>
+
+                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
                           <div className="flex justify-between items-center mb-6">
                             <span className="text-4xl">👥</span>
                             <span className="text-[10px] font-bold px-3 py-1 bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 rounded-full tracking-wider uppercase">Membres</span>
@@ -1220,7 +1247,7 @@ function App() {
                           </div>
                         </div>
 
-                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
                           <div className="flex justify-between items-center mb-6">
                             <span className="text-4xl">📝</span>
                             <span className="text-[10px] font-bold px-3 py-1 bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 rounded-full tracking-wider uppercase">Contenu</span>
@@ -1232,7 +1259,7 @@ function App() {
                           </p>
                         </div>
 
-                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
                           <div className="flex justify-between items-center mb-6">
                             <span className="text-4xl">💬</span>
                             <span className="text-[10px] font-bold px-3 py-1 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-full tracking-wider uppercase">Commentaires</span>
@@ -1244,7 +1271,7 @@ function App() {
                           </p>
                         </div>
 
-                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all">
+                        <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
                           <div className="flex justify-between items-center mb-6">
                             <span className="text-4xl">✉️</span>
                             <span className="text-[10px] font-bold px-3 py-1 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 rounded-full tracking-wider uppercase">Messages</span>

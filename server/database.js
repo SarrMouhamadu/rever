@@ -97,6 +97,15 @@ const initDb = async () => {
       )
     `);
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS visitors (
+        id SERIAL PRIMARY KEY,
+        visitor_id VARCHAR(100) UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     await query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id, is_read)`);
@@ -391,13 +400,14 @@ const createUserWithRole = async (firstName, lastName, contact, password, pseudo
 };
 
 const getMetrics = async () => {
-  const [usersResult, postsResult, commentsResult, messagesResult, usersByRoleResult] =
+  const [usersResult, postsResult, commentsResult, messagesResult, usersByRoleResult, visitorsResult] =
     await Promise.all([
       query('SELECT COUNT(*)::int AS total FROM users'),
       query('SELECT COUNT(*)::int AS total FROM posts'),
       query('SELECT COUNT(*)::int AS total FROM comments'),
       query('SELECT COUNT(*)::int AS total FROM messages'),
       query('SELECT role, COUNT(*)::int AS count FROM users GROUP BY role'),
+      query('SELECT COUNT(*)::int AS total FROM visitors'),
     ]);
 
   const usersByRole = { user: 0, coach: 0, admin: 0 };
@@ -410,6 +420,7 @@ const getMetrics = async () => {
     totalPosts: postsResult.rows[0].total,
     totalComments: commentsResult.rows[0].total,
     totalMessages: messagesResult.rows[0].total,
+    totalVisitors: visitorsResult.rows[0].total,
     usersByRole,
   };
 };
@@ -504,9 +515,18 @@ const exportUserData = async (userId) => {
   };
 };
 
+const recordVisitor = async (visitorId) => {
+  await query(
+    `INSERT INTO visitors (visitor_id, last_active) VALUES ($1, CURRENT_TIMESTAMP)
+     ON CONFLICT (visitor_id) DO UPDATE SET last_active = CURRENT_TIMESTAMP`,
+    [visitorId]
+  );
+};
+
 initDb();
 
 module.exports = {
+  recordVisitor,
   pool,
   query,
   registerUser,

@@ -12,6 +12,7 @@ const adminRoutes = require('./routes/admin');
 const quoteRoutes = require('./routes/quote');
 const chatRoutes = require('./routes/chat');
 const contactRoutes = require('./routes/contact');
+const analyticsRoutes = require('./routes/analytics');
 const { pool } = require('./database');
 
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/quote', quoteRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.use((err, _req, res, _next) => {
   if (err.message === 'Origine non autorisée') {
