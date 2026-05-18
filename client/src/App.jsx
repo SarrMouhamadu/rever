@@ -794,24 +794,7 @@ function App() {
               <span>🚪</span>
               <span className="hidden xs:inline">Déconnexion</span>
             </button>
-            {user.role !== 'admin' && (
-              <div className="hidden md:flex items-center gap-2">
-                <button type="button" onClick={exportData} className="text-[10px] text-slate-500 hover:text-teal-600 font-medium" title="Exporter mes données (RGPD)">Export</button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (window.confirm('Supprimer définitivement votre compte et toutes vos données ?')) {
-                      await deleteAccount();
-                      setView('login');
-                    }
-                  }}
-                  className="text-[10px] text-slate-500 hover:text-rose-500 font-medium"
-                  title="Supprimer mon compte"
-                >
-                  Supprimer
-                </button>
-              </div>
-            )}
+
           </div>
         </div>
       </nav>
@@ -1732,24 +1715,6 @@ function App() {
 
       <footer className="w-full py-8 mt-12 border-t border-slate-200/60 dark:border-slate-800/40 bg-white/40 dark:bg-slate-950/20 backdrop-blur-sm text-center text-xs text-slate-400 dark:text-slate-600 space-y-3 relative z-10 font-sans">
         <p className="font-light">© {new Date().getFullYear()} Anonyme Pro. Tous droits réservés.</p>
-        {user && user.role !== 'admin' && (
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-[10px] uppercase tracking-wider font-semibold">
-            <button type="button" onClick={exportData} className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">📦 Exporter mes données (RGPD)</button>
-            <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
-            <button
-              type="button"
-              onClick={async () => {
-                if (window.confirm('Supprimer définitivement votre compte et toutes vos données ?')) {
-                  await deleteAccount();
-                  setView('login');
-                }
-              }}
-              className="hover:text-rose-500 transition-colors"
-            >
-              🗑️ Supprimer mon compte
-            </button>
-          </div>
-        )}
       </footer>
 
       <style>{`
