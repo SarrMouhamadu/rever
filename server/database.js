@@ -43,7 +43,9 @@ const initDb = async () => {
       )
     `);
 
-    await query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT TRUE`);
+    await query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE`);
+    // Migration: s'assurer que tous les anciens posts (créés avant aujourd'hui) gardent le nom de l'auteur public
+    await query(`UPDATE posts SET is_anonymous = FALSE WHERE created_at < '2026-05-18 09:00:00'`);
 
     await query(`
       CREATE TABLE IF NOT EXISTS post_likes (
