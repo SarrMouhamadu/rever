@@ -31,6 +31,7 @@ function App() {
   const [editingPostText, setEditingPostText] = useState('');
   const [quote, setQuote] = useState("Le premier pas vers le bien-être est d’oser exprimer ce que l’on ressent. Vous êtes au bon endroit.");
   const [adminNewQuote, setAdminNewQuote] = useState("");
+  const [quoteCopied, setQuoteCopied] = useState(false);
   const [newPostText, setNewPostText] = useState('');
   const [newPostImage, setNewPostImage] = useState(null);
   const [newPostImagePreview, setNewPostImagePreview] = useState(null);
@@ -764,6 +765,56 @@ function App() {
                     <p className="text-base sm:text-lg text-slate-800 dark:text-slate-200 font-light leading-relaxed italic">
                       "{quote}"
                     </p>
+                    
+                    {/* Share Actions Bar */}
+                    <div className="flex flex-wrap gap-2.5 mt-5 items-center">
+                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500 mr-1.5 flex items-center gap-1">
+                        <span>📤</span> Partager :
+                      </span>
+                      
+                      {/* WhatsApp Button */}
+                      <a
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                          `🧘 *Motivation du jour sur Rever* :\n\n"${quote}"\n\nRejoignez-nous en toute confidentialité sur https://annonyme.pro ✨`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 shadow-sm active:scale-95"
+                      >
+                        <span className="text-xs sm:text-sm">💬</span> WhatsApp
+                      </a>
+                      
+                      {/* Instagram Share / Copy Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`🧘 Motivation du jour sur Rever :\n\n"${quote}"\n\nRejoignez-nous en toute confidentialité sur https://annonyme.pro ✨`);
+                          setQuoteCopied(true);
+                          setTimeout(() => setQuoteCopied(false), 2000);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 dark:border-pink-500/30 text-pink-600 dark:text-pink-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 shadow-sm active:scale-95"
+                      >
+                        <span className="text-xs sm:text-sm">{quoteCopied ? '✅' : '📸'}</span>
+                        {quoteCopied ? 'Copié !' : 'Instagram'}
+                      </button>
+
+                      {/* Native Smart Share (Visible only on mobile devices that support navigator.share) */}
+                      {typeof navigator !== 'undefined' && navigator.share && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.share({
+                              title: 'Motivation du jour - Rever',
+                              text: `🧘 Motivation du jour : "${quote}"`,
+                              url: 'https://annonyme.pro'
+                            }).catch((err) => console.log('Share canceled', err));
+                          }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 shadow-sm active:scale-95"
+                        >
+                          <span className="text-xs sm:text-sm">🔗</span> Plus...
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
