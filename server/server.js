@@ -68,8 +68,9 @@ app.use((err, _req, res, _next) => {
 });
 
 if (require.main === module) {
-  app.listen(port, '127.0.0.1', () => {
-    console.log(`Serveur démarré sur http://127.0.0.1:${port}`);
+  const bindHost = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+  app.listen(port, bindHost, () => {
+    console.log(`Serveur démarré sur http://${bindHost}:${port}`);
   });
 }
 
