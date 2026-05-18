@@ -274,6 +274,18 @@ function App() {
     }
   }, [user, view, fetchFeed]);
 
+  useEffect(() => {
+    if (user && view === 'feed') {
+      const interval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          fetchFeed(0, false);
+          fetchQuote();
+        }
+      }, 30000); // 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [user, view, fetchFeed]);
+
   const fetchContacts = async () => {
     try {
       if (!user) return;
@@ -663,6 +675,19 @@ function App() {
       fetchReportedPosts();
       fetchAdminMetrics();
       fetchAdminUsers();
+    }
+  }, [user, view]);
+
+  useEffect(() => {
+    if (user && user.role === 'admin' && view === 'admin-dashboard') {
+      const interval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          fetchReportedPosts();
+          fetchAdminMetrics();
+          fetchAdminUsers();
+        }
+      }, 30000); // 30 seconds
+      return () => clearInterval(interval);
     }
   }, [user, view]);
 
