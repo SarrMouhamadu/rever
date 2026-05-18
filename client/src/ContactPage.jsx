@@ -1,228 +1,155 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { ArrowLeft, Lightbulb, Wrench, Heart, EnvelopeSimple, ChatsCircle, Phone } from '@phosphor-icons/react';
 import api from './api/client';
+import Button from './components/ui/Button';
+import ThemeToggle from './components/ui/ThemeToggle';
+import IconBox from './components/ui/IconBox';
+
+const inputClass =
+  'w-full bg-stone-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-ring focus:border-teal-600/50';
 
 function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
-  const [scrollY, setScrollY] = useState(0);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     setError('');
+    setSuccess(false);
     try {
       await api.post('/api/contact', formData);
-      alert('Merci pour votre message ! Nous vous répondrons rapidement.');
+      setSuccess(true);
       setFormData({ name: '', email: '', message: '' });
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'envoi.');
+      setError(err.response?.data?.error || 'Envoi impossible. Réessayez dans un instant.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-indigo-950/30 dark:to-slate-950 text-slate-800 dark:text-slate-100 font-sans overflow-x-hidden transition-colors duration-500">
-      {/* Animated Background Orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute -top-40 -left-40 w-96 h-96 bg-purple-500/10 dark:bg-purple-600/20 rounded-full blur-3xl animate-pulse transition-all duration-700"
-          style={{ transform: `translate(${mousePos.x * 0.02}px, ${mousePos.y * 0.02}px)` }}
-        ></div>
-        <div 
-          className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-500/10 dark:bg-blue-600/20 rounded-full blur-3xl animate-pulse transition-all duration-700"
-          style={{ 
-            animationDelay: '2s',
-            transform: `translate(${-mousePos.x * 0.02}px, ${-mousePos.y * 0.02}px)`
-          }}
-        ></div>
-      </div>
-      
-      {/* Navigation */}
-      <nav className="px-4 py-6 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50 relative">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <button 
+    <div className="min-h-[100dvh] relative">
+      <div aria-hidden className="grain" />
+
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-xl">
+        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+          <button
+            type="button"
             onClick={onBack}
-            className="flex items-center gap-2 text-slate-600 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors font-semibold"
+            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white focus-ring rounded-lg px-2 py-1"
           >
-            ← Retour
+            <ArrowLeft size={18} />
+            Retour
           </button>
-          <h1 className="text-xl md:text-2xl font-light tracking-[0.3em] uppercase text-slate-900 dark:text-white">Anonyme Pro</h1>
-          <div className="flex items-center gap-4">
-            <button onClick={toggleTheme} className="text-xl sm:text-2xl hover:scale-110 transition-transform">
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-            <button 
-              onClick={onGetStarted}
-              className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-full text-sm font-medium transition-all"
-            >
-              Commencer
-            </button>
+          <span className="text-sm font-semibold tracking-wide text-zinc-900 dark:text-zinc-100">Anonyme Pro</span>
+          <div className="flex items-center gap-2">
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <Button onClick={onGetStarted} className="!px-4 !py-2 text-sm hidden sm:inline-flex">
+              Connexion
+            </Button>
           </div>
         </div>
-      </nav>
+      </header>
 
-      <main className="px-4 py-12 md:py-20 relative">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-16" style={{ transform: `translateY(${scrollY * 0.05}px)` }}>
-            <h2 className="text-3xl md:text-5xl font-light mb-4 text-slate-900 dark:text-white animate-[fadeIn_0.8s_ease-out]">Restons en <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-500 dark:from-purple-400 dark:to-blue-400">contact</span></h2>
-            <p className="text-lg md:text-xl text-slate-600 dark:text-slate-200 max-w-2xl mx-auto leading-relaxed animate-[slideUp_0.8s_ease-out_0.2s_both]">
-              Votre voix compte. Partagez-nous vos réflexions, vos suggestions ou simplement dites bonjour.
-            </p>
+      <main className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <div className="mb-14 animate-slide-up">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 mb-4 text-balance">
+            Restons en contact
+          </h1>
+          <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-[65ch]">
+            Une question, une suggestion ou un souci technique — écrivez-nous. Nous lisons chaque message.
+          </p>
+        </div>
+
+        <div className="grid sm:grid-cols-3 gap-4 mb-14">
+          {[
+            { icon: Lightbulb, title: 'Suggestions', text: 'Idées pour améliorer la plateforme.' },
+            { icon: Wrench, title: 'Support', text: 'Difficulté avec votre compte ou l’app.' },
+            { icon: Heart, title: 'Retour', text: 'Ce qui vous aide au quotidien.' },
+          ].map((item) => (
+            <div key={item.title} className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/40">
+              <IconBox icon={item.icon} className="mb-3 !w-10 !h-10" />
+              <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{item.title}</h2>
+              <p className="text-xs text-zinc-500 mt-1">{item.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-10">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Coordonnées</h2>
+            {[
+              { href: 'mailto:contact@annonyme.pro', icon: EnvelopeSimple, label: 'Email', value: 'contact@annonyme.pro' },
+              { href: 'https://wa.me/221777091913', icon: ChatsCircle, label: 'WhatsApp', value: '+221 77 709 19 13' },
+              { href: 'tel:+221777091913', icon: Phone, label: 'Téléphone', value: '+221 77 709 19 13' },
+            ].map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className="flex gap-4 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-teal-600/30 transition-colors focus-ring"
+              >
+                <IconBox icon={link.icon} className="!w-10 !h-10 shrink-0" />
+                <div>
+                  <p className="text-xs text-zinc-500">{link.label}</p>
+                  <p className="font-medium text-teal-800 dark:text-teal-300">{link.value}</p>
+                </div>
+              </a>
+            ))}
           </div>
 
-          {/* Feedback Section */}
-          <section className="mb-16">
-            <h3 className="text-xs md:text-sm uppercase tracking-[0.3em] text-blue-500 dark:text-blue-400 mb-8 text-center font-semibold animate-[fadeIn_0.8s_ease-out_0.3s_both]">Votre avis compte</h3>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 md:p-8 text-center hover:bg-white dark:hover:bg-slate-800/90 hover:-translate-y-2 transition-all animate-[slideUp_0.8s_ease-out_0.4s_both] shadow-sm hover:shadow-xl hover:shadow-purple-500/10 backdrop-blur-sm">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">💡</div>
-                <h4 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white mb-2">Suggestions</h4>
-                <p className="text-slate-600 dark:text-slate-200 text-sm leading-relaxed">
-                  Une idée pour améliorer l'expérience Anonyme Pro ? Nous serions ravis de l'entendre !
-                </p>
-              </div>
-              <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 md:p-8 text-center hover:bg-white dark:hover:bg-slate-800/90 hover:-translate-y-2 transition-all animate-[slideUp_0.8s_ease-out_0.6s_both] shadow-sm hover:shadow-xl hover:shadow-blue-500/10 backdrop-blur-sm">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">🛠️</div>
-                <h4 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white mb-2">Problèmes</h4>
-                <p className="text-slate-600 dark:text-slate-200 text-sm leading-relaxed">
-                  Vous rencontrez une difficulté ? Notre équipe est là pour vous aider.
-                </p>
-              </div>
-              <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 md:p-8 text-center hover:bg-white dark:hover:bg-slate-800/90 hover:-translate-y-2 transition-all animate-[slideUp_0.8s_ease-out_0.8s_both] shadow-sm hover:shadow-xl hover:shadow-pink-500/10 backdrop-blur-sm">
-                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">💕</div>
-                <h4 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white mb-2">Ce que vous aimez</h4>
-                <p className="text-slate-600 dark:text-slate-200 text-sm leading-relaxed">
-                  Partagez ce qui vous plaît sur Anonyme Pro ! Ça nous fait plaisir.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Contact Form & Info */}
-          <section className="grid md:grid-cols-2 gap-8">
-            {/* Contact Info */}
-            <div className="space-y-6 animate-[slideUp_0.8s_ease-out_1s_both]">
-              <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white mb-6">Nos coordonnées</h3>
-              
-              <a href="mailto:contact@annonyme.pro" className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 hover:scale-[1.02] transition-all shadow-sm backdrop-blur-sm group block">
-                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                  📧
-                </div>
-                <div>
-                  <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">Email</h4>
-                  <p className="text-slate-600 dark:text-slate-200 font-medium">contact@annonyme.pro</p>
-                </div>
-              </a>
-              
-              <a href="https://wa.me/221777091913" target="_blank" rel="noopener noreferrer" className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 hover:scale-[1.02] transition-all shadow-sm backdrop-blur-sm group block">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                  💬
-                </div>
-                <div>
-                  <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">WhatsApp</h4>
-                  <p className="text-slate-600 dark:text-slate-200 font-medium">+221 77 709 19 13</p>
-                </div>
-              </a>
-              
-              <a href="tel:+221777091913" className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 flex items-start gap-4 hover:bg-white dark:hover:bg-slate-800/90 hover:scale-[1.02] transition-all shadow-sm backdrop-blur-sm group block">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 group-hover:scale-110 transition-transform">
-                  📞
-                </div>
-                <div>
-                  <h4 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-1">Téléphone</h4>
-                  <p className="text-slate-600 dark:text-slate-200 font-medium">+221 77 709 19 13</p>
-                </div>
-              </a>
-            </div>
-
-            {/* Contact Form */}
-            <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-6 md:p-8 animate-[slideUp_0.8s_ease-out_1.2s_both] shadow-sm backdrop-blur-sm">
-              <h3 className="text-lg md:text-xl font-bold text-slate-900 dark:text-white mb-6">Envoyez-nous un message</h3>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <input 
-                  type="text" 
-                  placeholder="Votre nom" 
+          <div className="glass-panel p-6 md:p-8 rounded-3xl">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-6">Message</h2>
+            {success && (
+              <p className="mb-4 text-sm text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-900/50 rounded-xl px-4 py-3">
+                Message reçu. Nous vous répondrons sous 24 h ouvrées.
+              </p>
+            )}
+            {error && (
+              <p role="alert" className="mb-4 text-sm text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 rounded-xl px-4 py-3">
+                {error}
+              </p>
+            )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <label className="block">
+                <span className="text-xs font-medium text-zinc-500 mb-1.5 block">Nom</span>
+                <input
+                  type="text"
                   required
+                  className={inputClass}
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-600 rounded-lg p-3 text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
-                <input 
-                  type="email" 
-                  placeholder="Votre email" 
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-zinc-500 mb-1.5 block">Email</span>
+                <input
+                  type="email"
                   required
+                  className={inputClass}
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-600 rounded-lg p-3 text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
-                <textarea 
-                  placeholder="Votre message..." 
-                  rows="6"
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-zinc-500 mb-1.5 block">Message</span>
+                <textarea
                   required
+                  rows={5}
+                  className={`${inputClass} resize-none`}
                   value={formData.message}
-                  onChange={(e) => setFormData({...formData, message: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-600 rounded-lg p-3 text-base text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 resize-none transition-all"
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 />
-                {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                <button 
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg font-bold text-base transition-all hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50"
-                >
-                  Envoyer
-                </button>
-              </form>
-            </div>
-          </section>
+              </label>
+              <Button type="submit" disabled={submitting} className="w-full">
+                {submitting ? 'Envoi…' : 'Envoyer'}
+              </Button>
+            </form>
+          </div>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="px-4 py-12 border-t border-slate-200 dark:border-slate-800 relative">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            <h2 className="text-xl font-light tracking-[0.3em] uppercase text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer">Anonyme Pro</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">© 2026 Anonyme Pro. Tous droits réservés.</p>
-          </div>
-        </div>
-      </footer>
-      
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes slideUp {
-          from { 
-            opacity: 0; 
-            transform: translateY(30px);
-          }
-          to { 
-            opacity: 1; 
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   );
 }

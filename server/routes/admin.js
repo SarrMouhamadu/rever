@@ -82,4 +82,24 @@ router.delete('/posts/:postId', async (req, res) => {
   }
 });
 
+router.get('/contact-messages', async (_req, res) => {
+  try {
+    res.json(await db.getContactMessages());
+  } catch {
+    res.status(500).json({ error: 'Erreur récupération messages contact' });
+  }
+});
+
+router.delete('/contact-messages/:id', async (req, res) => {
+  try {
+    const deleted = await db.deleteContactMessage(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Message introuvable' });
+    }
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Erreur suppression message' });
+  }
+});
+
 module.exports = router;

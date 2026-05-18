@@ -3,6 +3,15 @@ const db = require('../database');
 
 const router = express.Router();
 
+router.get('/community-stats', async (_req, res) => {
+  try {
+    res.json(await db.getCommunityStats());
+  } catch (err) {
+    console.error('Error fetching community stats:', err);
+    res.status(500).json({ error: 'Erreur statistiques communauté.' });
+  }
+});
+
 router.post('/ping', async (req, res) => {
   try {
     const { visitorId, isHeartbeat } = req.body;

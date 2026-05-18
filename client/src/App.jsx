@@ -5,23 +5,9 @@ import { useTheme } from './hooks/useTheme';
 import { getFullImageUrl } from './utils/imageUrl';
 import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
-import { 
-  Crown, 
-  UserFocus, 
-  Sparkles, 
-  SignOut, 
-  Sun, 
-  Moon, 
-  PaperPlaneTilt,
-  Heart,
-  ChatCircle,
-  EyeSlash,
-  Eye,
-  Trash,
-  Warning,
-  Export,
-  Quotes
-} from '@phosphor-icons/react';
+import AuthScreen from './pages/AuthScreen';
+import ThemeToggle from './components/ui/ThemeToggle';
+import Button from './components/ui/Button';
 
 const formatDuration = (seconds) => {
   if (!seconds || seconds <= 0) return "0 s";
@@ -75,6 +61,7 @@ function App() {
   const [reportedPosts, setReportedPosts] = useState([]);
   const [adminMetrics, setAdminMetrics] = useState(null);
   const [adminUsers, setAdminUsers] = useState([]);
+  const [contactMessages, setContactMessages] = useState([]);
   const [adminTab, setAdminTab] = useState('metrics');
   const [adminSearch, setAdminSearch] = useState('');
   const [adminRoleFilter, setAdminRoleFilter] = useState('all');
@@ -402,6 +389,21 @@ function App() {
     } catch (error) { console.error(error); }
   };
 
+  const fetchContactMessages = async () => {
+    try {
+      const res = await api.get('/api/admin/contact-messages');
+      setContactMessages(res.data);
+    } catch (error) { console.error(error); }
+  };
+
+  const handleDeleteContactMessage = async (id) => {
+    if (!window.confirm('Supprimer ce message de contact ?')) return;
+    try {
+      await api.delete(`/api/admin/contact-messages/${id}`);
+      setContactMessages((prev) => prev.filter((m) => m.id !== id));
+    } catch (error) { console.error(error); }
+  };
+
   const handleUpdateUserRole = async (userId, newRole) => {
     try {
       await api.put(`/api/admin/users/${userId}/role`, { role: newRole });
@@ -692,6 +694,7 @@ function App() {
       fetchReportedPosts();
       fetchAdminMetrics();
       fetchAdminUsers();
+      fetchContactMessages();
     }
   }, [user, view]);
 
@@ -702,6 +705,7 @@ function App() {
           fetchReportedPosts();
           fetchAdminMetrics();
           fetchAdminUsers();
+          fetchContactMessages();
         }
       }, 30000); // 30 seconds
       return () => clearInterval(interval);
@@ -731,77 +735,25 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 text-slate-800 dark:text-slate-300 font-sans relative overflow-hidden transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-        {/* Animated Background Orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-500/10 dark:bg-purple-600/15 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-500/10 dark:bg-blue-600/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        </div>
-
-        <div className="w-full max-w-sm sm:max-w-md bg-white/80 dark:bg-slate-800/60 backdrop-blur-xl border border-slate-200 dark:border-slate-700/50 p-6 sm:p-8 rounded-3xl shadow-2xl shadow-purple-500/10 z-10 relative animate-[slideUp_0.8s_ease-out_both] hover:shadow-purple-500/20 transition-all duration-500 hover:-translate-y-1">
-          <div className="flex justify-end mb-2">
-            <button onClick={toggleTheme} className="text-xl sm:text-2xl hover:scale-110 transition-transform">
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extralight tracking-widest text-slate-900 dark:text-slate-200 mb-2 text-center uppercase">Anonyme Pro</h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 sm:mb-8 text-center uppercase tracking-widest">
-            {view === 'login' ? 'Connexion' : 'Inscription'}
-          </p>
-
-          {authError && <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-500/50 rounded-xl text-red-600 dark:text-red-200 text-xs text-center backdrop-blur-sm">{authError}</div>}
-
-          {view === 'login' ? (
-            <form onSubmit={handleLogin} className="flex flex-col gap-3 sm:gap-4">
-              <input 
-                type="text" placeholder="Pseudo, Email ou Numéro" required
-                className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-                value={authForm.loginId} onChange={(e) => setAuthForm({...authForm, loginId: e.target.value})}
-              />
-              <input 
-                type="password" placeholder="Mot de passe" required
-                className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-                value={authForm.password} onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-              />
-              <button className="w-full py-3.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white font-bold rounded-xl mt-2 transition-all uppercase text-xs tracking-wider shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">
-                Se connecter
-              </button>
-              <p className="text-xs text-center text-slate-600 dark:text-slate-400 mt-4 cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors" onClick={() => setView('register')}>
-                Pas encore de compte ? S'inscrire
-              </p>
-            </form>
-          ) : (
-            <form onSubmit={handleRegister} className="flex flex-col gap-3 sm:gap-4">
-              <div className="flex gap-3 sm:gap-4">
-                <input type="text" placeholder="Prénom" required className="w-1/2 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-                  value={authForm.firstName} onChange={(e) => setAuthForm({...authForm, firstName: e.target.value})} />
-                <input type="text" placeholder="Nom" required className="w-1/2 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-                  value={authForm.lastName} onChange={(e) => setAuthForm({...authForm, lastName: e.target.value})} />
-              </div>
-              <input type="text" placeholder="Email ou Numéro" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-                value={authForm.contact} onChange={(e) => setAuthForm({...authForm, contact: e.target.value})} />
-              <input type="text" placeholder="Pseudo (Public)" required className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-                value={authForm.pseudo} onChange={(e) => setAuthForm({...authForm, pseudo: e.target.value})} />
-              <input type="password" placeholder="Mot de passe (8 car. min.)" required minLength={8} className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3.5 text-base md:text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
-                value={authForm.password} onChange={(e) => setAuthForm({...authForm, password: e.target.value})} />
-              <button className="w-full py-3.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white font-bold rounded-xl mt-2 transition-all uppercase text-xs tracking-wider shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">
-                Créer mon compte
-              </button>
-              <p className="text-xs text-center text-slate-600 dark:text-slate-400 mt-4 cursor-pointer hover:text-slate-900 dark:hover:text-white transition-colors" onClick={() => setView('login')}>
-                Déjà un compte ? Se connecter
-              </p>
-            </form>
-          )}
-        </div>
-      </div>
+      <AuthScreen
+        view={view}
+        setView={setView}
+        authForm={authForm}
+        setAuthForm={setAuthForm}
+        authError={authError}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        theme={theme}
+        toggleTheme={toggleTheme}
+      />
     );
   }
 
   return (
-    <div className="min-h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-300 font-sans relative overflow-x-hidden transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
-      {/* Animated Background Orbs */}
+    <div className="min-h-[100dvh] bg-stone-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-300 font-sans relative overflow-x-hidden transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+      <div aria-hidden className="grain" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none fixed">
-        <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-purple-500/10 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-teal-500/10 dark:bg-teal-600/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-blue-500/10 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
@@ -827,16 +779,10 @@ function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            <button 
-              onClick={toggleTheme} 
-              className="w-8 h-8 rounded-full bg-white dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-750 flex items-center justify-center hover:scale-105 transition-all text-slate-500 dark:text-slate-400"
-              aria-label="Toggle Theme"
-            >
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <div className="flex items-center gap-2">
               <span className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 sm:px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)] dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] dark:hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all duration-300 hover:scale-105 cursor-default flex items-center gap-1.5">
-                <span className="inline-block">{user.role === 'admin' ? <Crown size={14} weight="fill" className="text-amber-500" /> : user.role === 'coach' ? <UserFocus size={14} weight="fill" className="text-emerald-500" /> : <Sparkles size={14} weight="fill" className="text-emerald-400 animate-pulse" />}</span>
+                <span className="animate-bounce inline-block" style={{ animationDuration: '2s' }}>{user.role === 'admin' ? '👑' : user.role === 'coach' ? '🧘' : `🌱`}</span>
                 <span className="hidden sm:inline font-medium tracking-wide"> {user.role === 'admin' ? 'Admin' : user.role === 'coach' ? 'Coach' : user.pseudo}</span>
               </span>
             </div>
@@ -845,12 +791,12 @@ function App() {
               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm" 
               aria-label="Déconnexion"
             >
-              <SignOut size={12} weight="bold" />
+              <span>🚪</span>
               <span className="hidden xs:inline">Déconnexion</span>
             </button>
             {user.role !== 'admin' && (
               <div className="hidden md:flex items-center gap-2">
-                <button type="button" onClick={exportData} className="text-[10px] text-slate-500 hover:text-purple-600 font-medium" title="Exporter mes données (RGPD)">Export</button>
+                <button type="button" onClick={exportData} className="text-[10px] text-slate-500 hover:text-teal-600 font-medium" title="Exporter mes données (RGPD)">Export</button>
                 <button
                   type="button"
                   onClick={async () => {
@@ -876,14 +822,14 @@ function App() {
           <div className="relative z-10">
             {/* Daily Quote / Motivation Banner */}
             {quote && (
-              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border border-purple-200/50 dark:border-purple-500/30 rounded-3xl p-6 sm:p-8 mb-6 sm:mb-8 shadow-xl shadow-purple-500/5 hover:shadow-purple-500/10 transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
+              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-teal-700 dark:text-teal-400 border-teal-200/50 dark:text-teal-700 dark:text-teal-400 border-teal-500/30 rounded-3xl p-6 sm:p-8 mb-6 sm:mb-8 shadow-xl shadow-teal-900/5 hover:shadow-teal-900/10 transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
                 <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
                 <div className="flex gap-4 items-start relative z-10">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg shadow-purple-500/20 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg shadow-teal-900/20 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                     ✨
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xs sm:text-sm font-bold tracking-widest text-purple-600 dark:text-purple-300 uppercase mb-2">
+                    <h3 className="text-xs sm:text-sm font-bold tracking-widest text-teal-600 dark:text-teal-300 uppercase mb-2">
                       Motivation du jour
                     </h3>
                     <p className="text-base sm:text-lg text-slate-800 dark:text-slate-200 font-light leading-relaxed italic">
@@ -944,12 +890,12 @@ function App() {
               </div>
             )}
 
-            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-5 sm:p-7 mb-8 sm:mb-10 shadow-lg shadow-purple-500/5 animate-[slideUp_0.6s_ease-out_both] hover:shadow-purple-500/10 transition-shadow duration-500">
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-5 sm:p-7 mb-8 sm:mb-10 shadow-lg shadow-teal-900/5 animate-[slideUp_0.6s_ease-out_both] hover:shadow-teal-900/10 transition-shadow duration-500">
               <form onSubmit={handleCreatePost}>
                 <textarea 
                   value={newPostText} onChange={(e) => setNewPostText(e.target.value)}
                   placeholder="Partagez vos pensées..."
-                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
                 />
                 {newPostImagePreview && (
                   <div className="mt-3 sm:mt-4 relative">
@@ -976,7 +922,7 @@ function App() {
                       onClick={() => setIsAnonymous(!isAnonymous)}
                       className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-95 ${
                         isAnonymous 
-                          ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 hover:bg-purple-500/20' 
+                          ? 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20 text-teal-600 dark:text-teal-400 hover:bg-teal-500/20' 
                           : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700/50 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
@@ -984,7 +930,7 @@ function App() {
                       {isAnonymous ? 'Anonyme' : 'Public'}
                     </button>
                   </div>
-                  <button type="submit" disabled={!newPostText.trim()} className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white rounded-xl text-xs sm:text-sm uppercase font-bold tracking-wide disabled:opacity-50 transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5">
+                  <button type="submit" disabled={!newPostText.trim()} className="w-full sm:w-auto px-6 py-2.5 bg-teal-700 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors">
                     Publier
                   </button>
                 </div>
@@ -995,7 +941,7 @@ function App() {
               {feed.map((post, index) => (
                 <div 
                   key={post.id} 
-                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-3xl p-5 sm:p-7 shadow-lg hover:border-purple-300 dark:hover:border-purple-500/40 transition-all duration-500 hover:shadow-purple-500/15 hover:-translate-y-1 animate-[slideUp_0.6s_ease-out_both]"
+                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-3xl p-5 sm:p-7 shadow-lg hover:text-teal-700 dark:text-teal-400 border-teal-300 dark:hover:text-teal-700 dark:text-teal-400 border-teal-500/40 transition-all duration-500 hover:shadow-teal-900/15 hover:-translate-y-1 animate-[slideUp_0.6s_ease-out_both]"
                   style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
                 >
                   <div className="flex items-center justify-between mb-4 sm:mb-5">
@@ -1027,12 +973,12 @@ function App() {
                       <textarea
                         value={editingPostText}
                         onChange={(e) => setEditingPostText(e.target.value)}
-                        className="w-full h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                        className="w-full h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleUpdatePost(post.id)}
-                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md"
+                          className="px-4 py-2 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md"
                         >
                           Sauvegarder
                         </button>
@@ -1086,7 +1032,7 @@ function App() {
                   <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 sm:pt-5">
                     {post.comments?.map(comment => (
                       <div key={comment.id} className="mb-3 sm:mb-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/30 rounded-2xl">
-                        <p className="text-[10px] sm:text-xs font-semibold text-purple-600 dark:text-purple-300 mb-1">{comment.username}</p>
+                        <p className="text-[10px] sm:text-xs font-semibold text-teal-600 dark:text-teal-300 mb-1">{comment.username}</p>
                         <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">{comment.text}</p>
                       </div>
                     ))}
@@ -1096,12 +1042,12 @@ function App() {
                         placeholder="Écrire un commentaire..."
                         value={commentInputs[post.id] || ''}
                         onChange={(e) => handleCommentInputChange(post.id, e.target.value)}
-                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus-ring focus:border-teal-600/50 transition-all"
                       />
                       <button 
                         onClick={() => handleComment(post.id)}
                         disabled={!commentInputs[post.id]?.trim()}
-                        className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-xl text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md hover:shadow-purple-500/20"
+                        className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-xl text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md hover:shadow-teal-900/20"
                       >
                         ✓
                       </button>
@@ -1134,9 +1080,9 @@ function App() {
                 <div 
                   key={coach.id} 
                   onClick={() => setSelectedCoach(coach)}
-                  className={`p-3 rounded-2xl cursor-pointer transition-all mb-2 flex items-center gap-3 ${selectedCoach?.id === coach.id ? 'bg-purple-100 dark:bg-purple-900/40 border border-purple-200 dark:border-purple-500/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border border-transparent'}`}
+                  className={`p-3 rounded-2xl cursor-pointer transition-all mb-2 flex items-center gap-3 ${selectedCoach?.id === coach.id ? 'bg-teal-100 dark:bg-teal-900/40 border text-teal-700 dark:text-teal-400 border-teal-200 dark:text-teal-700 dark:text-teal-400 border-teal-500/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border border-transparent'}`}
                 >
-                  <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold relative">
+                  <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-teal-600 to-teal-700 rounded-full flex items-center justify-center text-white font-bold relative">
                     {coach.pseudo.charAt(0).toUpperCase()}
                     {parseInt(coach.unread_count) > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
@@ -1170,7 +1116,7 @@ function App() {
                     >
                       ⬅️
                     </button>
-                    <div className="w-8 h-8 shrink-0 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                    <div className="w-8 h-8 shrink-0 bg-gradient-to-br from-teal-600 to-teal-700 rounded-full flex items-center justify-center text-white font-bold text-xs">
                       {selectedCoach.pseudo.charAt(0).toUpperCase()}
                     </div>
                     <h3 className="font-bold text-slate-900 dark:text-slate-100">Discussion avec {selectedCoach.pseudo}</h3>
@@ -1181,7 +1127,7 @@ function App() {
                         const isMe = msg.sender_id === user.id;
                         return (
                           <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-br-sm animate-[slideUp_0.2s_ease-out]' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50 animate-[slideUp_0.2s_ease-out]'}`}>
+                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white rounded-br-sm animate-[slideUp_0.2s_ease-out]' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50 animate-[slideUp_0.2s_ease-out]'}`}>
                               <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                               <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                 {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -1198,9 +1144,9 @@ function App() {
                       value={newChatMessage} 
                       onChange={(e) => setNewChatMessage(e.target.value)}
                       placeholder="Votre message..."
-                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm outline-none focus:border-purple-500 text-slate-900 dark:text-slate-100 shadow-sm"
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm outline-none focus:text-teal-700 dark:text-teal-400 border-teal-500 text-slate-900 dark:text-slate-100 shadow-sm"
                     />
-                    <button type="submit" disabled={!newChatMessage.trim()} className="px-6 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md">
+                    <button type="submit" disabled={!newChatMessage.trim()} className="px-6 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md">
                       Envoyer
                     </button>
                   </form>
@@ -1223,7 +1169,7 @@ function App() {
             <aside className="w-full lg:w-64 shrink-0 bg-white/60 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-4 lg:p-6 shadow-sm space-y-4 lg:space-y-8 lg:sticky lg:top-24 lg:self-start">
               <div className="flex items-center justify-between lg:justify-start lg:gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-md">
+                  <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-md">
                     👑
                   </div>
                   <div>
@@ -1257,27 +1203,38 @@ function App() {
               <nav className="flex flex-row overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 scrollbar-none">
                 <button 
                   onClick={() => setAdminTab('metrics')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'metrics' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'metrics' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>📊</span> Métriques
                 </button>
                 <button 
                   onClick={() => setAdminTab('users')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'users' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'users' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>👥</span> Comptes
                 </button>
                 <button 
                   onClick={() => setAdminTab('moderation')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'moderation' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'moderation' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>🚨</span> Modération {reportedPosts.length > 0 && <span className="px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full ml-1">{reportedPosts.length}</span>}
                 </button>
                 <button 
                   onClick={() => setAdminTab('quote')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'quote' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'quote' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>✨</span> Citation
+                </button>
+                <button 
+                  onClick={() => setAdminTab('contact')}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'contact' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                >
+                  <span>✉️</span> Contact
+                  {contactMessages.length > 0 && (
+                    <span className="px-1.5 py-0.5 text-[9px] bg-teal-600 text-white rounded-full ml-1">
+                      {contactMessages.length}
+                    </span>
+                  )}
                 </button>
               </nav>
 
@@ -1302,22 +1259,35 @@ function App() {
                     {adminTab === 'users' && "👥 Gestion des Comptes"}
                     {adminTab === 'moderation' && "🚨 Centre de Modération"}
                     {adminTab === 'quote' && "✨ Citation du Jour"}
+                    {adminTab === 'contact' && "Messages de contact"}
                   </h2>
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-light mt-1">
                     {adminTab === 'metrics' && "Indicateurs d'engagement de la plateforme en temps réel."}
                     {adminTab === 'users' && "Contrôle des privilèges et rôles des membres de la communauté."}
                     {adminTab === 'moderation' && "Suivi des publications signalées par les membres."}
                     {adminTab === 'quote' && "Publiez une motivation inspirante quotidienne pour tous les utilisateurs."}
+                    {adminTab === 'contact' && "Messages envoyés depuis le formulaire public de la page Contact."}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <button 
-                    onClick={handleGeneratePDF}
-                    className="px-5 py-2.5 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-[length:200%_200%] hover:bg-[length:100%_100%] text-white text-xs font-bold rounded-2xl transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30 hover:scale-[1.02] flex items-center gap-2"
-                  >
-                    📄 Exporter Rapport PDF
-                  </button>
+                  {adminTab === 'contact' && (
+                    <button
+                      type="button"
+                      onClick={fetchContactMessages}
+                      className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    >
+                      Actualiser
+                    </button>
+                  )}
+                  {adminTab === 'metrics' && (
+                    <button 
+                      onClick={handleGeneratePDF}
+                      className="px-5 py-2.5 bg-teal-700 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors"
+                    >
+                      📄 Exporter Rapport PDF
+                    </button>
+                  )}
                 </div>
               </div>
               
@@ -1344,7 +1314,7 @@ function App() {
                         <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
                           <div className="flex justify-between items-center mb-6">
                             <span className="text-4xl">👥</span>
-                            <span className="text-[10px] font-bold px-3 py-1 bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 rounded-full tracking-wider uppercase">Membres</span>
+                            <span className="text-[10px] font-bold px-3 py-1 bg-teal-100 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 rounded-full tracking-wider uppercase">Membres</span>
                           </div>
                           <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Utilisateurs</h4>
                           <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalUsers}</p>
@@ -1473,7 +1443,7 @@ function App() {
                 <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[slideUp_0.4s_ease-out]">
                   <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center">
                     <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
-                      Membres inscrits <span className="text-xs text-purple-600 font-bold ml-2">({adminUsers.length})</span>
+                      Membres inscrits <span className="text-xs text-teal-600 font-bold ml-2">({adminUsers.length})</span>
                     </h3>
                     
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -1485,7 +1455,7 @@ function App() {
                           placeholder="Rechercher pseudo, prénom, contact..."
                           value={adminSearch}
                           onChange={(e) => setAdminSearch(e.target.value)}
-                          className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/30 rounded-2xl pl-10 pr-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all font-light text-slate-800 dark:text-slate-200"
+                          className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/30 rounded-2xl pl-10 pr-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-teal-700 dark:text-teal-400 border-teal-500 transition-all font-light text-slate-800 dark:text-slate-200"
                         />
                       </div>
                       
@@ -1493,7 +1463,7 @@ function App() {
                       <select
                         value={adminRoleFilter}
                         onChange={(e) => setAdminRoleFilter(e.target.value)}
-                        className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-2xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-semibold shadow-sm hover:border-purple-500/50"
+                        className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-2xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-teal-700 dark:text-teal-400 border-teal-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-semibold shadow-sm hover:text-teal-700 dark:text-teal-400 border-teal-500/50"
                       >
                         <option value="all">🌐 Tous les rôles</option>
                         <option value="user">🌱 Simple User</option>
@@ -1536,7 +1506,7 @@ function App() {
                             <td className="py-5 px-6">
                               <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 u.role === 'admin' 
-                                  ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300' 
+                                  ? 'bg-teal-100 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300' 
                                   : u.role === 'coach' 
                                     ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300' 
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -1549,7 +1519,7 @@ function App() {
                                 <select 
                                   value={u.role}
                                   onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                                  className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 text-slate-700 dark:text-slate-300 transition-all duration-300 cursor-pointer font-semibold shadow-sm hover:border-purple-500/50"
+                                  className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-teal-700 dark:text-teal-400 border-teal-500 text-slate-700 dark:text-slate-300 transition-all duration-300 cursor-pointer font-semibold shadow-sm hover:text-teal-700 dark:text-teal-400 border-teal-500/50"
                                 >
                                   <option value="user">🌱 Simple User</option>
                                   <option value="coach">🧘 Professional Coach</option>
@@ -1633,6 +1603,70 @@ function App() {
                 </div>
               )}
 
+              {/* TAB CONTENT: CONTACT MESSAGES */}
+              {adminTab === 'contact' && (
+                <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-[slideUp_0.4s_ease-out]">
+                  <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
+                    Messages reçus
+                    <span className="text-sm font-normal text-slate-500 ml-2">({contactMessages.length})</span>
+                  </h3>
+
+                  {contactMessages.length > 0 ? (
+                    <div className="space-y-4">
+                      {contactMessages.map((msg) => (
+                        <article
+                          key={msg.id}
+                          className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 bg-white/60 dark:bg-slate-900/40"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                            <div>
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">{msg.name}</p>
+                              <a
+                                href={`mailto:${msg.email}?subject=Re: Anonyme Pro`}
+                                className="text-sm text-teal-700 dark:text-teal-400 hover:underline"
+                              >
+                                {msg.email}
+                              </a>
+                            </div>
+                            <p className="text-xs text-slate-500 shrink-0">
+                              {new Date(msg.created_at).toLocaleString('fr-FR', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              })}
+                            </p>
+                          </div>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                            {msg.message}
+                          </p>
+                          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                            <a
+                              href={`mailto:${msg.email}?subject=Re: Votre message — Anonyme Pro`}
+                              className="px-4 py-2 text-xs font-semibold bg-teal-700 hover:bg-teal-600 text-white rounded-lg transition-colors"
+                            >
+                              Répondre par email
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteContactMessage(msg.id)}
+                              className="px-4 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            >
+                              Supprimer
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-16 text-slate-500 dark:text-slate-400">
+                      <p className="text-sm font-light">Aucun message pour le moment.</p>
+                      <p className="text-xs mt-2 text-slate-400">
+                        Les soumissions du formulaire Contact apparaîtront ici.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* TAB CONTENT: QUOTE OF THE DAY */}
               {adminTab === 'quote' && (
                 <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[slideUp_0.4s_ease-out]">
@@ -1654,12 +1688,12 @@ function App() {
                             placeholder="Entrez une citation inspirante ou un message de motivation..."
                             rows="4"
                             required
-                            className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 transition-all"
+                            className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
                           />
                         </div>
                         <button
                           type="submit"
-                          className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:shadow-lg hover:shadow-purple-500/25"
+                          className="w-full py-3 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:shadow-lg hover:shadow-teal-900/25"
                         >
                           🚀 Publier pour tous les utilisateurs
                         </button>
@@ -1671,13 +1705,13 @@ function App() {
                       <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                         Aperçu en direct
                       </h4>
-                      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border border-purple-200/50 dark:border-purple-500/30 rounded-3xl p-6 shadow-xl shadow-purple-500/5">
+                      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-teal-700 dark:text-teal-400 border-teal-200/50 dark:text-teal-700 dark:text-teal-400 border-teal-500/30 rounded-3xl p-6 shadow-xl shadow-teal-900/5">
                         <div className="flex gap-4 items-start">
                           <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-xl flex-shrink-0 shadow-md">
                             ✨
                           </div>
                           <div>
-                            <h3 className="text-[10px] font-bold tracking-widest text-purple-600 dark:text-purple-300 uppercase mb-1">
+                            <h3 className="text-[10px] font-bold tracking-widest text-teal-600 dark:text-teal-300 uppercase mb-1">
                               Motivation du jour
                             </h3>
                             <p className="text-sm text-slate-800 dark:text-slate-200 font-light leading-relaxed italic">
@@ -1700,7 +1734,7 @@ function App() {
         <p className="font-light">© {new Date().getFullYear()} Anonyme Pro. Tous droits réservés.</p>
         {user && user.role !== 'admin' && (
           <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 text-[10px] uppercase tracking-wider font-semibold">
-            <button type="button" onClick={exportData} className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors">📦 Exporter mes données (RGPD)</button>
+            <button type="button" onClick={exportData} className="hover:text-teal-600 dark:hover:text-teal-400 transition-colors">📦 Exporter mes données (RGPD)</button>
             <span className="hidden sm:inline text-slate-300 dark:text-slate-700">•</span>
             <button
               type="button"

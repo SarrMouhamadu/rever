@@ -68,8 +68,8 @@ app.use((err, _req, res, _next) => {
 });
 
 if (require.main === module) {
-  app.listen(port, '0.0.0.0', () => {
-    console.log(`Serveur démarré sur http://0.0.0.0:${port}`);
+  app.listen(port, '127.0.0.1', () => {
+    console.log(`Serveur démarré sur http://127.0.0.1:${port}`);
   });
 }
 

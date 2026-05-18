@@ -490,6 +490,41 @@ const saveContactMessage = async (name, email, message) => {
   );
 };
 
+const getCommunityStats = async () => {
+  const { rows } = await query(`
+    SELECT
+      (SELECT COUNT(*)::int FROM users WHERE role = 'user') AS members,
+      (SELECT COUNT(*)::int FROM users WHERE role = 'coach') AS coaches,
+      (
+        SELECT COUNT(DISTINCT u.id)::int FROM users u
+        WHERE u.role = 'coach'
+          AND EXISTS (
+            SELECT 1 FROM messages m
+            WHERE m.sender_id = u.id OR m.receiver_id = u.id
+          )
+      ) AS professionals
+  `);
+  return {
+    activeMembers: rows[0].members,
+    activeCoaches: rows[0].coaches,
+    activeProfessionals: rows[0].professionals,
+  };
+};
+
+const getContactMessages = async () => {
+  const { rows } = await query(
+    `SELECT id, name, email, message, created_at
+     FROM contact_messages
+     ORDER BY created_at DESC`
+  );
+  return rows;
+};
+
+const deleteContactMessage = async (id) => {
+  const { rowCount } = await query(`DELETE FROM contact_messages WHERE id = $1`, [id]);
+  return rowCount > 0;
+};
+
 const deleteUserAccount = async (userId) => {
   await query('DELETE FROM users WHERE id = $1', [userId]);
 };
@@ -560,6 +595,7 @@ module.exports = {
   updateAvatar,
   getUserById,
   getMetrics,
+  getCommunityStats,
   updateUserRole,
   createUserWithRole,
   getConversations,
@@ -575,6 +611,8 @@ module.exports = {
   getPostById,
   updatePost,
   saveContactMessage,
+  getContactMessages,
+  deleteContactMessage,
   deleteUserAccount,
   exportUserData,
 };

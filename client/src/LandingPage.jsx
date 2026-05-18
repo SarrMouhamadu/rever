@@ -1,460 +1,360 @@
-import React, { useState, useEffect } from 'react';
-import heroImage from '../image.png';
-import { 
-  ChatCircle, 
-  UserFocus, 
-  Heart, 
-  Envelope, 
-  Phone, 
-  WhatsappLogo, 
-  Sparkles, 
-  Sun, 
-  Moon, 
+import { useState, useEffect } from 'react';
+import api from './api/client';
+import {
   ArrowRight,
-  ShieldCheck,
-  Quotes
+  ChatsCircle,
+  Heart,
+  EnvelopeSimple,
+  Phone,
+  UserCircle,
 } from '@phosphor-icons/react';
+import heroImage from '../image.png';
+import Button from './components/ui/Button';
+import ThemeToggle from './components/ui/ThemeToggle';
+import IconBox from './components/ui/IconBox';
+
+const features = [
+  {
+    icon: ChatsCircle,
+    title: 'Partager librement',
+    body: 'Exprimez ce que vous traversez dans un espace sécurisé. Votre pseudo suffit — rien d’obligatoire au-delà.',
+  },
+  {
+    icon: UserCircle,
+    title: 'Coachs à l’écoute',
+    body: 'Des professionnels formés répondent en message privé, à votre rythme, sans jugement.',
+  },
+  {
+    icon: Heart,
+    title: 'Communauté bienveillante',
+    body: 'Des échanges modérés où chacun peut être entendu sans exposer son identité réelle.',
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      'Pouvoir écrire sans que ma famille le sache m’a aidée pendant les partiels. La pression est toujours là, mais je respire mieux.',
+    initials: 'FD',
+    name: 'Fatou D.',
+    role: 'Master 2, Dakar',
+  },
+  {
+    quote:
+      'Les coachs répondent vite et sans formules toutes faites. J’ai enfin trouvé des mots pour ce que je ressentais.',
+    initials: 'AN',
+    name: 'Aminata N.',
+    role: 'Licence 3, Saint-Louis',
+  },
+];
 
 function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
-  const [scrollY, setScrollY] = useState(0);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [contactHover, setContactHover] = useState(null);
+  const [activeCard, setActiveCard] = useState(0);
+  const [communityStats, setCommunityStats] = useState({
+    activeMembers: 0,
+    activeCoaches: 0,
+    activeProfessionals: 0,
+  });
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    api
+      .get('/api/analytics/community-stats')
+      .then((res) => setCommunityStats(res.data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    const timer = setInterval(() => {
+      setActiveCard((prev) => (prev + 1) % 3);
+    }, 3800);
+    return () => clearInterval(timer);
   }, []);
+
+  const appleCards = [
+    {
+      title: 'Communauté en direct',
+      subtitle: 'Membres actifs',
+      desc: 'Partages anonymes, bienveillants et écoute mutuelle sans jugement.',
+      badge: 'Live',
+      icon: '🌱',
+      gradient: 'from-indigo-500/10 via-purple-500/5 to-pink-500/10 dark:from-indigo-950/60 dark:via-purple-950/40 dark:to-pink-950/60 border-purple-500/30 dark:border-purple-500/20 text-purple-900 dark:text-purple-300',
+      badgeClass: 'bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-400/30',
+      glow: 'shadow-purple-500/5'
+    },
+    {
+      title: 'Conseil & Écoute',
+      subtitle: 'Coachs actifs',
+      desc: 'Des professionnels certifiés pour vous accompagner pas à pas.',
+      badge: 'Disponibles',
+      icon: '🧘',
+      gradient: 'from-teal-500/10 via-emerald-500/5 to-cyan-500/10 dark:from-teal-950/60 dark:via-emerald-950/40 dark:to-cyan-950/60 border-teal-500/30 dark:border-teal-500/20 text-teal-900 dark:text-teal-300',
+      badgeClass: 'bg-teal-500/20 text-teal-800 dark:text-teal-300 border-teal-400/30',
+      glow: 'shadow-teal-500/5'
+    },
+    {
+      title: 'Confidentialité',
+      subtitle: 'Accompagnement Pro',
+      desc: 'Espace crypté à haute sécurité et conformité totale au RGPD.',
+      badge: 'Sécurisé',
+      icon: '🔒',
+      gradient: 'from-amber-500/10 via-rose-500/5 to-orange-500/10 dark:from-amber-950/60 dark:via-rose-950/40 dark:to-orange-950/60 border-amber-500/30 dark:border-amber-500/20 text-amber-900 dark:text-amber-300',
+      badgeClass: 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-400/30',
+      glow: 'shadow-amber-500/5'
+    }
+  ];
 
   return (
-    <div className="min-h-[100dvh] bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 font-sans overflow-x-hidden transition-colors duration-500">
-      
-      {/* Hero Section */}
-      <section className="relative min-h-[100dvh] flex items-center px-4 sm:px-6 py-12 sm:py-20 md:py-24 overflow-hidden">
-        {/* Subtle Background Ambient Orbs - Zero neon purple glows */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div 
-            className="absolute -top-32 -left-32 w-80 h-80 sm:w-[450px] sm:h-[450px] bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-[120px] transition-all duration-700"
-            style={{ transform: `translate(${mousePos.x * 0.005}px, ${mousePos.y * 0.005}px)` }}
-          ></div>
-          <div 
-            className="absolute -bottom-32 -right-32 w-80 h-80 sm:w-[450px] sm:h-[450px] bg-zinc-400/10 dark:bg-zinc-800/10 rounded-full blur-[120px] transition-all duration-700"
-            style={{ 
-              animationDelay: '1.5s',
-              transform: `translate(${-mousePos.x * 0.005}px, ${-mousePos.y * 0.005}px)`
-            }}
-          ></div>
-        </div>
-        
-        <div className="relative max-w-6xl mx-auto w-full">
-          {/* Navigation - Premium Minimalism */}
-          <nav 
-            className="flex justify-between items-center mb-12 sm:mb-20 transition-all duration-300"
-            style={{ transform: `translateY(${scrollY * 0.05}px)` }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-                <Heart size={18} weight="fill" />
-              </div>
-              <h1 className="text-base sm:text-lg font-bold tracking-[0.15em] uppercase text-zinc-900 dark:text-white">
-                Anonyme Pro
-              </h1>
-            </div>
-            <div className="flex items-center gap-4 sm:gap-6">
-              <button 
-                onClick={toggleTheme} 
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800/40 flex items-center justify-center hover:scale-105 transition-all text-zinc-600 dark:text-zinc-400"
-                aria-label="Toggle Dark Mode"
-              >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-              <button 
-                onClick={onGetStarted}
-                className="group relative inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-semibold text-xs sm:text-sm tracking-wide transition-all shadow-md shadow-emerald-600/10 hover:shadow-lg hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <span>Se connecter</span>
-                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform duration-300" />
-              </button>
-            </div>
-          </nav>
-          
-          {/* Two-Column Hero Content - Asymmetrical Split Screen */}
-          <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center text-left mt-4 lg:mt-8">
-            <div 
-              className="lg:col-span-7 space-y-6 sm:space-y-8 animate-[slideUp_0.8s_ease-out_both]"
-              style={{ transform: `translateY(${scrollY * 0.03}px)` }}
+    <div className="min-h-[100dvh] relative">
+      <div aria-hidden className="grain" />
+
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <span className="text-sm font-semibold tracking-[0.18em] uppercase text-zinc-900 dark:text-zinc-100">
+            Anonyme Pro
+          </span>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onContact}
+              className="hidden sm:inline text-sm text-zinc-600 dark:text-zinc-400 hover:text-teal-700 dark:hover:text-teal-400 transition-colors focus-ring rounded-lg px-3 py-2"
             >
-              {/* Premium micro-message */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 dark:bg-emerald-400/10 border border-emerald-500/20 rounded-full">
-                <Sparkles size={12} className="text-emerald-600 dark:text-emerald-300" />
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold tracking-widest uppercase">
-                  Un espace sûr pour écouter & s'exprimer
-                </p>
-              </div>
-              
-              {/* Main Heading - Deterministic Typography */}
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-light tracking-tighter leading-tight text-zinc-900 dark:text-white max-w-[15ch]">
-                Parce que <span className="font-semibold text-emerald-600 dark:text-emerald-400">vos émotions</span> méritent d'être entendues
-              </h2>
-              
-              {/* Subtext */}
-              <p className="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 font-light leading-relaxed max-w-[50ch]">
-                Rejoignez une communauté bienveillante où vous pouvez partager vos confessions anonymement, écouter et trouver du soutien professionnel sans aucun jugement.
+              Contact
+            </button>
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <Button onClick={onGetStarted} className="!px-4 !py-2.5 text-sm">
+              Connexion
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <div className="animate-slide-up space-y-8">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-800 dark:text-teal-300 bg-teal-950/5 dark:bg-teal-400/10 border border-teal-900/10 dark:border-teal-500/20 px-4 py-2 rounded-full">
+                Espace confidentiel
               </p>
-              
-              {/* CTA Button */}
-              <div className="pt-2">
-                <button 
-                  onClick={onGetStarted}
-                  className="group relative inline-flex items-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-semibold text-sm sm:text-base tracking-wide transition-all shadow-lg shadow-emerald-600/15 hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <span>Commencer le voyage</span>
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
-                </button>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-[1.05] text-balance">
+                Vos émotions méritent d’être entendues
+              </h1>
+              <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-[65ch] font-light">
+                Une plateforme pour s’exprimer, échanger avec des coachs et trouver du soutien — sans
+                performance, sans jugement.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={onGetStarted}>
+                  Commencer
+                  <ArrowRight size={18} weight="bold" />
+                </Button>
+                <Button variant="outline" onClick={onContact}>
+                  Nous écrire
+                </Button>
               </div>
             </div>
 
-            {/* Right Column: Hero Visual - Refined with Liquid Glass refraction */}
-            <div className="lg:col-span-5 w-full flex justify-center animate-[slideUp_0.8s_ease-out_0.2s_both]">
-              <div className="relative w-full max-w-md bg-white/5 dark:bg-zinc-900/10 backdrop-blur-md p-3 border border-white/10 dark:border-white/5 rounded-[2.5rem] shadow-2xl shadow-emerald-950/5 hover:shadow-emerald-950/10 hover:border-emerald-500/20 dark:hover:border-emerald-400/10 hover:scale-[1.01] transition-all duration-700 animate-[float_6s_ease-in-out_infinite] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                <img 
-                  src={heroImage} 
-                  alt="Anonyme Health AI Showcase" 
-                  className="w-full h-auto rounded-[2rem] object-cover shadow-inner transition-transform duration-700 hover:scale-[1.005]" 
+            <div className="relative animate-slide-up lg:pl-8 pb-16 sm:pb-0" style={{ animationDelay: '0.1s' }}>
+              <div className="rounded-4xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-soft dark:shadow-soft-dark bg-zinc-100 dark:bg-zinc-900">
+                <img
+                  src={heroImage}
+                  alt="Personne en moment de calme, symbolisant l’écoute et le soutien"
+                  className="w-full h-auto object-cover"
+                  loading="eager"
                 />
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Smooth Section Transition */}
-      <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-800 to-transparent w-full"></div>
-
-      {/* Features Section - Staggered 2-Column Zig-Zag (Anti-3-Card Slop) */}
-      <section className="px-4 sm:px-6 py-20 sm:py-28 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 right-5 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] animate-pulse"></div>
-          <div className="absolute bottom-1/4 left-5 w-64 h-64 bg-zinc-300/10 dark:bg-zinc-800/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
-        </div>
-        
-        <div className="relative max-w-5xl mx-auto space-y-24 sm:space-y-36">
-          {/* Header section */}
-          <div className="text-left max-w-2xl">
-            <h3 className="text-[10px] uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400 font-bold mb-3">Ce que nous offrons</h3>
-            <h2 className="text-3xl sm:text-5xl font-light text-zinc-950 dark:text-white leading-tight">
-              Un accompagnement profondément <span className="font-semibold text-emerald-600 dark:text-emerald-400">humain</span> et sécurisé
-            </h2>
-          </div>
-          
-          {/* Feature 1 - Left content, right visual mockup */}
-          <div className="grid md:grid-cols-12 gap-8 md:gap-16 items-center">
-            <div className="md:col-span-6 space-y-6">
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
-                <ChatCircle size={24} weight="light" />
-              </div>
-              <h4 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white tracking-tight">Partagez librement</h4>
-              <p className="text-zinc-500 dark:text-zinc-400 font-light leading-relaxed max-w-[45ch]">
-                Exprimez vos pensées les plus secrètes et vos émotions vécues au quotidien dans un espace confidentiel à 100%. Vous gardez le contrôle total sur votre identité grâce à notre système d'anonymat renforcé.
-              </p>
-            </div>
-            
-            <div className="md:col-span-6">
-              {/* Refraction Liquid glass container */}
-              <div className="bg-white/80 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-lg transition-all duration-500 backdrop-blur-sm relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-xs font-bold text-emerald-600 dark:text-emerald-400">A. N.</div>
-                    <div className="bg-zinc-100 dark:bg-zinc-800/60 rounded-2xl rounded-tl-none p-3.5 max-w-[80%]">
-                      <p className="text-xs text-zinc-600 dark:text-zinc-300 font-light">Je me sens dépassée par la charge de travail cette semaine, c'est dur à supporter.</p>
+              <div 
+                className="absolute -bottom-12 left-1/2 -translate-x-1/2 sm:left-[-1.5rem] sm:translate-x-0 w-[16rem] sm:w-[17rem] h-[11rem] sm:h-[11.5rem] select-none"
+                onClick={() => setActiveCard((prev) => (prev + 1) % 3)}
+              >
+                {appleCards.map((card, i) => {
+                  const diff = (i - activeCard + 3) % 3;
+                  const isActive = diff === 0;
+                  
+                  return (
+                    <div
+                      key={i}
+                      className={`absolute inset-0 rounded-3xl p-5 border flex flex-col justify-between transition-all duration-700 ease-out backdrop-blur-xl shadow-2xl ${card.gradient} ${card.glow} cursor-pointer`}
+                      style={{
+                        transform: `translate3d(${diff * 12}px, ${diff * -12}px, 0) scale(${1 - diff * 0.06}) rotate(${diff * 1.5}deg)`,
+                        opacity: diff === 0 ? 1 : diff === 1 ? 0.75 : 0.4,
+                        zIndex: 30 - diff,
+                        pointerEvents: isActive ? 'auto' : 'none',
+                      }}
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="text-2xl">{card.icon}</span>
+                        <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full border ${card.badgeClass} flex items-center gap-1.5`}>
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
+                          </span>
+                          {card.badge}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider opacity-65">
+                          {card.title}
+                        </p>
+                        <h4 className="text-base font-bold tracking-tight">
+                          {card.subtitle}
+                        </h4>
+                        <p className="text-[11px] font-light leading-snug opacity-80 line-clamp-2">
+                          {card.desc}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 justify-end">
-                    <div className="bg-emerald-600 text-white rounded-2xl rounded-tr-none p-3.5 max-w-[80%] shadow-sm">
-                      <p className="text-xs font-light">Vous n'êtes pas seule. Prenez une inspiration profonde, nous sommes là pour écouter.</p>
-                    </div>
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-emerald-600/10">🧘</div>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             </div>
           </div>
+        </section>
 
-          {/* Feature 2 - Right content, left visual mockup */}
-          <div className="grid md:grid-cols-12 gap-8 md:gap-16 items-center md:flex-row-reverse">
-            <div className="md:col-span-6 md:order-2 space-y-6">
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
-                <UserFocus size={24} weight="light" />
-              </div>
-              <h4 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white tracking-tight">Accompagnement par des Coachs</h4>
-              <p className="text-zinc-500 dark:text-zinc-400 font-light leading-relaxed max-w-[45ch]">
-                Bénéficiez de la bienveillance et de l'écoute active de coaches professionnels. Formés à la psychologie de soutien, ils sont présents pour vous accompagner pas à pas vers un bien-être serein.
+        <section className="border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/30 py-20 md:py-28">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="max-w-2xl mb-16 md:mb-20">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-3">
+                Accompagnement
               </p>
-            </div>
-            
-            <div className="md:col-span-6 md:order-1">
-              <div className="bg-white/80 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-lg transition-all duration-500 backdrop-blur-sm relative overflow-hidden">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-2xl">🌿</div>
-                  <div className="space-y-1">
-                    <h5 className="text-sm font-semibold text-zinc-900 dark:text-white">Conseillers en ligne</h5>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500 font-light">Disponibilité immédiate pour échanger</p>
-                  </div>
-                  <span className="ml-auto w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                </div>
-                <div className="mt-6 pt-6 border-t border-zinc-100 dark:border-zinc-800/60 grid grid-cols-2 gap-4 text-center">
-                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl">
-                    <span className="block text-xl font-bold text-zinc-900 dark:text-white">100%</span>
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-light uppercase tracking-wider">Confidentialité</span>
-                  </div>
-                  <div className="p-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl">
-                    <span className="block text-xl font-bold text-zinc-900 dark:text-white">24/7</span>
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-light uppercase tracking-wider">Disponibilité</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Feature 3 - Left content, right visual mockup */}
-          <div className="grid md:grid-cols-12 gap-8 md:gap-16 items-center">
-            <div className="md:col-span-6 space-y-6">
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center">
-                <ShieldCheck size={24} weight="light" />
-              </div>
-              <h4 className="text-xl sm:text-2xl font-bold text-zinc-950 dark:text-white tracking-tight">Sécurité & Anonymat de pointe</h4>
-              <p className="text-zinc-500 dark:text-zinc-400 font-light leading-relaxed max-w-[45ch]">
-                Notre infrastructure est pensée pour préserver votre vie privée. Vos messages et confessions n'affichent jamais vos informations sensibles si vous optez pour l'anonymat. Exprimez-vous sereinement, l'esprit tranquille.
-              </p>
-            </div>
-            
-            <div className="md:col-span-6">
-              <div className="bg-white/80 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-6 sm:p-8 shadow-sm hover:shadow-lg transition-all duration-500 backdrop-blur-sm">
-                <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
-                  <ShieldCheck size={20} weight="fill" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Algorithme d'anonymisation</span>
-                </div>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-4 leading-relaxed font-light">
-                  Chaque publication anonyme subit un masquage cryptographique de son auteur au niveau du serveur, garantissant que vos données personnelles ne transitent jamais sur le réseau public.
-                </p>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* Smooth Section Transition */}
-      <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-800 to-transparent w-full"></div>
-
-      {/* Testimonials Section - Bento Grid Asymmetry */}
-      <section className="px-4 sm:px-6 py-20 sm:py-28 md:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/2 left-4 w-56 h-56 bg-emerald-500/5 rounded-full blur-[100px] animate-pulse"></div>
-        </div>
-        
-        <div className="relative max-w-6xl mx-auto space-y-16">
-          <div className="text-left">
-            <h3 className="text-[10px] uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400 font-bold mb-3">Témoignages</h3>
-            <h2 className="text-3xl sm:text-5xl font-light text-zinc-950 dark:text-white leading-tight">
-              Des vies profondément <span className="font-semibold text-emerald-600 dark:text-emerald-400">changées</span>
-            </h2>
-          </div>
-          
-          {/* Staggered Bento grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-            
-            {/* Left Feature Card (5 Cols) */}
-            <div className="lg:col-span-5 bg-emerald-600 dark:bg-emerald-600/90 text-white rounded-3xl p-8 sm:p-10 flex flex-col justify-between shadow-lg relative overflow-hidden min-h-[300px]">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-              <Quotes size={48} weight="fill" className="opacity-20 text-white mb-6" />
-              <h4 className="text-2xl sm:text-3xl font-light leading-tight tracking-tight mb-8">
-                Votre voix compte. Vos secrets sont gardés avec le plus grand soin.
-              </h4>
-              <div>
-                <p className="text-xs text-emerald-200 uppercase tracking-widest font-semibold mb-1">Rever Care System</p>
-                <p className="text-xs text-white/80 font-light">Une écoute humaine sans préjugé.</p>
-              </div>
+              <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 text-balance">
+                Conçu pour la parole, pas pour la performance
+              </h2>
             </div>
 
-            {/* Right Stack of 2 Testimonial Cards (7 Cols) */}
-            <div className="lg:col-span-7 grid gap-6">
-              
-              {/* Testimonial 1 */}
-              <div className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-zinc-900/80 transition-all duration-500 shadow-sm flex flex-col sm:flex-row justify-between gap-6">
-                <div className="flex-1 space-y-4">
-                  <Quotes size={24} weight="fill" className="text-emerald-500 dark:text-emerald-400 opacity-60" />
-                  <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-300 font-light leading-relaxed">
-                    "Rever m'a permis de surmonter le stress énorme des examens et de la pression sociale. Pouvoir s'exprimer sans filtre m'a libérée."
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:border-l sm:border-zinc-100 sm:dark:border-zinc-850 sm:pl-6 shrink-0 sm:w-48">
-                  <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-850 flex items-center justify-center text-xs font-bold text-emerald-600 dark:text-emerald-400">F. D.</div>
+            <div className="grid md:grid-cols-2 gap-8 md:gap-12">
+              {features.map((item, i) => (
+                <article
+                  key={item.title}
+                  className={`flex gap-5 p-6 md:p-8 rounded-3xl border border-zinc-200/60 dark:border-zinc-800/60 hover:border-teal-700/20 dark:hover:border-teal-500/20 transition-colors ${i === 2 ? 'md:col-span-2 md:max-w-xl' : ''}`}
+                >
+                  <IconBox icon={item.icon} className="shrink-0" />
                   <div>
-                    <p className="font-semibold text-zinc-900 dark:text-white text-xs sm:text-sm">F. D.</p>
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-light">Master 2 (UCAD)</p>
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-prose">
+                      {item.body}
+                    </p>
                   </div>
-                </div>
-              </div>
-
-              {/* Testimonial 2 */}
-              <div className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-6 sm:p-8 hover:bg-white dark:hover:bg-zinc-900/80 transition-all duration-500 shadow-sm flex flex-col sm:flex-row justify-between gap-6">
-                <div className="flex-1 space-y-4">
-                  <Quotes size={24} weight="fill" className="text-emerald-500 dark:text-emerald-400 opacity-60" />
-                  <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-300 font-light & leading-relaxed">
-                    "L'anonymat complet me permet d'évoquer mes doutes et mes peines quotidiennes sans craindre le jugement de mon entourage universitaire."
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:border-l sm:border-zinc-100 sm:dark:border-zinc-850 sm:pl-6 shrink-0 sm:w-48">
-                  <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-850 flex items-center justify-center text-xs font-bold text-emerald-600 dark:text-emerald-400">M. D.</div>
-                  <div>
-                    <p className="font-semibold text-zinc-900 dark:text-white text-xs sm:text-sm">M. D.</p>
-                    <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-light">Licence 3 (UGB)</p>
-                  </div>
-                </div>
-              </div>
-
+                </article>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Smooth Section Transition */}
-      <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-800 to-transparent w-full"></div>
-
-      {/* CTA Section - Minimalist Glass panel */}
-      <section className="px-4 sm:px-6 py-20 sm:py-28 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-16 -left-16 w-72 h-72 bg-emerald-500/5 rounded-full blur-[100px] animate-pulse"></div>
-          <div className="absolute -bottom-16 -right-16 w-72 h-72 bg-zinc-300/10 dark:bg-zinc-800/10 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-        </div>
-        
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-md border border-zinc-200/60 dark:border-zinc-800/40 rounded-3xl p-8 sm:p-12 shadow-sm hover:border-emerald-500/20 transition-all duration-500 shadow-xl shadow-zinc-950/5">
-            <h2 className="text-3xl sm:text-5xl font-light text-zinc-900 dark:text-white mb-4">Prêt à commencer le voyage ?</h2>
-            <p className="text-base sm:text-lg text-zinc-500 dark:text-zinc-400 mb-8 max-w-xl mx-auto font-light leading-relaxed">
-              Rejoignez des milliers de personnes qui ont déjà fait le premier pas vers leur bien-être et leur sérénité d'esprit.
+        <section className="py-20 md:py-28 px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-3 text-center">
+              Témoignages
             </p>
-            <button 
-              onClick={onGetStarted}
-              className="group inline-flex items-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-semibold text-sm sm:text-base tracking-wide shadow-md shadow-emerald-600/10 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02] transition-all duration-300 active:scale-[0.98]"
-            >
-              <span>Créer mon compte gratuit</span>
-              <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform duration-300" />
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* Smooth Section Transition */}
-      <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-800 to-transparent w-full"></div>
-
-      {/* Contact Coordinates Section */}
-      <section className="px-4 sm:px-6 py-20 sm:py-28 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute bottom-10 left-10 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl animate-pulse"></div>
-        </div>
-        
-        <div className="relative max-w-6xl mx-auto text-center">
-          <h3 className="text-[10px] uppercase tracking-[0.3em] text-emerald-600 dark:text-emerald-400 font-bold mb-3">Nous contacter</h3>
-          <h2 className="text-3xl sm:text-4xl font-light text-zinc-900 dark:text-white mb-16">
-            Besoin d'aide ? <span className="font-semibold text-emerald-600 dark:text-emerald-400">Restons en contact</span>
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left max-w-5xl mx-auto">
-            {/* Email Card */}
-            <a 
-              href="mailto:contact@annonyme.pro" 
-              className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-8 hover:bg-white dark:hover:bg-zinc-900/80 hover:border-emerald-500/20 transition-all duration-500 shadow-sm hover:scale-[1.02] group block"
-            >
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                <Envelope size={24} weight="light" />
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">E-mail</h4>
-              <p className="text-zinc-400 dark:text-zinc-500 text-xs mb-4">Notre équipe vous répond sous 24 heures.</p>
-              <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm">contact@annonyme.pro</p>
-            </a>
-
-            {/* WhatsApp Card */}
-            <a 
-              href="https://wa.me/221777091913" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-8 hover:bg-white dark:hover:bg-zinc-900/80 hover:border-emerald-500/20 transition-all duration-500 shadow-sm hover:scale-[1.02] group block"
-            >
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                <WhatsappLogo size={24} weight="light" />
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">WhatsApp</h4>
-              <p className="text-zinc-400 dark:text-zinc-500 text-xs mb-4">Discutez en direct avec un coach bienveillant.</p>
-              <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm">+221 77 709 19 13</p>
-            </a>
-
-            {/* Phone Card */}
-            <a 
-              href="tel:+221777091913" 
-              className="bg-white/80 dark:bg-zinc-900/60 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-800/40 rounded-3xl p-8 hover:bg-white dark:hover:bg-zinc-900/80 hover:border-emerald-500/20 transition-all duration-500 shadow-sm hover:scale-[1.02] group block"
-            >
-              <div className="w-12 h-12 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                <Phone size={24} weight="light" />
-              </div>
-              <h4 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">Téléphone</h4>
-              <p className="text-zinc-400 dark:text-zinc-500 text-xs mb-4">Appelez-nous directement pour toute urgence.</p>
-              <p className="text-emerald-600 dark:text-emerald-400 font-semibold text-sm">+221 77 709 19 13</p>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Smooth Section Transition */}
-      <div className="h-px bg-gradient-to-r from-transparent via-zinc-200 dark:via-zinc-800 to-transparent w-full"></div>
-
-      {/* Footer */}
-      <footer className="px-4 sm:px-6 py-12 border-t border-zinc-200/60 dark:border-zinc-800/40">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-emerald-600 flex items-center justify-center text-white">
-              <Heart size={14} weight="fill" />
+            <h2 className="text-3xl md:text-4xl font-semibold text-center text-zinc-900 dark:text-zinc-50 mb-12 text-balance">
+              Des parcours réels
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+              {testimonials.map((t) => (
+                <blockquote
+                  key={t.initials}
+                  className="glass-panel p-8 rounded-3xl flex flex-col justify-between min-h-[220px]"
+                >
+                  <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed font-light italic">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <footer className="flex items-center gap-3 mt-8 pt-6 border-t border-zinc-200/80 dark:border-zinc-800/80">
+                    <div className="w-10 h-10 rounded-xl bg-teal-800 text-white flex items-center justify-center text-xs font-semibold">
+                      {t.initials}
+                    </div>
+                    <div>
+                      <cite className="not-italic font-medium text-sm text-zinc-900 dark:text-zinc-100">
+                        {t.name}
+                      </cite>
+                      <p className="text-xs text-zinc-500">{t.role}</p>
+                    </div>
+                  </footer>
+                </blockquote>
+              ))}
             </div>
-            <span className="text-sm font-bold tracking-[0.1em] uppercase text-zinc-700 dark:text-zinc-300">Anonyme Pro</span>
           </div>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">© 2026 Anonyme Pro. Tous droits réservés.</p>
+        </section>
+
+        <section className="py-20 md:py-24 px-4 sm:px-6 border-t border-zinc-200/80 dark:border-zinc-800/80">
+          <div className="max-w-3xl mx-auto text-center glass-panel rounded-4xl p-10 md:p-14">
+            <h2 className="text-2xl md:text-3xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4 text-balance">
+              Prêt à faire le premier pas ?
+            </h2>
+            <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-md mx-auto leading-relaxed">
+              Création de compte gratuite. Vous choisissez ce que vous partagez et avec qui.
+            </p>
+            <Button onClick={onGetStarted} variant="secondary">
+              Créer un compte
+              <ArrowRight size={18} weight="bold" />
+            </Button>
+          </div>
+        </section>
+
+        <section className="py-16 md:py-20 px-4 sm:px-6 bg-zinc-100/50 dark:bg-zinc-900/40">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-10 text-center">
+              Nous joindre
+            </h2>
+            <div className="grid sm:grid-cols-3 gap-4">
+              {[
+                {
+                  id: 'email',
+                  href: 'mailto:contact@annonyme.pro',
+                  icon: EnvelopeSimple,
+                  title: 'Email',
+                  detail: 'contact@annonyme.pro',
+                },
+                {
+                  id: 'wa',
+                  href: 'https://wa.me/221777091913',
+                  icon: ChatsCircle,
+                  title: 'WhatsApp',
+                  detail: '+221 77 709 19 13',
+                },
+                {
+                  id: 'tel',
+                  href: 'tel:+221777091913',
+                  icon: Phone,
+                  title: 'Téléphone',
+                  detail: '+221 77 709 19 13',
+                },
+              ].map((c) => (
+                <a
+                  key={c.id}
+                  href={c.href}
+                  onMouseEnter={() => setContactHover(c.id)}
+                  onMouseLeave={() => setContactHover(null)}
+                  className={`block p-6 rounded-2xl border transition-all duration-200 focus-ring ${
+                    contactHover === c.id
+                      ? 'border-teal-600/40 bg-white dark:bg-zinc-900 shadow-glow'
+                      : 'border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/60'
+                  }`}
+                >
+                  <IconBox icon={c.icon} className="mb-4" />
+                  <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{c.title}</h3>
+                  <p className="text-sm text-teal-700 dark:text-teal-400 font-medium">{c.detail}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 py-10 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-zinc-500">
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">Anonyme Pro</span>
+          <nav className="flex gap-6">
+            <button type="button" onClick={onContact} className="hover:text-teal-700 dark:hover:text-teal-400 transition-colors">
+              Contact
+            </button>
+            <span className="text-zinc-400">Confidentialité (bientôt)</span>
+          </nav>
+          <p>© {new Date().getFullYear()} Anonyme Pro</p>
         </div>
       </footer>
-      
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap');
-        
-        body {
-          font-family: 'Outfit', sans-serif;
-        }
-
-        @keyframes slideUp {
-          from { 
-            opacity: 0; 
-            transform: translateY(30px);
-          }
-          to { 
-            opacity: 1; 
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-          100% { transform: translateY(0px); }
-        }
-      `}</style>
     </div>
   );
 }
