@@ -30,10 +30,16 @@ function App() {
   const [showLanding, setShowLanding] = useState(true);
   const [showContact, setShowContact] = useState(false);
   const [view, setView] = useState(() => {
-    const savedUser = localStorage.getItem('rever_user');
-    if (savedUser) {
-      const parsedUser = JSON.parse(savedUser);
-      return parsedUser.role === 'admin' ? 'admin-dashboard' : 'feed';
+    try {
+      const savedUser = localStorage.getItem('rever_user');
+      if (savedUser && savedUser !== 'undefined' && savedUser !== 'null') {
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser && parsedUser.role) {
+          return parsedUser.role === 'admin' ? 'admin-dashboard' : 'feed';
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing saved user session in App.jsx:", e);
     }
     return 'login';
   });
