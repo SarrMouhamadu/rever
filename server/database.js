@@ -111,6 +111,18 @@ const initDb = async () => {
 
     await query(`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS duration_seconds INTEGER DEFAULT 0`);
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS friends (
+        id SERIAL PRIMARY KEY,
+        user_id_1 INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        user_id_2 INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        status VARCHAR(50) DEFAULT 'pending',
+        sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id_1, user_id_2)
+      )
+    `);
+
     await query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id, is_read)`);
@@ -225,12 +237,20 @@ const addComment = async (postId, userId, text) => {
   const comment = rows[0];
   
   const postRow = await query('SELECT user_id, is_anonymous FROM posts WHERE id = $1', [postId]);
-  const userRow = await query('SELECT pseudo FROM users WHERE id = $1', [userId]);
+  const userRow = await query('SELECT pseudo, first_name, last_name FROM users WHERE id = $1', [userId]);
   
   const isPostAuthor = postRow.rows[0].user_id === userId;
   const isAnonymousPost = postRow.rows[0].is_anonymous;
   
-  const username = (isAnonymousPost && isPostAuthor) ? 'Anonyme (Auteur)' : userRow.rows[0].pseudo;
+  let username = userRow.rows[0].pseudo;
+  if (isPostAuthor) {
+    if (isAnonymousPost) {
+      username = 'Anonyme (Auteur)';
+    } else {
+      const initials = (userRow.rows[0].first_name.charAt(0) + userRow.rows[0].last_name.charAt(0)).toUpperCase();
+      username = `${initials} (Auteur)`;
+    }
+  }
   
   return { ...comment, username };
 };
@@ -248,8 +268,16 @@ const getFeed = async (userId, limit = 20, offset = 0) => {
   const { rows: posts } = await query(
     `SELECT p.id, p.user_id, p.text, p.image_url, p.likes, p.created_at,
             p.is_reported, p.reports_count, p.is_anonymous,
-            CASE WHEN p.is_anonymous = TRUE THEN 'Anonyme' WHEN p.user_id = $3 THEN u.pseudo ELSE LEFT(u.pseudo, 1) || '.' END AS username,
-            CASE WHEN p.is_anonymous = TRUE THEN NULL ELSE u.avatar END AS user_avatar,
+            CASE 
+              WHEN p.is_anonymous = TRUE THEN 'Anonyme' 
+              WHEN p.user_id = $3 THEN u.pseudo 
+              ELSE UPPER(LEFT(u.first_name, 1) || LEFT(u.last_name, 1)) 
+            END AS username,
+            CASE 
+              WHEN p.is_anonymous = TRUE THEN NULL 
+              WHEN p.user_id = $3 THEN u.avatar 
+              ELSE NULL 
+            END AS user_avatar,
             EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $3) AS liked_by_me
      FROM posts p
      JOIN users u ON p.user_id = u.id
@@ -265,8 +293,11 @@ const getFeed = async (userId, limit = 20, offset = 0) => {
   const postIds = posts.map((p) => p.id);
   const { rows: comments } = await query(
     `SELECT c.id, c.post_id, c.user_id, c.text, c.created_at, 
-            CASE WHEN p.is_anonymous = TRUE AND c.user_id = p.user_id THEN 'Anonyme (Auteur)'
-                 ELSE u.pseudo END AS username
+            CASE 
+              WHEN p.is_anonymous = TRUE AND c.user_id = p.user_id THEN 'Anonyme (Auteur)'
+              WHEN p.is_anonymous = FALSE AND c.user_id = p.user_id THEN UPPER(LEFT(u.first_name, 1) || LEFT(u.last_name, 1)) || ' (Auteur)'
+              ELSE u.pseudo 
+            END AS username
      FROM comments c
      JOIN users u ON c.user_id = u.id
      JOIN posts p ON c.post_id = p.id
@@ -303,8 +334,16 @@ const getMessages = async (userId1, userId2, postId = null, limit = 50, offset =
   if (postId) {
     queryText = `
       SELECT m.*,
-             CASE WHEN m.is_anonymous = TRUE THEN 'Anonyme' ELSE u1.pseudo END AS sender_pseudo,
-             CASE WHEN m.is_anonymous = TRUE THEN 'Anonyme' ELSE u2.pseudo END AS receiver_pseudo
+             CASE 
+               WHEN m.is_anonymous = TRUE THEN 'Anonyme' 
+               WHEN u1.role = 'user' THEN UPPER(LEFT(u1.first_name, 1) || LEFT(u1.last_name, 1))
+               ELSE u1.pseudo 
+             END AS sender_pseudo,
+             CASE 
+               WHEN m.is_anonymous = TRUE THEN 'Anonyme' 
+               WHEN u2.role = 'user' THEN UPPER(LEFT(u2.first_name, 1) || LEFT(u2.last_name, 1))
+               ELSE u2.pseudo 
+             END AS receiver_pseudo
       FROM messages m
       JOIN users u1 ON m.sender_id = u1.id
       JOIN users u2 ON m.receiver_id = u2.id
@@ -316,8 +355,8 @@ const getMessages = async (userId1, userId2, postId = null, limit = 50, offset =
   } else {
     queryText = `
       SELECT m.*,
-             u1.pseudo AS sender_pseudo,
-             u2.pseudo AS receiver_pseudo
+             CASE WHEN u1.role = 'user' THEN UPPER(LEFT(u1.first_name, 1) || LEFT(u1.last_name, 1)) ELSE u1.pseudo END AS sender_pseudo,
+             CASE WHEN u2.role = 'user' THEN UPPER(LEFT(u2.first_name, 1) || LEFT(u2.last_name, 1)) ELSE u2.pseudo END AS receiver_pseudo
       FROM messages m
       JOIN users u1 ON m.sender_id = u1.id
       JOIN users u2 ON m.receiver_id = u2.id
@@ -333,7 +372,13 @@ const getMessages = async (userId1, userId2, postId = null, limit = 50, offset =
 
 const getOtherUser = async (userId) => {
   const { rows } = await query(
-    `SELECT id, first_name, last_name, pseudo, role, avatar FROM users WHERE id = $1`,
+    `SELECT id, 
+            CASE WHEN role = 'user' THEN UPPER(LEFT(first_name, 1)) ELSE first_name END AS first_name,
+            CASE WHEN role = 'user' THEN UPPER(LEFT(last_name, 1)) ELSE last_name END AS last_name,
+            CASE WHEN role = 'user' THEN UPPER(LEFT(first_name, 1) || LEFT(last_name, 1)) ELSE pseudo END AS pseudo,
+            role, 
+            CASE WHEN role = 'user' THEN NULL ELSE avatar END AS avatar 
+     FROM users WHERE id = $1`,
     [userId]
   );
   return rows[0];
@@ -352,15 +397,23 @@ const getConversations = async (userId) => {
   const { rows } = await query(
     `SELECT DISTINCT ON (u.id, is_anonymous, post_id)
            u.id AS id,
-           u.first_name AS first_name,
-           u.last_name AS last_name,
-           u.pseudo AS pseudo,
+           CASE WHEN u.role = 'user' THEN UPPER(LEFT(u.first_name, 1)) ELSE u.first_name END AS first_name,
+           CASE WHEN u.role = 'user' THEN UPPER(LEFT(u.last_name, 1)) ELSE u.last_name END AS last_name,
+           CASE WHEN u.role = 'user' THEN UPPER(LEFT(u.first_name, 1) || LEFT(u.last_name, 1)) ELSE u.pseudo END AS pseudo,
            u.role AS role,
-           u.avatar AS avatar,
+           CASE WHEN u.role = 'user' THEN NULL ELSE u.avatar END AS avatar,
            FALSE AS is_anonymous,
            NULL::integer AS post_id,
            (SELECT COUNT(*)::int FROM messages
             WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE AND is_anonymous = FALSE) AS unread_count,
+           (SELECT EXISTS (
+              SELECT 1 FROM friends 
+              WHERE (user_id_1 = LEAST(u.id, $1) AND user_id_2 = GREATEST(u.id, $1) AND status = 'accepted')
+           )) AS is_friend,
+           (SELECT status FROM friends 
+            WHERE (user_id_1 = LEAST(u.id, $1) AND user_id_2 = GREATEST(u.id, $1))) AS friendship_status,
+           (SELECT sender_id FROM friends 
+            WHERE (user_id_1 = LEAST(u.id, $1) AND user_id_2 = GREATEST(u.id, $1))) AS friendship_sender_id,
            MAX(m.created_at) AS last_message_time
     FROM users u
     JOIN messages m ON (m.sender_id = u.id AND m.receiver_id = $1) OR (m.sender_id = $1 AND m.receiver_id = u.id)
@@ -380,6 +433,9 @@ const getConversations = async (userId) => {
            m.post_id AS post_id,
            (SELECT COUNT(*)::int FROM messages
             WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE AND is_anonymous = TRUE AND post_id = m.post_id) AS unread_count,
+           FALSE AS is_friend,
+           NULL::varchar AS friendship_status,
+           NULL::integer AS friendship_sender_id,
            MAX(m.created_at) AS last_message_time
     FROM users u
     JOIN messages m ON (m.sender_id = u.id AND m.receiver_id = $1) OR (m.sender_id = $1 AND m.receiver_id = u.id)
@@ -645,6 +701,66 @@ const recordVisitor = async (visitorId, isHeartbeat = false) => {
   }
 };
 
+const sendFriendRequest = async (senderId, receiverId) => {
+  const user1 = Math.min(senderId, receiverId);
+  const user2 = Math.max(senderId, receiverId);
+  const { rows } = await query(
+    `INSERT INTO friends (user_id_1, user_id_2, status, sender_id)
+     VALUES ($1, $2, 'pending', $3)
+     ON CONFLICT (user_id_1, user_id_2) DO UPDATE 
+     SET status = 'pending', sender_id = $3
+     WHERE friends.status = 'pending' OR friends.status = 'none' OR friends.status IS NULL
+     RETURNING *`,
+    [user1, user2, senderId]
+  );
+  return rows[0];
+};
+
+const acceptFriendRequest = async (userId, senderId) => {
+  const user1 = Math.min(userId, senderId);
+  const user2 = Math.max(userId, senderId);
+  const { rows } = await query(
+    `UPDATE friends 
+     SET status = 'accepted' 
+     WHERE user_id_1 = $1 AND user_id_2 = $2 AND status = 'pending' AND sender_id = $3
+     RETURNING *`,
+    [user1, user2, senderId]
+  );
+  return rows[0];
+};
+
+const declineFriendRequestOrRemoveFriend = async (userId, otherId) => {
+  const user1 = Math.min(userId, otherId);
+  const user2 = Math.max(userId, otherId);
+  const { rows } = await query(
+    `DELETE FROM friends 
+     WHERE user_id_1 = $1 AND user_id_2 = $2
+     RETURNING *`,
+    [user1, user2]
+  );
+  return rows[0];
+};
+
+const getFriendshipStatus = async (userId, otherId) => {
+  const user1 = Math.min(userId, otherId);
+  const user2 = Math.max(userId, otherId);
+  const { rows } = await query(
+    `SELECT * FROM friends WHERE user_id_1 = $1 AND user_id_2 = $2`,
+    [user1, user2]
+  );
+  if (rows.length === 0) {
+    return { status: 'none', sender_id: null };
+  }
+  const rel = rows[0];
+  let status = 'none';
+  if (rel.status === 'accepted') {
+    status = 'friends';
+  } else if (rel.status === 'pending') {
+    status = rel.sender_id === userId ? 'sent' : 'received';
+  }
+  return { status, sender_id: rel.sender_id };
+};
+
 initDb();
 
 module.exports = {
@@ -685,4 +801,8 @@ module.exports = {
   deleteContactMessage,
   deleteUserAccount,
   exportUserData,
+  sendFriendRequest,
+  acceptFriendRequest,
+  declineFriendRequestOrRemoveFriend,
+  getFriendshipStatus,
 };

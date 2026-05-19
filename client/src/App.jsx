@@ -23,6 +23,45 @@ const formatDuration = (seconds) => {
   return `${s} s`;
 };
 
+const getInitials = (pseudo) => {
+  if (!pseudo) return '';
+  const trimmed = pseudo.trim();
+  if (trimmed === 'Anonyme' || trimmed.includes('Anonyme')) {
+    return '🤫';
+  }
+  if (trimmed.length <= 2) return trimmed.toUpperCase();
+  
+  const parts = trimmed.split(/[\s\-_]+/);
+  if (parts.length >= 2) {
+    const first = parts[0].charAt(0);
+    const last = parts[parts.length - 1].charAt(0);
+    return (first + last).toUpperCase();
+  }
+  return trimmed.substring(0, 2).toUpperCase();
+};
+
+const getAvatarColor = (pseudo) => {
+  if (!pseudo) return 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50';
+  const trimmed = pseudo.trim();
+  if (trimmed === 'Anonyme' || trimmed.includes('Anonyme') || trimmed === '🤫') {
+    return 'bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50';
+  }
+  let hash = 0;
+  for (let i = 0; i < trimmed.length; i++) {
+    hash = trimmed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colors = [
+    'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200/60 dark:border-teal-900/30',
+    'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-900/30',
+    'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/30',
+    'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/30',
+    'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/30',
+    'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border border-sky-200/60 dark:border-sky-900/30',
+  ];
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 function App() {
   const { user, login, register, logout, exportData, deleteAccount } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -310,6 +349,85 @@ function App() {
     }
   };
 
+  const handleInitiatePrivateChat = async (post) => {
+    const text = window.prompt(`✉️ Envoyer un message privé à l'auteur de cette publication (${post.username}) :`);
+    if (text === null) return;
+    if (!text.trim()) {
+      alert("Le message ne peut pas être vide.");
+      return;
+    }
+
+    try {
+      await api.post('/api/messages', {
+        receiverId: post.user_id,
+        text: text,
+        isAnonymous: false
+      });
+      
+      // Update selectedCoach state to redirect to the new chat
+      setSelectedCoach({
+        id: post.user_id,
+        pseudo: post.username,
+        is_anonymous: false
+      });
+      setView('messages');
+      fetchContacts();
+    } catch (err) {
+      console.error(err);
+      alert("Impossible d'envoyer le message privé.");
+    }
+  };
+
+  const handleSendFriendRequest = async (receiverId) => {
+    try {
+      await api.post('/api/friends/request', { receiverId });
+      setSelectedCoach(prev => ({
+        ...prev,
+        friendship_status: 'pending',
+        friendship_sender_id: user.id
+      }));
+      fetchContacts();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Erreur lors de l'envoi de la demande d'ami.");
+    }
+  };
+
+  const handleAcceptFriendRequest = async (senderId) => {
+    try {
+      await api.post('/api/friends/accept', { senderId });
+      setSelectedCoach(prev => ({
+        ...prev,
+        is_friend: true,
+        friendship_status: 'accepted'
+      }));
+      fetchContacts();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Erreur lors de l'acceptation de la demande d'ami.");
+    }
+  };
+
+  const handleDeclineOrRemoveFriend = async (otherId) => {
+    const isRemoving = selectedCoach?.is_friend || selectedCoach?.friendship_status === 'accepted';
+    if (isRemoving && !window.confirm("Voulez-vous vraiment retirer cet utilisateur de vos amis ?")) {
+      return;
+    }
+    try {
+      await api.post('/api/friends/decline', { otherId });
+      setSelectedCoach(prev => ({
+        ...prev,
+        is_friend: false,
+        friendship_status: 'none',
+        friendship_sender_id: null
+      }));
+      fetchContacts();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.error || "Erreur lors du traitement de l'action.");
+    }
+  };
+
   const fetchQuote = async () => {
     try {
       const res = await api.get('/api/quote');
@@ -389,9 +507,10 @@ function App() {
   const fetchContacts = async () => {
     try {
       if (!user) return;
+      let merged = [];
       if (user.role === 'coach') {
         const res = await api.get(`/api/users/${user.id}/conversations`);
-        setContacts(res.data);
+        merged = res.data;
       } else {
         const [coachesRes, convRes] = await Promise.all([
           api.get(`/api/users/${user.id}/coaches`),
@@ -401,20 +520,31 @@ function App() {
         const coaches = coachesRes.data;
         const conversations = convRes.data;
         
-        // Merge coaches and active anonymous/regular conversations
-        const merged = [...coaches];
+        const mergedCoaches = [...coaches];
         conversations.forEach(c => {
           if (c.is_anonymous) {
-            // Unique key for anonymous to avoid blending
-            merged.push(c);
+            mergedCoaches.push(c);
           } else {
-            if (!merged.some(m => m.id === c.id && !m.is_anonymous)) {
-              merged.push(c);
+            const existing = mergedCoaches.find(m => m.id === c.id && !m.is_anonymous);
+            if (!existing) {
+              mergedCoaches.push(c);
+            } else {
+              existing.is_friend = c.is_friend;
+              existing.friendship_status = c.friendship_status;
+              existing.friendship_sender_id = c.friendship_sender_id;
             }
           }
         });
-        
-        setContacts(merged);
+        merged = mergedCoaches;
+      }
+      
+      setContacts(merged);
+      
+      if (selectedCoach) {
+        const fresh = merged.find(c => c.id === selectedCoach.id && c.is_anonymous === selectedCoach.is_anonymous && c.post_id === selectedCoach.post_id);
+        if (fresh) {
+          setSelectedCoach(prev => ({ ...prev, ...fresh }));
+        }
       }
     } catch (error) { console.error(error); }
   };
@@ -1029,20 +1159,45 @@ function App() {
       <nav className="w-full border-b border-slate-200 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex justify-between items-center">
           
-          <div className="flex gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm uppercase tracking-wider font-semibold">
-            <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
+          <div className="flex gap-2 sm:gap-4 items-center text-xs sm:text-sm uppercase tracking-wider font-bold">
+            <button 
+              onClick={() => setView('feed')} 
+              className={`transition-premium active-squeeze py-2 px-3 sm:px-4 rounded-xl ${
+                view === 'feed' 
+                  ? 'text-teal-700 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-400/10 font-bold' 
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-zinc-900/60'
+              }`}
+            >
+              Feed
+            </button>
             {(user.role === 'user' || user.role === 'coach') && (
-              <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
+              <button 
+                onClick={() => setView('messages')} 
+                className={`relative transition-premium active-squeeze py-2 px-3 sm:px-4 rounded-xl ${
+                  view === 'messages' 
+                    ? 'text-teal-700 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-400/10 font-bold' 
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-zinc-900/60'
+                }`}
+              >
                 Messages
                 {totalUnread > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-extrabold w-4 h-4 flex items-center justify-center rounded-full animate-pulse shadow-md">
                     {totalUnread}
                   </span>
                 )}
               </button>
             )}
             {user.role === 'admin' && (
-              <button onClick={() => setView('admin-dashboard')} className={`${view === 'admin-dashboard' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Admin</button>
+              <button 
+                onClick={() => setView('admin-dashboard')} 
+                className={`transition-premium active-squeeze py-2 px-3 sm:px-4 rounded-xl ${
+                  view === 'admin-dashboard' 
+                    ? 'text-teal-700 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-400/10 font-bold' 
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-zinc-900/60'
+                }`}
+              >
+                Admin
+              </button>
             )}
           </div>
 
@@ -1061,7 +1216,7 @@ function App() {
       <main className={`${view === 'admin-dashboard' ? 'max-w-7xl' : 'max-w-3xl'} mx-auto p-4 sm:p-6 pt-6 sm:pt-8 transition-all duration-300`}>
         
         {view === 'feed' && (
-          <div className="relative z-10">
+          <div className="relative z-10 animate-view-change">
             {/* Daily Quote / Motivation Banner */}
             {quote && (
               <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-teal-700 dark:text-teal-400 border-teal-200/50 dark:text-teal-700 dark:text-teal-400 border-teal-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8 mb-6 sm:mb-8 shadow-xl shadow-teal-900/5 hover:shadow-teal-900/10 transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
@@ -1080,9 +1235,7 @@ function App() {
                     
                     {/* Share Actions Bar */}
                     <div className="flex flex-wrap gap-2.5 mt-5 items-center">
-                      <span className="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 dark:text-slate-500 mr-1.5 flex items-center gap-1">
-                        <span>📤</span> Partager :
-                      </span>
+                      <span className="text-slate-500 dark:text-slate-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider mr-1.5">Partager :</span>
                       
                       {/* WhatsApp Button */}
                       <a
@@ -1091,7 +1244,7 @@ function App() {
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 shadow-sm active:scale-95"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
                       >
                         <span className="text-xs sm:text-sm">💬</span> WhatsApp
                       </a>
@@ -1104,12 +1257,12 @@ function App() {
                           setQuoteCopied(true);
                           setTimeout(() => setQuoteCopied(false), 2000);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 dark:border-pink-500/30 text-pink-600 dark:text-pink-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 shadow-sm active:scale-95"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 dark:border-pink-500/30 text-pink-600 dark:text-pink-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
                       >
                         <span className="text-xs sm:text-sm">{quoteCopied ? '✅' : '📸'}</span>
                         {quoteCopied ? 'Copié !' : 'Instagram'}
                       </button>
-
+ 
                       {/* Native Smart Share (Visible only on mobile devices that support navigator.share) */}
                       {typeof navigator !== 'undefined' && navigator.share && (
                         <button
@@ -1121,7 +1274,7 @@ function App() {
                               url: 'https://annonyme.pro'
                             }).catch((err) => console.log('Share canceled', err));
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 shadow-sm active:scale-95"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
                         >
                           <span className="text-xs sm:text-sm">🔗</span> Plus...
                         </button>
@@ -1137,7 +1290,7 @@ function App() {
                 <textarea 
                   value={newPostText} onChange={(e) => setNewPostText(e.target.value)}
                   placeholder="Partagez vos pensées..."
-                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
+                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus-glow-teal transition-all"
                 />
                 {newPostImagePreview && (
                   <div className="mt-3 sm:mt-4 relative">
@@ -1162,17 +1315,21 @@ function App() {
                     <button
                       type="button"
                       onClick={() => setIsAnonymous(!isAnonymous)}
-                      className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-95 ${
+                      className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs sm:text-sm font-bold transition-premium shadow-sm active:scale-95 ${
                         isAnonymous 
-                          ? 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20 text-teal-600 dark:text-teal-400 hover:bg-teal-500/20' 
+                          ? 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20 hover:bg-teal-500/20' 
                           : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700/50 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
-                      <span className="text-sm">{isAnonymous ? '🔒' : '🔓'}</span>
+                      <span className="text-sm transition-transform duration-300">{isAnonymous ? '🔒' : '🔓'}</span>
                       {isAnonymous ? 'Anonyme' : 'Public'}
                     </button>
                   </div>
-                  <button type="submit" disabled={!newPostText.trim()} className="w-full sm:w-auto px-6 py-2.5 bg-teal-700 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors">
+                  <button 
+                    type="submit" 
+                    disabled={!newPostText.trim()} 
+                    className="w-full sm:w-auto px-6 py-2.5 bg-teal-700 hover:bg-teal-600 active-squeeze disabled:scale-100 disabled:opacity-50 text-white font-bold rounded-xl transition-premium shadow-md hover:shadow-teal-900/20 disabled:shadow-none"
+                  >
                     Publier
                   </button>
                 </div>
@@ -1183,10 +1340,10 @@ function App() {
               {feed.map((post, index) => (
                 <div 
                   key={post.id} 
-                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg transition-all duration-300 animate-[slideUp_0.6s_ease-out_both]"
-                  style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
+                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/30 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg hover:shadow-xl dark:hover:shadow-teal-950/10 hover-lift-premium border border-transparent hover:border-teal-500/20 dark:hover:border-teal-400/25 transition-all duration-300 animate-slide-up relative overflow-hidden"
+                  style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
                 >
-                  <div className="flex items-center justify-between mb-4 sm:mb-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5">
                     <div className="flex items-center gap-3">
                       <div>
                         <p className="text-sm font-medium text-slate-900 dark:text-slate-300">{post.username}</p>
@@ -1215,7 +1372,7 @@ function App() {
                       <textarea
                         value={editingPostText}
                         onChange={(e) => setEditingPostText(e.target.value)}
-                        className="w-full h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
+                        className="w-full h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
                       />
                       <div className="flex gap-2">
                         <button
@@ -1245,7 +1402,11 @@ function App() {
                       <button 
                         onClick={() => handleLike(post.id)} 
                         disabled={post.liked_by_me}
-                        className={`flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${post.liked_by_me ? 'text-rose-500 opacity-70 cursor-default' : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400'}`}
+                        className={`flex items-center gap-1 sm:gap-2 transition-all duration-200 text-xs sm:text-sm ${
+                          post.liked_by_me 
+                            ? 'text-rose-500 opacity-70 cursor-default scale-100 animate-bounce-like' 
+                            : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:scale-110 active:scale-90 active:rotate-[-8deg]'
+                        }`}
                         aria-label={post.liked_by_me ? 'Déjà aimé' : 'Aimer'}
                       >
                         ❤️ {post.likes}
@@ -1258,17 +1419,27 @@ function App() {
                     {post.is_anonymous && post.user_id !== user.id && (
                       <button 
                         onClick={() => handleInitiateAnonymousChat(post)}
-                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors text-xs sm:text-sm font-semibold"
+                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-premium hover:translate-x-0.5 hover:scale-[1.03] active:scale-95 text-xs sm:text-sm font-bold"
                         title="Écrire un message privé anonyme à l'auteur"
                       >
                         ✉️ Message Anonyme
                       </button>
                     )}
                     
+                    {!post.is_anonymous && post.user_id !== user.id && (
+                      <button 
+                        onClick={() => handleInitiatePrivateChat(post)}
+                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-premium hover:translate-x-0.5 hover:scale-[1.03] active:scale-95 text-xs sm:text-sm font-bold"
+                        title="Envoyer un message privé à l'auteur"
+                      >
+                        ✉️ Message Privé
+                      </button>
+                    )}
+                    
                     {user.role === 'admin' ? (
                       <button 
                         onClick={() => handleDeletePost(post.id)} 
-                        className="flex items-center gap-1 sm:gap-2 text-rose-500 hover:text-rose-600 transition-colors text-[10px] sm:text-xs uppercase tracking-wider font-bold"
+                        className="flex items-center gap-1 sm:gap-2 text-rose-500 hover:text-rose-600 transition-premium hover:scale-105 active:scale-95 text-[10px] sm:text-xs uppercase tracking-wider font-black"
                         title="Supprimer ce post définitivement"
                       >
                         🗑️ Supprimer
@@ -1276,7 +1447,7 @@ function App() {
                     ) : (
                       <button 
                         onClick={() => handleReportPost(post.id)} 
-                        className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors text-[10px] sm:text-xs uppercase tracking-wider font-semibold"
+                        className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-premium hover:scale-105 active:scale-95 text-[10px] sm:text-xs uppercase tracking-wider font-bold"
                         title="Signaler ce post"
                       >
                         ⚠️ Signaler
@@ -1308,7 +1479,7 @@ function App() {
                         placeholder="Écrire un commentaire..."
                         value={commentInputs[post.id] || ''}
                         onChange={(e) => handleCommentInputChange(post.id, e.target.value)}
-                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus-ring focus:border-teal-600/50 transition-all"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus-ring focus-glow-teal transition-all"
                       />
                       <button 
                         onClick={() => handleComment(post.id)}
@@ -1338,41 +1509,118 @@ function App() {
         )}
 
         {view === 'messages' && (
-          <div className="relative z-10 flex flex-col md:flex-row gap-3 md:gap-6 animate-[fadeIn_0.4s_ease-out]">
-            {/* Coaches List */}
+          <div className="relative z-10 flex flex-col md:flex-row gap-3 md:gap-6 animate-view-change">
+            {/* Coaches List / Messagerie Sidebar */}
             <div className={`w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl md:rounded-3xl p-4 shadow-lg h-[calc(100dvh-130px-env(safe-area-inset-bottom))] md:h-[600px] chat-scroll ${selectedCoach ? 'hidden md:block' : 'block'}`}>
-              <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">{user.role === 'coach' ? 'Discussions' : 'Coachs'}</h2>
-              {contacts.length > 0 ? contacts.map(coach => (
-                <div 
-                  key={coach.is_anonymous ? `anon-${coach.id}-${coach.post_id}` : `normal-${coach.id}`} 
-                  onClick={() => setSelectedCoach(coach)}
-                  className={`p-3 rounded-2xl cursor-pointer transition-all mb-2 flex items-center gap-3 ${
-                    selectedCoach?.id === coach.id && selectedCoach?.is_anonymous === coach.is_anonymous && selectedCoach?.post_id === coach.post_id
-                      ? 'bg-teal-100 dark:bg-teal-900/40 border text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-550/30'
-                      : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border border-transparent'
-                  }`}
-                >
-                  <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-teal-600 to-teal-700 rounded-full flex items-center justify-center text-white font-bold relative">
-                    {coach.is_anonymous ? '🤫' : coach.pseudo.charAt(0).toUpperCase()}
-                    {parseInt(coach.unread_count) > 0 && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
-                    )}
-                  </div>
-                  <div className="truncate flex-1">
-                    <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{coach.pseudo}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      {coach.is_anonymous ? 'Discussion Anonyme' : (user.role === 'coach' ? 'Utilisateur' : 'Professionnel')}
-                    </p>
-                  </div>
-                  {parseInt(coach.unread_count) > 0 && (
-                    <div className="bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-sm animate-pulse">
-                      {coach.unread_count}
+              <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2 flex items-center gap-2">
+                <span>💬</span> {user.role === 'coach' ? 'Discussions' : 'Messagerie'}
+              </h2>
+              
+              <div className="space-y-4">
+                {/* Section 1: Amis sympas */}
+                <div>
+                  <h3 className="text-[11px] font-extrabold tracking-wider uppercase text-teal-600 dark:text-teal-400 mb-2 px-2 flex items-center gap-1.5">
+                    <span>🤝</span> Amis sympas
+                  </h3>
+                  {contacts.filter(c => c.is_friend || c.friendship_status === 'accepted').length > 0 ? (
+                    contacts.filter(c => c.is_friend || c.friendship_status === 'accepted').map(coach => (
+                      <div 
+                        key={coach.is_anonymous ? `anon-${coach.id}-${coach.post_id}` : `normal-${coach.id}`} 
+                        onClick={() => setSelectedCoach(coach)}
+                        className={`p-3 rounded-2xl cursor-pointer mb-2 flex items-center gap-3 border transition-all duration-300 hover:translate-x-1 active-squeeze-sm ${
+                          selectedCoach?.id === coach.id && selectedCoach?.is_anonymous === coach.is_anonymous && selectedCoach?.post_id === coach.post_id
+                            ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-550/30 shadow-md translate-x-1'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border-transparent bg-slate-55/20 dark:bg-slate-900/10'
+                        }`}
+                      >
+                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm shadow-sm relative ${getAvatarColor(coach.pseudo)}`}>
+                          {coach.is_anonymous ? '🤫' : getInitials(coach.pseudo)}
+                          {parseInt(coach.unread_count) > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
+                          )}
+                        </div>
+                        <div className="truncate flex-1">
+                          <p className="font-semibold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
+                            {coach.pseudo}
+                            <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">🤝 Ami</span>
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {coach.is_anonymous ? 'Discussion Anonyme' : (user.role === 'coach' ? 'Utilisateur' : 'Professionnel')}
+                          </p>
+                        </div>
+                        {parseInt(coach.unread_count) > 0 && (
+                          <div className="bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-sm animate-pulse">
+                            {coach.unread_count}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-slate-50/50 dark:bg-slate-900/25 border border-dashed border-slate-200 dark:border-slate-700/50 rounded-2xl text-center text-xs text-slate-400 dark:text-slate-500 mx-2">
+                      Aucun ami pour le moment.
+                      <div className="text-[10px] mt-1 text-slate-350 dark:text-slate-600">Ajoutez des membres depuis vos chats privés !</div>
                     </div>
                   )}
                 </div>
-              )) : (
-                <p className="text-sm text-slate-500 px-2">Aucun coach disponible.</p>
-              )}
+
+                {/* DESIGN SEPARATOR: Deux bulles / indicateurs circulaires avec lignes de séparation gradient */}
+                <div className="flex items-center justify-center gap-2.5 my-3 py-1">
+                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700/40 to-slate-300 dark:to-slate-700/60"></div>
+                  <div className="flex gap-1.5 items-center justify-center shrink-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500/10 dark:bg-teal-400/10 flex items-center justify-center border border-teal-500/30 dark:border-teal-400/30">
+                      <span className="w-1 h-1 rounded-full bg-teal-500 dark:bg-teal-400 animate-pulse"></span>
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center border border-slate-300/40 dark:border-slate-500/30">
+                      <span className="w-0.5 h-0.5 rounded-full bg-slate-450 dark:bg-slate-550"></span>
+                    </span>
+                  </div>
+                  <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-slate-200 dark:via-slate-700/40 to-slate-300 dark:to-slate-700/60"></div>
+                </div>
+
+                {/* Section 2: Discussions récentes */}
+                <div>
+                  <h3 className="text-[11px] font-extrabold tracking-wider uppercase text-slate-400 dark:text-slate-500 mb-2 px-2 flex items-center gap-1.5">
+                    <span>⚡</span> Discussions récentes
+                  </h3>
+                  {contacts.filter(c => !(c.is_friend || c.friendship_status === 'accepted')).length > 0 ? (
+                    contacts.filter(c => !(c.is_friend || c.friendship_status === 'accepted')).map(coach => (
+                      <div 
+                        key={coach.is_anonymous ? `anon-${coach.id}-${coach.post_id}` : `normal-${coach.id}`} 
+                        onClick={() => setSelectedCoach(coach)}
+                        className={`p-3 rounded-2xl cursor-pointer mb-2 flex items-center gap-3 border transition-all duration-300 hover:translate-x-1 active-squeeze-sm ${
+                          selectedCoach?.id === coach.id && selectedCoach?.is_anonymous === coach.is_anonymous && selectedCoach?.post_id === coach.post_id
+                            ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-550/30 shadow-md translate-x-1'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border-transparent bg-slate-55/10 dark:bg-slate-900/5'
+                        }`}
+                      >
+                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm shadow-sm relative ${getAvatarColor(coach.pseudo)}`}>
+                          {coach.is_anonymous ? '🤫' : getInitials(coach.pseudo)}
+                          {parseInt(coach.unread_count) > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
+                          )}
+                        </div>
+                        <div className="truncate flex-1">
+                          <p className="font-semibold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
+                            {coach.pseudo}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {coach.is_anonymous ? 'Discussion Anonyme' : (user.role === 'coach' ? 'Utilisateur' : 'Professionnel')}
+                          </p>
+                        </div>
+                        {parseInt(coach.unread_count) > 0 && (
+                          <div className="bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-sm animate-pulse">
+                            {coach.unread_count}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-slate-50/20 dark:bg-slate-900/10 border border-dashed border-slate-200 dark:border-slate-700/30 rounded-2xl text-center text-xs text-slate-400 dark:text-slate-500 mx-2">
+                      Aucune autre discussion récente.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Chat Area */}
@@ -1392,10 +1640,15 @@ function App() {
                       >
                         ⬅️
                       </button>
-                      <div className="w-8 h-8 shrink-0 bg-gradient-to-br from-teal-600 to-teal-700 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                        {selectedCoach.is_anonymous ? '🤫' : selectedCoach.pseudo.charAt(0).toUpperCase()}
+                      <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center font-bold text-xs shadow-sm ${getAvatarColor(selectedCoach.pseudo)}`}>
+                        {selectedCoach.is_anonymous ? '🤫' : getInitials(selectedCoach.pseudo)}
                       </div>
-                      <h3 className="font-bold text-slate-900 dark:text-slate-100">Discussion avec {selectedCoach.pseudo}</h3>
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                        Discussion avec {selectedCoach.pseudo}
+                        {selectedCoach.is_friend && (
+                          <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold">🤝 Ami</span>
+                        )}
+                      </h3>
                     </div>
                     
                     {/* Discussion Sourdine / Mute Button */}
@@ -1425,13 +1678,95 @@ function App() {
                       <span className="hidden sm:inline">{mutedConversations.includes(selectedCoach.id) ? 'Mute active' : 'Sourdine'}</span>
                     </button>
                   </div>
+                  
+                  {/* Friendship Status Banner */}
+                  {!selectedCoach.is_anonymous && (
+                    <div className="mx-4 mt-3 p-3 bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700/50 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-xs animate-fade-in shadow-sm backdrop-blur-md">
+                      {/* Case 1: Already Friends */}
+                      {(selectedCoach.is_friend || selectedCoach.friendship_status === 'accepted') && (
+                        <>
+                          <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-semibold">
+                            <span>🤝</span>
+                            <span>Vous êtes amis avec {selectedCoach.pseudo} (identité protégée par initiales)</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeclineOrRemoveFriend(selectedCoach.id)}
+                            className="shrink-0 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold rounded-lg transition-all"
+                          >
+                            Retirer des amis
+                          </button>
+                        </>
+                      )}
+
+                      {/* Case 2: Friend Request Sent */}
+                      {selectedCoach.friendship_status === 'pending' && selectedCoach.friendship_sender_id === user.id && (
+                        <>
+                          <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 font-medium">
+                            <span className="animate-pulse">⏳</span>
+                            <span>Demande d'ami envoyée en attente de validation par {selectedCoach.pseudo}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeclineOrRemoveFriend(selectedCoach.id)}
+                            className="shrink-0 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-350 font-bold rounded-lg transition-all"
+                          >
+                            Annuler la demande
+                          </button>
+                        </>
+                      )}
+
+                      {/* Case 3: Friend Request Received */}
+                      {selectedCoach.friendship_status === 'pending' && selectedCoach.friendship_sender_id !== user.id && (
+                        <>
+                          <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold">
+                            <span>👋</span>
+                            <span>{selectedCoach.pseudo} vous a envoyé une demande d'ami !</span>
+                          </div>
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptFriendRequest(selectedCoach.id)}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-all shadow-sm"
+                            >
+                              Accepter
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeclineOrRemoveFriend(selectedCoach.id)}
+                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold rounded-lg transition-all"
+                            >
+                              Refuser
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Case 4: No relationship yet */}
+                      {(!selectedCoach.friendship_status || selectedCoach.friendship_status === 'none') && (
+                        <>
+                          <div className="text-slate-600 dark:text-slate-400">
+                            Vous pouvez ajouter cet utilisateur en ami pour officialiser votre relation en toute confidentialité.
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleSendFriendRequest(selectedCoach.id)}
+                            className="shrink-0 px-4 py-1.5 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-bold rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                          >
+                            🤝 Ajouter en ami
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex-1 chat-scroll p-4 space-y-4 flex flex-col-reverse font-sans" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                     <div className="flex flex-col gap-4">
                       {chatMessages.map(msg => {
                         const isMe = msg.sender_id === user.id;
                         return (
                           <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white rounded-br-sm animate-[slideUp_0.2s_ease-out]' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50 animate-[slideUp_0.2s_ease-out]'}`}>
+                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50'} animate-spring-pop shadow-sm`}>
                               <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                               <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                 {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -1449,7 +1784,7 @@ function App() {
                       value={newChatMessage} 
                       onChange={(e) => setNewChatMessage(e.target.value)}
                       placeholder="Votre message..."
-                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm outline-none focus:text-teal-700 dark:text-teal-400 border-teal-500 text-slate-900 dark:text-slate-100 shadow-sm"
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm focus-glow-teal text-slate-900 dark:text-slate-100 shadow-sm"
                     />
                     <button type="submit" disabled={!newChatMessage.trim()} className="px-6 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md">
                       Envoyer
@@ -1468,7 +1803,7 @@ function App() {
         )}
 
         {view === 'settings' && (
-          <div className="relative z-10 max-w-2xl mx-auto animate-[fadeIn_0.4s_ease-out] space-y-6">
+          <div className="relative z-10 max-w-2xl mx-auto animate-view-change space-y-6">
 
             {/* Muted Conversations List Card */}
             <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
@@ -1515,7 +1850,7 @@ function App() {
         )}
 
         {view === 'admin-dashboard' && (
-          <div className="animate-[fadeIn_0.4s_ease-out] relative z-10 flex flex-col lg:flex-row gap-8 items-start max-w-7xl mx-auto w-full px-4 py-6">
+          <div className="animate-view-change relative z-10 flex flex-col lg:flex-row gap-8 items-start max-w-7xl mx-auto w-full px-4 py-6">
             
             {/* LEFT SIDEBAR NAVIGATION */}
             <aside className="w-full lg:w-64 shrink-0 bg-white/60 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-4 lg:p-6 shadow-sm space-y-4 lg:space-y-8 lg:sticky lg:top-24 lg:self-start">
@@ -2055,7 +2390,7 @@ function App() {
                             placeholder="Entrez une citation inspirante ou un message de motivation..."
                             rows="4"
                             required
-                            className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
+                            className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus-glow-teal transition-all"
                           />
                         </div>
                         <button

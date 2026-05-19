@@ -7,7 +7,7 @@ export default function Button({
   ...props
 }) {
   const base =
-    'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-all duration-200 focus-ring active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none';
+    'inline-flex items-center justify-center gap-2 font-medium rounded-full transition-premium focus-ring active-squeeze disabled:opacity-50 disabled:pointer-events-none';
 
   const variants = {
     primary:

@@ -6,7 +6,7 @@ import ThemeToggle from './components/ui/ThemeToggle';
 import IconBox from './components/ui/IconBox';
 
 const inputClass =
-  'w-full bg-stone-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-ring focus:border-teal-600/50';
+  'w-full bg-stone-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-base md:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-glow-teal';
 
 function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -39,9 +39,9 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white focus-ring rounded-lg px-2 py-1"
+            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-premium active-squeeze hover:scale-105 focus-ring rounded-lg px-2 py-1 group"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-300" />
             Retour
           </button>
           <span className="text-sm font-semibold tracking-wide text-zinc-900 dark:text-zinc-100">Anonyme Pro</span>
@@ -70,7 +70,7 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
             { icon: Wrench, title: 'Support', text: 'Difficulté avec votre compte ou l’app.' },
             { icon: Heart, title: 'Retour', text: 'Ce qui vous aide au quotidien.' },
           ].map((item) => (
-            <div key={item.title} className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/40">
+            <div key={item.title} className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/40 hover-lift-premium group">
               <IconBox icon={item.icon} className="mb-3 !w-10 !h-10" />
               <h2 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{item.title}</h2>
               <p className="text-xs text-zinc-500 mt-1">{item.text}</p>
@@ -89,7 +89,7 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
               <a
                 key={link.label}
                 href={link.href}
-                className="flex gap-4 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-teal-600/30 transition-colors focus-ring"
+                className="flex gap-4 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-teal-600/30 transition-premium active-squeeze hover-lift-premium shadow-sm focus-ring group"
               >
                 <IconBox icon={link.icon} className="!w-10 !h-10 shrink-0" />
                 <div>
@@ -103,12 +103,12 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
           <div className="glass-panel p-6 md:p-8 rounded-3xl">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-6">Message</h2>
             {success && (
-              <p className="mb-4 text-sm text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-900/50 rounded-xl px-4 py-3">
+              <p className="mb-4 text-sm text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-900/50 rounded-xl px-4 py-3 animate-spring-pop">
                 Message reçu. Nous vous répondrons sous 24 h ouvrées.
               </p>
             )}
             {error && (
-              <p role="alert" className="mb-4 text-sm text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 rounded-xl px-4 py-3">
+              <p role="alert" className="mb-4 text-sm text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 rounded-xl px-4 py-3 animate-spring-pop">
                 {error}
               </p>
             )}

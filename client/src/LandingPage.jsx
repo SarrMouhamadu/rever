@@ -51,6 +51,7 @@ const testimonials = [
 function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
   const [contactHover, setContactHover] = useState(null);
   const [activeCard, setActiveCard] = useState(0);
+  const [cardHovered, setCardHovered] = useState(false);
   const [communityStats, setCommunityStats] = useState({
     activeMembers: 0,
     activeCoaches: 0,
@@ -71,6 +72,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveCard((prev) => (prev + 1) % 3);
+      setCardHovered(false);
     }, 3800);
     return () => clearInterval(timer);
   }, []);
@@ -121,7 +123,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
             <button
               type="button"
               onClick={onContact}
-              className="hidden sm:inline text-sm text-zinc-600 dark:text-zinc-400 hover:text-teal-700 dark:hover:text-teal-400 transition-colors focus-ring rounded-lg px-3 py-2"
+              className="hidden sm:inline text-sm text-zinc-600 dark:text-zinc-400 hover:text-teal-700 dark:hover:text-teal-400 transition-premium active-squeeze hover:scale-105 focus-ring rounded-lg px-3 py-2"
             >
               Contact
             </button>
@@ -156,9 +158,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-3">
-                <Button onClick={onGetStarted}>
+                <Button onClick={onGetStarted} className="group hover:shadow-lg">
                   Commencer gratuitement
-                  <ArrowRight size={18} weight="bold" />
+                  <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1.5 transition-transform duration-300" />
                 </Button>
                 <Button variant="outline" onClick={onContact}>
                   Nous écrire
@@ -166,7 +168,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               </div>
             </div>
 
-            <div className="relative animate-slide-up lg:pl-8 pb-16 sm:pb-0" style={{ animationDelay: '0.1s' }}>
+            <div className="relative animate-slide-up lg:pl-8 pb-36 sm:pb-0" style={{ animationDelay: '0.1s' }}>
               <div className="rounded-4xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-soft dark:shadow-soft-dark bg-zinc-100 dark:bg-zinc-900">
                 <img
                   src={heroImage}
@@ -179,21 +181,28 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               </div>
               <div
                 className="absolute -bottom-12 left-1/2 -translate-x-1/2 sm:left-[-1.5rem] sm:translate-x-0 w-[16rem] sm:w-[17rem] h-[11rem] sm:h-[11.5rem] select-none"
+                style={{ perspective: '1200px' }}
                 onClick={() => setActiveCard((prev) => (prev + 1) % 3)}
               >
                 {appleCards.map((card, i) => {
                   const diff = (i - activeCard + 3) % 3;
                   const isActive = diff === 0;
+                  const isHovered = isActive && cardHovered;
 
                   return (
                     <div
                       key={i}
-                      className={`absolute inset-0 rounded-3xl p-5 border flex flex-col justify-between transition-all duration-700 ease-out backdrop-blur-xl shadow-2xl ${card.gradient} ${card.glow} cursor-pointer`}
+                      onMouseEnter={() => isActive && setCardHovered(true)}
+                      onMouseLeave={() => setCardHovered(false)}
+                      className={`absolute inset-0 rounded-3xl p-5 border flex flex-col justify-between transition-all duration-700 ease-out backdrop-blur-xl ${isActive ? 'shadow-2xl' : 'shadow-md'} ${card.gradient} ${card.glow} cursor-pointer ${isActive ? 'active-squeeze' : ''}`}
                       style={{
-                        transform: `translate3d(${diff * 12}px, ${diff * -12}px, 0) scale(${1 - diff * 0.06}) rotate(${diff * 1.5}deg)`,
-                        opacity: diff === 0 ? 1 : diff === 1 ? 0.75 : 0.4,
+                        transform: isHovered
+                          ? 'translate3d(0px, -12px, 20px) scale(1.05) rotateY(0deg) rotateZ(0deg)'
+                          : `translate3d(${diff * 14}px, ${diff * -14}px, ${diff * -40}px) rotateY(${diff * -6}deg) rotateZ(${diff * 1.5}deg)`,
+                        opacity: diff === 0 ? 1 : diff === 1 ? 0.8 : 0.4,
                         zIndex: 30 - diff,
                         pointerEvents: isActive ? 'auto' : 'none',
+                        willChange: 'transform, opacity',
                       }}
                     >
                       <div className="flex justify-between items-start">
@@ -245,7 +254,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               {features.map((item, i) => (
                 <article
                   key={item.title}
-                  className={`flex gap-5 p-6 md:p-8 rounded-3xl border border-zinc-200/60 dark:border-zinc-800/60 hover:border-teal-700/20 dark:hover:border-teal-500/20 transition-colors ${i === 2 ? 'md:col-span-2 md:max-w-xl' : ''}`}
+                  className={`flex gap-5 p-6 md:p-8 rounded-3xl border border-zinc-200/60 dark:border-zinc-800/60 hover-lift-premium transition-all group ${i === 2 ? 'md:col-span-2 md:max-w-xl' : ''}`}
                 >
                   <IconBox icon={item.icon} className="shrink-0" />
                   <div>
@@ -264,7 +273,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
 
         {/* STATS — Preuve sociale pour le SEO */}
         <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-teal-950/5 dark:bg-teal-900/10 border-y border-teal-900/10 dark:border-teal-500/10">
-          <div className="max-w-4xl mx-auto grid grid-cols-3 gap-6 text-center">
+          <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 sm:gap-6 text-center">
             <div>
               <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">{(communityStats && communityStats.activeMembers) || '500'}+</p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Membres actifs</p>
@@ -293,7 +302,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               {testimonials.map((t) => (
                 <blockquote
                   key={t.initials}
-                  className="glass-panel p-8 rounded-3xl flex flex-col justify-between min-h-[220px]"
+                  className="glass-panel p-8 rounded-3xl flex flex-col justify-between min-h-[220px] hover-lift-premium border border-transparent group"
                 >
                   <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed font-light italic">
                     &ldquo;{t.quote}&rdquo;
@@ -324,9 +333,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
             <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-md mx-auto leading-relaxed">
               Création de compte gratuite. Rejoignez la communauté de soutien émotionnel pour les jeunes d'Afrique — 100% anonyme, 100% bienveillant.
             </p>
-            <Button onClick={onGetStarted} variant="secondary">
+            <Button onClick={onGetStarted} variant="secondary" className="group">
               Créer un compte gratuitement
-              <ArrowRight size={18} weight="bold" />
+              <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1.5 transition-transform duration-300" />
             </Button>
           </div>
         </section>
@@ -369,9 +378,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   href={c.href}
                   onMouseEnter={() => setContactHover(c.id)}
                   onMouseLeave={() => setContactHover(null)}
-                  className={`block p-6 rounded-2xl border transition-all duration-200 focus-ring ${
+                  className={`block p-6 rounded-2xl border transition-premium active-squeeze focus-ring ${
                     contactHover === c.id
-                      ? 'border-teal-600/40 bg-white dark:bg-zinc-900 shadow-glow'
+                      ? 'border-teal-600/40 bg-white dark:bg-zinc-900 shadow-glow -translate-y-1'
                       : 'border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/60'
                   }`}
                 >

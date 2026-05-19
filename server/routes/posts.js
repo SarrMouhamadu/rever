@@ -30,14 +30,17 @@ router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req,
     const post = await db.createPost(req.user.id, text, imageUrl, isAnon);
     
     // Broadcast notification to all active clients except the creator
+    const authorInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
+    const maskedAuthor = req.user.role === 'user' ? authorInitials : req.user.pseudo;
+
     broadcastNotification({
       type: 'new-post',
       title: 'Nouvelle publication',
-      body: isAnon ? 'Une nouvelle confession anonyme a été publiée.' : `${req.user.pseudo} a publié un message.`,
+      body: isAnon ? 'Une nouvelle confession anonyme a été publiée.' : `${maskedAuthor} a publié un message.`,
       content: text,
       postId: post.id,
       isAnonymous: isAnon,
-      author: isAnon ? 'Anonyme' : req.user.pseudo
+      author: isAnon ? 'Anonyme' : maskedAuthor
     }, req.user.id);
 
     res.json({ success: true, id: post.id });

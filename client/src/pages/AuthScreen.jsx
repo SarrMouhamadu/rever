@@ -2,7 +2,7 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import Button from '../components/ui/Button';
 
 const inputClass =
-  'w-full bg-stone-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3.5 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-ring focus:border-teal-600/50 transition-colors';
+  'w-full bg-stone-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3.5 text-base md:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-ring focus:border-teal-600/50 transition-colors';
 
 export default function AuthScreen({
   view,

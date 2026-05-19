@@ -42,13 +42,16 @@ router.post('/', requireAuth, async (req, res) => {
     const msg = await db.sendMessage(req.user.id, receiverId, text, isAnonymous || false, postId || null);
     
     // Send live message notification to receiver
+    const senderInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
+    const maskedSender = isAnonymous ? 'Anonyme' : (req.user.role === 'user' ? senderInitials : req.user.pseudo);
+
     sendDirectNotification(receiverId, {
       type: 'new-message',
       title: 'Nouveau message',
-      body: isAnonymous ? 'Message de Anonyme' : `Message de ${req.user.pseudo}`,
+      body: `Message de ${maskedSender}`,
       content: text,
       senderId: req.user.id,
-      senderPseudo: isAnonymous ? 'Anonyme' : req.user.pseudo,
+      senderPseudo: maskedSender,
       isAnonymous: isAnonymous || false,
       postId: postId || null
     });
