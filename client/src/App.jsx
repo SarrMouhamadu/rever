@@ -980,7 +980,7 @@ function App() {
       <nav className="w-full border-b border-slate-200 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex justify-between items-center">
           
-          <div className="flex gap-3 sm:gap-4 md:gap-8 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider font-medium">
+          <div className="flex gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm uppercase tracking-wider font-semibold">
             <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
             {(user.role === 'user' || user.role === 'coach') && (
               <>
@@ -1196,31 +1196,35 @@ function App() {
                       <img src={getFullImageUrl(post.image_url)} alt="Publication" loading="lazy" className="w-full max-h-64 sm:max-h-96 object-cover rounded-xl" />
                     </div>
                   )}
-                  <div className="flex items-center gap-4 sm:gap-6 mb-3 sm:mb-4 border-t border-slate-200 dark:border-slate-800 pt-3 sm:pt-4">
-                    <button 
-                      onClick={() => handleLike(post.id)} 
-                      disabled={post.liked_by_me}
-                      className={`flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${post.liked_by_me ? 'text-rose-500 opacity-70 cursor-default' : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400'}`}
-                      aria-label={post.liked_by_me ? 'Déjà aimé' : 'Aimer'}
-                    >
-                      ❤️ {post.likes}
-                    </button>
-                    <span className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
-                      💬 {post.comments?.length || 0}
-                    </span>
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-6 mb-3 sm:mb-4 border-t border-slate-200 dark:border-slate-800 pt-3 sm:pt-4 justify-between w-full">
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      <button 
+                        onClick={() => handleLike(post.id)} 
+                        disabled={post.liked_by_me}
+                        className={`flex items-center gap-1 sm:gap-2 transition-colors text-xs sm:text-sm ${post.liked_by_me ? 'text-rose-500 opacity-70 cursor-default' : 'text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400'}`}
+                        aria-label={post.liked_by_me ? 'Déjà aimé' : 'Aimer'}
+                      >
+                        ❤️ {post.likes}
+                      </button>
+                      <span className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+                        💬 {post.comments?.length || 0}
+                      </span>
+                    </div>
+                    
                     {post.is_anonymous && post.user_id !== user.id && (
                       <button 
                         onClick={() => handleInitiateAnonymousChat(post)}
-                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors text-xs sm:text-sm font-semibold ml-2 sm:ml-4"
+                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors text-xs sm:text-sm font-semibold"
                         title="Écrire un message privé anonyme à l'auteur"
                       >
                         ✉️ Message Anonyme
                       </button>
                     )}
+                    
                     {user.role === 'admin' ? (
                       <button 
                         onClick={() => handleDeletePost(post.id)} 
-                        className="flex items-center gap-1 sm:gap-2 text-rose-500 hover:text-rose-600 transition-colors text-[10px] sm:text-xs ml-auto uppercase tracking-wider font-bold"
+                        className="flex items-center gap-1 sm:gap-2 text-rose-500 hover:text-rose-600 transition-colors text-[10px] sm:text-xs uppercase tracking-wider font-bold"
                         title="Supprimer ce post définitivement"
                       >
                         🗑️ Supprimer
@@ -1228,7 +1232,7 @@ function App() {
                     ) : (
                       <button 
                         onClick={() => handleReportPost(post.id)} 
-                        className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors text-[10px] sm:text-xs ml-auto uppercase tracking-wider font-semibold"
+                        className="flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 transition-colors text-[10px] sm:text-xs uppercase tracking-wider font-semibold"
                         title="Signaler ce post"
                       >
                         ⚠️ Signaler
