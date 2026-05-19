@@ -979,7 +979,8 @@ function App() {
 
       <nav className="w-full border-b border-slate-200 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex justify-between items-center">
-          <h1 className="text-lg sm:text-xl font-light tracking-widest text-slate-900 dark:text-slate-200 uppercase">Anonyme Pro</h1>
+          <h1 className="hidden sm:block text-lg sm:text-xl font-light tracking-widest text-slate-900 dark:text-slate-200 uppercase">Anonyme Pro</h1>
+          <h1 className="sm:hidden text-lg font-bold text-teal-600 dark:text-teal-400">🤫</h1>
           
           <div className="flex gap-3 sm:gap-4 md:gap-8 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider font-medium">
             <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
@@ -1011,15 +1012,6 @@ function App() {
                 <span className="hidden sm:inline font-medium tracking-wide"> {user.role === 'admin' ? 'Admin' : user.role === 'coach' ? 'Coach' : user.pseudo}</span>
               </span>
             </div>
-            <button 
-              onClick={handleLogout} 
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 shadow-sm" 
-              aria-label="Déconnexion"
-            >
-              <span>🚪</span>
-              <span className="hidden sm:inline">Déconnexion</span>
-            </button>
-
           </div>
         </div>
       </nav>
@@ -1291,7 +1283,7 @@ function App() {
         {view === 'messages' && (
           <div className="relative z-10 flex flex-col md:flex-row gap-6 animate-[fadeIn_0.4s_ease-out]">
             {/* Coaches List */}
-            <div className={`w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-4 shadow-lg h-[500px] md:h-[600px] overflow-y-auto ${selectedCoach ? 'hidden md:block' : 'block'}`}>
+            <div className={`w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl md:rounded-3xl p-4 shadow-lg h-[calc(100dvh-140px)] md:h-[600px] overflow-y-auto ${selectedCoach ? 'hidden md:block' : 'block'}`}>
               <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">{user.role === 'coach' ? 'Discussions' : 'Coachs'}</h2>
               {contacts.length > 0 ? contacts.map(coach => (
                 <div 
@@ -1329,7 +1321,7 @@ function App() {
             {/* Chat Area */}
             <div 
               key={selectedCoach?.is_anonymous ? `chat-anon-${selectedCoach.id}-${selectedCoach.post_id}` : (selectedCoach ? `chat-normal-${selectedCoach.id}` : 'chat-empty')}
-              className={`w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl flex flex-col shadow-lg h-[500px] md:h-[600px] overflow-hidden animate-fade-in ${selectedCoach ? 'flex' : 'hidden md:flex'}`}
+              className={`w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl md:rounded-3xl flex flex-col shadow-lg h-[calc(100dvh-140px)] md:h-[600px] overflow-hidden animate-fade-in ${selectedCoach ? 'flex' : 'hidden md:flex'}`}
             >
               {selectedCoach ? (
                 <>
