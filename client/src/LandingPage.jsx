@@ -115,9 +115,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
 
   return (
     <div className="min-h-[100dvh] relative">
-      <div aria-hidden className="grain" />
-
-      <header className="sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b-2 border-zinc-200/80 dark:border-zinc-800/80 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <span className="text-sm font-semibold tracking-[0.18em] uppercase text-zinc-900 dark:text-zinc-100">
             Anonyme Pro
@@ -172,7 +170,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
             </div>
 
             <div className="relative animate-slide-up lg:pl-8 pb-36 sm:pb-0" style={{ animationDelay: '0.1s' }}>
-              <div className="rounded-4xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-soft dark:shadow-soft-dark bg-zinc-100 dark:bg-zinc-900">
+              <div className="squircle overflow-hidden border-zinc-200/80 dark:border-zinc-800 shadow-soft dark:shadow-soft-dark bg-zinc-100 dark:bg-zinc-900">
                 <img
                   src={heroImage}
                   alt="Étudiant africain en moment de calme symbolisant le soutien émotionnel anonyme"
@@ -197,7 +195,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                       key={i}
                       onMouseEnter={() => isActive && setCardHovered(true)}
                       onMouseLeave={() => setCardHovered(false)}
-                      className={`absolute inset-0 rounded-3xl p-5 border flex flex-col justify-between transition-all duration-700 ease-out backdrop-blur-xl ${isActive ? 'shadow-2xl' : 'shadow-md'} ${card.gradient} ${card.glow} cursor-pointer ${isActive ? 'active-squeeze' : ''}`}
+                      className={`absolute inset-0 squircle p-5 flex flex-col justify-between transition-all duration-700 ease-out backdrop-blur-xl ${isActive ? 'shadow-2xl' : 'shadow-md'} ${card.gradient} ${card.glow} cursor-pointer ${isActive ? 'active-squeeze' : ''}`}
                       style={{
                         transform: isHovered
                           ? 'translate3d(0px, -12px, 20px) scale(1.05) rotateY(0deg) rotateZ(0deg)'
@@ -257,7 +255,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               {features.map((item, i) => (
                 <article
                   key={item.title}
-                  className={`flex gap-5 p-6 md:p-8 rounded-3xl border border-zinc-200/60 dark:border-zinc-800/60 hover-lift-premium transition-all group ${i === 2 ? 'md:col-span-2 md:max-w-xl' : ''}`}
+                  className={`flex gap-5 p-6 md:p-8 squircle border-zinc-200/60 dark:border-zinc-800/60 hover-lift-premium transition-all group ${i === 2 ? 'md:col-span-2 md:max-w-xl' : ''}`}
                 >
                   <IconBox icon={item.icon} className="shrink-0" />
                   <div>
@@ -302,7 +300,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         }}
       >
         <div 
-          className="glass-panel rounded-3xl p-10 flex flex-col items-center justify-center transition-transform duration-200 ease-out border border-zinc-200/60 dark:border-zinc-800/60 shadow-lg"
+          className="glass-panel squircle p-10 flex flex-col items-center justify-center transition-transform duration-200 ease-out border-zinc-200/60 dark:border-zinc-800/60 shadow-lg"
           style={{ transformStyle: 'preserve-3d', transform: 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)' }}
         >
           <div className="transform-gpu transition-all duration-300 group-hover:-translate-y-3 flex items-center justify-center text-teal-700 dark:text-teal-400 drop-shadow-xl text-5xl" style={{ transform: 'translateZ(60px)' }}>
@@ -331,7 +329,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               {testimonials.map((t) => (
                 <blockquote
                   key={t.initials}
-                  className="glass-panel p-8 rounded-3xl flex flex-col justify-between min-h-[220px] hover-lift-premium border border-transparent group"
+                  className="glass-panel p-8 squircle flex flex-col justify-between min-h-[220px] hover-lift-premium border-transparent group"
                 >
                   <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed font-light italic">
                     &ldquo;{t.quote}&rdquo;
@@ -354,8 +352,8 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         </section>
 
         {/* CTA Section */}
-        <section aria-label="Inscription" className="py-20 md:py-24 px-4 sm:px-6 border-t border-zinc-200/80 dark:border-zinc-800/80">
-          <div className="max-w-3xl mx-auto text-center glass-panel rounded-4xl p-10 md:p-14">
+        <section aria-label="Inscription" className="py-20 md:py-24 px-4 sm:px-6 border-t-2 border-zinc-200/80 dark:border-zinc-800/80">
+          <div className="max-w-3xl mx-auto text-center glass-panel squircle p-10 md:p-14">
             <h2 className="text-2xl md:text-3xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4 text-balance">
               Prêt à faire le premier pas ?
             </h2>
@@ -407,7 +405,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   href={c.href}
                   onMouseEnter={() => setContactHover(c.id)}
                   onMouseLeave={() => setContactHover(null)}
-                  className={`block p-6 rounded-2xl border transition-premium active-squeeze focus-ring ${
+                  className={`block p-6 squircle-sm transition-premium active-squeeze focus-ring ${
                     contactHover === c.id
                       ? 'border-teal-600/40 bg-white dark:bg-zinc-900 shadow-glow -translate-y-1'
                       : 'border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/60'
