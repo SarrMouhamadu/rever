@@ -86,9 +86,6 @@ function App() {
   }, [chatMessages]);
 
   // Notifications State with localStorage persistence
-  const [notifEnabled, setNotifEnabled] = useState(() => {
-    return localStorage.getItem('rever_notif_enabled') !== 'false';
-  });
   const [notifSound, setNotifSound] = useState(() => {
     return localStorage.getItem('rever_notif_sound') || 'doux';
   });
@@ -113,6 +110,9 @@ function App() {
     try {
       const userData = await register(authForm);
       setView('feed');
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
     } catch (err) {
       setAuthError(err.response?.data?.error || "Erreur lors de l'inscription");
     }
@@ -124,6 +124,9 @@ function App() {
     try {
       const userData = await login(authForm.loginId, authForm.password);
       setView(userData.role === 'admin' ? 'admin-dashboard' : 'feed');
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
     } catch (err) {
       setAuthError(err.response?.data?.error || "Identifiants incorrects");
     }
@@ -503,12 +506,12 @@ function App() {
 
     // ── audio ──
     const triggerAudio = () => {
-      if (notifEnabledRef.current) audioSynth.play(notifSoundRef.current);
+      audioSynth.play(notifSoundRef.current);
     };
 
     // ── vibration ──
     const triggerVibration = () => {
-      if (!notifEnabledRef.current || !('vibrate' in navigator)) return;
+      if (!('vibrate' in navigator)) return;
       const v = notifVibeRef.current;
       if (v === 'simple') navigator.vibrate(200);
       else if (v === 'double') navigator.vibrate([150, 100, 150]);
@@ -517,7 +520,6 @@ function App() {
 
     // ── OS banner ──
     const triggerBanner = (title, body, tag = 'rever-notif') => {
-      if (!notifEnabledRef.current) return;
       if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
       try {
         const n = new Notification(title, {
@@ -1468,157 +1470,6 @@ function App() {
 
         {view === 'settings' && (
           <div className="relative z-10 max-w-2xl mx-auto animate-[fadeIn_0.4s_ease-out] space-y-6">
-            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="text-3xl">🔔</span>
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Réglages des Notifications</h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Personnalisez vos alertes pour rester connecté sans interruption.</p>
-                </div>
-              </div>
-
-              {/* Native Permission Request Banner */}
-              {typeof Notification !== 'undefined' && Notification.permission !== 'granted' && (
-                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 rounded-3xl p-5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-center sm:text-left">
-                    <h3 className="font-semibold text-sm">Autorisation système requise</h3>
-                    <p className="text-xs text-amber-700/80 dark:text-amber-300/70 mt-1">Vous devez autoriser les notifications de votre navigateur pour recevoir les alertes.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                          alert('Notifications système activées avec succès ! 🎉');
-                          // Trigger test chime
-                          audioSynth.play(notifSound);
-                        } else {
-                          alert('Les notifications ont été refusées. Veuillez les autoriser dans les paramètres de votre navigateur.');
-                        }
-                        // Refresh component state
-                        setNotifEnabled(permission === 'granted');
-                      });
-                    }}
-                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-2xl transition-all shadow-md shrink-0"
-                  >
-                    Autoriser les alertes
-                  </button>
-                </div>
-              )}
-
-              <div className="space-y-6">
-                {/* Global Toggle switch */}
-                <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl border border-slate-100 dark:border-slate-800">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Activer les notifications</h3>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">Recevoir des alertes de publications et de messages</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !notifEnabled;
-                      setNotifEnabled(next);
-                      localStorage.setItem('rever_notif_enabled', next.toString());
-                      if (next) {
-                        // Ask permission if not granted
-                        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
-                          Notification.requestPermission();
-                        }
-                        audioSynth.play(notifSound);
-                      }
-                    }}
-                    className={`w-12 h-6 rounded-full p-1 transition-all ${notifEnabled ? 'bg-teal-600' : 'bg-slate-300 dark:bg-slate-700'}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${notifEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-
-                {/* Sound selection */}
-                <div className={`space-y-3 transition-opacity ${notifEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Choisir le son</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {[
-                      { id: 'doux', label: '🍃 Doux (Carillon)', emoji: '🔔' },
-                      { id: 'alerte', label: '⚡ Alerte (Bip)', emoji: '🚨' },
-                      { id: 'cosmique', label: '✨ Cosmique (Sweep)', emoji: '🚀' }
-                    ].map(snd => (
-                      <button
-                        key={snd.id}
-                        type="button"
-                        onClick={() => {
-                          setNotifSound(snd.id);
-                          localStorage.setItem('rever_notif_sound', snd.id);
-                          // Play immediate preview
-                          audioSynth.play(snd.id);
-                        }}
-                        className={`p-4 rounded-3xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 ${
-                          notifSound === snd.id
-                            ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-500 text-teal-700 dark:text-teal-400 font-bold scale-[1.02]'
-                            : 'bg-transparent border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300'
-                        }`}
-                      >
-                        <span className="text-lg">{snd.emoji}</span>
-                        <span className="text-xs">{snd.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Vibration selection */}
-                <div className={`space-y-3 transition-opacity ${notifEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Modèle de vibration</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                      { id: 'none', label: 'Sans vibration' },
-                      { id: 'simple', label: 'Simple court' },
-                      { id: 'double', label: 'Double pulsation' },
-                      { id: 'long', label: 'Vibration continue' }
-                    ].map(vib => (
-                      <button
-                        key={vib.id}
-                        type="button"
-                        onClick={() => {
-                          setNotifVibe(vib.id);
-                          localStorage.setItem('rever_notif_vibe', vib.id);
-                          // Trigger preview vibration
-                          if ('vibrate' in navigator) {
-                            if (vib.id === 'simple') navigator.vibrate(200);
-                            else if (vib.id === 'double') navigator.vibrate([150, 100, 150]);
-                            else if (vib.id === 'long') navigator.vibrate(500);
-                          }
-                        }}
-                        className={`p-3 rounded-2xl border text-center text-xs transition-all ${
-                          notifVibe === vib.id
-                            ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-500 text-teal-700 dark:text-teal-400 font-semibold'
-                            : 'bg-transparent border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/30 text-slate-600 dark:text-slate-400'
-                        }`}
-                      >
-                        {vib.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Content Privacy (Masquer le contenu) */}
-                <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl border border-slate-100 dark:border-slate-800">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Masquer le contenu</h3>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">Remplacer le texte par "Contenu masqué" sur l'écran d'accueil</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !notifHideContent;
-                      setNotifHideContent(next);
-                      localStorage.setItem('rever_notif_hide_content', next.toString());
-                    }}
-                    className={`w-12 h-6 rounded-full p-1 transition-all ${notifHideContent ? 'bg-teal-600' : 'bg-slate-300 dark:bg-slate-700'}`}
-                  >
-                    <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${notifHideContent ? 'translate-x-6' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-              </div>
-            </div>
 
             {/* Muted Conversations List Card */}
             <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
