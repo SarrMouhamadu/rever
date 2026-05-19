@@ -1032,19 +1032,14 @@ function App() {
           <div className="flex gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm uppercase tracking-wider font-semibold">
             <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
             {(user.role === 'user' || user.role === 'coach') && (
-              <>
-                <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
-                  Messages
-                  {totalUnread > 0 && (
-                    <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
-                      {totalUnread}
-                    </span>
-                  )}
-                </button>
-                <button onClick={() => setView('settings')} className={`${view === 'settings' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors flex items-center gap-1`}>
-                  <span>⚙️</span> Réglages
-                </button>
-              </>
+              <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
+                Messages
+                {totalUnread > 0 && (
+                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
+                    {totalUnread}
+                  </span>
+                )}
+              </button>
             )}
             {user.role === 'admin' && (
               <button onClick={() => setView('admin-dashboard')} className={`${view === 'admin-dashboard' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Admin</button>
