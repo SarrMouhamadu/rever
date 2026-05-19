@@ -979,8 +979,6 @@ function App() {
 
       <nav className="w-full border-b border-slate-200 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex justify-between items-center">
-          <h1 className="hidden sm:block text-lg sm:text-xl font-light tracking-widest text-slate-900 dark:text-slate-200 uppercase">Anonyme Pro</h1>
-          <h1 className="sm:hidden text-lg font-bold text-teal-600 dark:text-teal-400">🤫</h1>
           
           <div className="flex gap-3 sm:gap-4 md:gap-8 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider font-medium">
             <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
@@ -1022,7 +1020,7 @@ function App() {
           <div className="relative z-10">
             {/* Daily Quote / Motivation Banner */}
             {quote && (
-              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-teal-700 dark:text-teal-400 border-teal-200/50 dark:text-teal-700 dark:text-teal-400 border-teal-500/30 rounded-3xl p-6 sm:p-8 mb-6 sm:mb-8 shadow-xl shadow-teal-900/5 hover:shadow-teal-900/10 transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
+              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-teal-700 dark:text-teal-400 border-teal-200/50 dark:text-teal-700 dark:text-teal-400 border-teal-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8 mb-6 sm:mb-8 shadow-xl shadow-teal-900/5 hover:shadow-teal-900/10 transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
                 <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
                 <div className="flex gap-4 items-start relative z-10">
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg shadow-teal-900/20 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
@@ -1090,7 +1088,7 @@ function App() {
               </div>
             )}
 
-            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl p-5 sm:p-7 mb-8 sm:mb-10 shadow-lg shadow-teal-900/5 animate-[slideUp_0.6s_ease-out_both] hover:shadow-teal-900/10 transition-shadow duration-500">
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl sm:rounded-3xl p-4 sm:p-7 mb-8 sm:mb-10 shadow-lg shadow-teal-900/5 animate-[slideUp_0.6s_ease-out_both] hover:shadow-teal-900/10 transition-shadow duration-500">
               <form onSubmit={handleCreatePost}>
                 <textarea 
                   value={newPostText} onChange={(e) => setNewPostText(e.target.value)}
@@ -1141,7 +1139,7 @@ function App() {
               {feed.map((post, index) => (
                 <div 
                   key={post.id} 
-                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-3xl p-5 sm:p-7 shadow-lg hover:text-teal-700 dark:text-teal-400 border-teal-300 dark:hover:text-teal-700 dark:text-teal-400 border-teal-500/40 transition-all duration-500 hover:shadow-teal-900/15 hover:-translate-y-1 animate-[slideUp_0.6s_ease-out_both]"
+                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg hover:text-teal-700 dark:text-teal-400 border-teal-300 dark:hover:text-teal-700 dark:text-teal-400 border-teal-500/40 transition-all duration-500 hover:shadow-teal-900/15 hover:-translate-y-1 animate-[slideUp_0.6s_ease-out_both]"
                   style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
                 >
                   <div className="flex items-center justify-between mb-4 sm:mb-5">
