@@ -273,19 +273,45 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
 
         {/* STATS — Preuve sociale pour le SEO */}
         <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-teal-950/5 dark:bg-teal-900/10 border-y border-teal-900/10 dark:border-teal-500/10">
-          <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 sm:gap-6 text-center">
-  <div>
-    <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">👥</p>
-    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Membres actifs</p>
-  </div>
-  <div>
-    <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">🧘</p>
-    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Coachs certifiés</p>
-  </div>
-  <div>
-    <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">100%</p>
-    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Anonymat garanti</p>
-  </div>
+          <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6 sm:gap-8 px-4">
+  {[
+    { icon: '👥', text: 'Membres actifs' },
+    { icon: '🧘', text: 'Coachs certifiés' },
+    { icon: '100%', text: 'Anonymat garanti' }
+  ].map((stat, i) => {
+    return (
+      <div 
+        key={i}
+        className="relative group cursor-pointer"
+        style={{ perspective: '1200px' }}
+        onMouseMove={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          const rotateX = ((y - centerY) / centerY) * -15;
+          const rotateY = ((x - centerX) / centerX) * 15;
+          e.currentTarget.firstElementChild.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.firstElementChild.style.transform = 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        }}
+      >
+        <div 
+          className="glass-panel rounded-3xl p-10 flex flex-col items-center justify-center transition-transform duration-200 ease-out border border-zinc-200/60 dark:border-zinc-800/60 shadow-lg"
+          style={{ transformStyle: 'preserve-3d', transform: 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)' }}
+        >
+          <div className="transform-gpu transition-all duration-300 group-hover:-translate-y-3" style={{ transform: 'translateZ(60px)' }}>
+            <p className="text-5xl font-bold text-teal-700 dark:text-teal-400 drop-shadow-xl">{stat.icon}</p>
+          </div>
+          <div className="mt-6" style={{ transform: 'translateZ(30px)' }}>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest">{stat.text}</p>
+          </div>
+        </div>
+      </div>
+    );
+  })}
 </div>
         </section>
 
