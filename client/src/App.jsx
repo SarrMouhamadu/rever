@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import api from './api/client';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import api, { API_BASE_URL } from './api/client';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './hooks/useTheme';
 import { getFullImageUrl } from './utils/imageUrl';
@@ -8,6 +8,7 @@ import ContactPage from './ContactPage';
 import AuthScreen from './pages/AuthScreen';
 import ThemeToggle from './components/ui/ThemeToggle';
 import Button from './components/ui/Button';
+import { audioSynth } from './utils/audioSynth';
 
 const formatDuration = (seconds) => {
   if (!seconds || seconds <= 0) return "0 s";
@@ -68,6 +69,44 @@ function App() {
   const [totalUnread, setTotalUnread] = useState(0);
   const [chatMessages, setChatMessages] = useState([]);
   const [newChatMessage, setNewChatMessage] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    // Scroll with instant fallback to avoid layout jerks on mobile keyboards
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      // Delay slightly to allow keyboard resize animations or transition layouts to settle
+      const timer = setTimeout(scrollToBottom, 80);
+      return () => clearTimeout(timer);
+    }
+  }, [chatMessages]);
+
+  // Notifications State with localStorage persistence
+  const [notifEnabled, setNotifEnabled] = useState(() => {
+    return localStorage.getItem('rever_notif_enabled') !== 'false';
+  });
+  const [notifSound, setNotifSound] = useState(() => {
+    return localStorage.getItem('rever_notif_sound') || 'doux';
+  });
+  const [notifHideContent, setNotifHideContent] = useState(() => {
+    return localStorage.getItem('rever_notif_hide_content') === 'true';
+  });
+  const [notifVibe, setNotifVibe] = useState(() => {
+    return localStorage.getItem('rever_notif_vibe') || 'double';
+  });
+  const [mutedConversations, setMutedConversations] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('rever_muted_conversations') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [notifBadgeCount, setNotifBadgeCount] = useState(0);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -214,6 +253,36 @@ function App() {
     }
   };
 
+  const handleInitiateAnonymousChat = async (post) => {
+    const text = window.prompt("🤫 Écrire un message privé anonyme à l'auteur de cette confession :");
+    if (text === null) return;
+    if (!text.trim()) {
+      alert("Le message ne peut pas être vide.");
+      return;
+    }
+
+    try {
+      await api.post('/api/messages', {
+        postId: post.id,
+        text: text,
+        isAnonymous: true
+      });
+      
+      // Update selectedCoach state to redirect to the new chat
+      setSelectedCoach({
+        id: post.user_id,
+        pseudo: "Auteur Anonyme",
+        is_anonymous: true,
+        post_id: post.id
+      });
+      setView('messages');
+      fetchContacts();
+    } catch (err) {
+      console.error(err);
+      alert("Impossible de démarrer la discussion anonyme.");
+    }
+  };
+
   const fetchQuote = async () => {
     try {
       const res = await api.get('/api/quote');
@@ -297,8 +366,28 @@ function App() {
         const res = await api.get(`/api/users/${user.id}/conversations`);
         setContacts(res.data);
       } else {
-        const res = await api.get(`/api/users/${user.id}/coaches`);
-        setContacts(res.data);
+        const [coachesRes, convRes] = await Promise.all([
+          api.get(`/api/users/${user.id}/coaches`),
+          api.get(`/api/users/${user.id}/conversations`)
+        ]);
+        
+        const coaches = coachesRes.data;
+        const conversations = convRes.data;
+        
+        // Merge coaches and active anonymous/regular conversations
+        const merged = [...coaches];
+        conversations.forEach(c => {
+          if (c.is_anonymous) {
+            // Unique key for anonymous to avoid blending
+            merged.push(c);
+          } else {
+            if (!merged.some(m => m.id === c.id && !m.is_anonymous)) {
+              merged.push(c);
+            }
+          }
+        });
+        
+        setContacts(merged);
       }
     } catch (error) { console.error(error); }
   };
@@ -321,7 +410,10 @@ function App() {
 
   const fetchChatMessages = async (coachId) => {
     try {
-      const res = await api.get(`/api/messages/${user.id}/${coachId}`);
+      const url = selectedCoach?.is_anonymous && selectedCoach.post_id
+        ? `/api/messages/${user.id}/${coachId}?postId=${selectedCoach.post_id}`
+        : `/api/messages/${user.id}/${coachId}`;
+      const res = await api.get(url);
       setChatMessages(res.data);
     } catch (error) { console.error(error); }
   };
@@ -329,7 +421,11 @@ function App() {
   useEffect(() => {
     if (user && view === 'messages') fetchContacts();
     if (user) fetchUnreadCount();
-  }, [user, view]);
+    if (user && selectedCoach) {
+      fetchChatMessages(selectedCoach.id);
+      markAsRead(selectedCoach.id);
+    }
+  }, [user, view, selectedCoach]);
 
   // Polling for unread counts globally every 10s
   useEffect(() => {
@@ -343,15 +439,134 @@ function App() {
   }, [user, view]);
 
   useEffect(() => {
-    if (selectedCoach && view === 'messages') {
-      fetchChatMessages(selectedCoach.id);
-      markAsRead(selectedCoach.id);
-      const interval = setInterval(() => {
-        fetchChatMessages(selectedCoach.id);
-      }, 5000);
-      return () => clearInterval(interval);
+    if (!user) return;
+
+    const token = localStorage.getItem('rever_token');
+    if (!token) return;
+
+    // Connect to Server-Sent Events notifications endpoint
+    const url = `${API_BASE_URL}/api/notifications/subscribe?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(url);
+
+    // Helper to play notification sound
+    const triggerAudio = () => {
+      if (notifEnabled) {
+        audioSynth.play(notifSound);
+      }
+    };
+
+    // Helper to trigger phone vibration pattern
+    const triggerVibration = () => {
+      if (!notifEnabled || !('vibrate' in navigator)) return;
+      if (notifVibe === 'simple') {
+        navigator.vibrate(200);
+      } else if (notifVibe === 'double') {
+        navigator.vibrate([150, 100, 150]);
+      } else if (notifVibe === 'long') {
+        navigator.vibrate(500);
+      }
+    };
+
+    // Helper to show popup banner notification
+    const triggerBanner = (title, body) => {
+      if (!notifEnabled) return;
+      if (Notification.permission === 'granted') {
+        try {
+          const notification = new Notification(title, {
+            body: notifHideContent ? 'Contenu masqué pour des raisons de confidentialité.' : body,
+            icon: '/favicon.ico'
+          });
+          
+          notification.onclick = () => {
+            window.focus();
+            notification.close();
+          };
+        } catch (e) {
+          console.warn('Native notification failed:', e);
+        }
+      }
+    };
+
+    // Helper to update app badge count
+    const incrementBadge = () => {
+      setNotifBadgeCount(prev => {
+        const next = prev + 1;
+        if ('setAppBadge' in navigator) {
+          navigator.setAppBadge(next).catch(err => console.warn(err));
+        }
+        return next;
+      });
+    };
+
+    eventSource.addEventListener('new-post', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        
+        // Trigger alerts
+        triggerAudio();
+        triggerVibration();
+        triggerBanner(data.title, `${data.author}: ${data.content}`);
+        incrementBadge();
+
+        // If user is currently viewing feed, refresh it automatically in real time
+        if (view === 'feed') {
+          fetchFeed(0, false);
+          fetchQuote();
+        }
+      } catch (err) {
+        console.error('Failed to handle new-post notification:', err);
+      }
+    });
+
+    eventSource.addEventListener('message', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        
+        // Check if discussion with sender is muted
+        const isMuted = mutedConversations.includes(parseInt(data.senderId, 10)) || 
+                        mutedConversations.includes(data.senderId.toString());
+
+        if (!isMuted) {
+          triggerAudio();
+          triggerVibration();
+          triggerBanner(data.title, `${data.senderPseudo}: ${data.content}`);
+        }
+        incrementBadge();
+
+        // If user is active in discussion with sender, update active chat screen in real time
+        if (view === 'messages' && selectedCoach && parseInt(selectedCoach.id, 10) === parseInt(data.senderId, 10)) {
+          fetchChatMessages(selectedCoach.id);
+          markAsRead(selectedCoach.id);
+        } else {
+          // Refresh list of conversations and count unread message
+          fetchContacts();
+          fetchUnreadCount();
+        }
+      } catch (err) {
+        console.error('Failed to handle message notification:', err);
+      }
+    });
+
+    eventSource.onopen = () => {
+      console.log('[SSE] Connecté aux notifications temps réel.');
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('[SSE] Erreur connexion notifications, reconnexion...', err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user, view, notifEnabled, notifSound, notifVibe, notifHideContent, mutedConversations, selectedCoach, fetchFeed, fetchChatMessages]);
+
+  useEffect(() => {
+    // Clear notifications badge count when active
+    setNotifBadgeCount(0);
+    if ('clearAppBadge' in navigator) {
+      navigator.clearAppBadge().catch(err => console.warn(err));
     }
-  }, [selectedCoach, view]);
+  }, [view]);
 
   const handleReportPost = async (postId) => {
     const reason = window.prompt("⚠️ Signalement : Veuillez indiquer le motif de votre signalement (ex : Harcèlement, Contenu inapproprié, Spam, Publicité...) :");
@@ -716,10 +931,15 @@ function App() {
     e.preventDefault();
     if (!newChatMessage.trim() || !selectedCoach) return;
     try {
-      await api.post('/api/messages', {
+      const payload = {
         receiverId: selectedCoach.id,
         text: newChatMessage
-      });
+      };
+      if (selectedCoach.is_anonymous) {
+        payload.isAnonymous = true;
+        payload.postId = selectedCoach.post_id;
+      }
+      await api.post('/api/messages', payload);
       setNewChatMessage('');
       fetchChatMessages(selectedCoach.id);
     } catch (error) { console.error(error); }
@@ -764,14 +984,19 @@ function App() {
           <div className="flex gap-3 sm:gap-4 md:gap-8 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider font-medium">
             <button onClick={() => setView('feed')} className={`${view === 'feed' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Feed</button>
             {(user.role === 'user' || user.role === 'coach') && (
-              <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
-                Messages
-                {totalUnread > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
-                    {totalUnread}
-                  </span>
-                )}
-              </button>
+              <>
+                <button onClick={() => setView('messages')} className={`relative ${view === 'messages' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>
+                  Messages
+                  {totalUnread > 0 && (
+                    <span className="absolute -top-2 -right-3 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-md">
+                      {totalUnread}
+                    </span>
+                  )}
+                </button>
+                <button onClick={() => setView('settings')} className={`${view === 'settings' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors flex items-center gap-1`}>
+                  <span>⚙️</span> Réglages
+                </button>
+              </>
             )}
             {user.role === 'admin' && (
               <button onClick={() => setView('admin-dashboard')} className={`${view === 'admin-dashboard' ? 'text-slate-900 dark:text-slate-200' : 'text-slate-500 dark:text-slate-600 hover:text-slate-700 dark:hover:text-slate-400'} transition-colors`}>Admin</button>
@@ -792,7 +1017,7 @@ function App() {
               aria-label="Déconnexion"
             >
               <span>🚪</span>
-              <span className="hidden xs:inline">Déconnexion</span>
+              <span className="hidden sm:inline">Déconnexion</span>
             </button>
 
           </div>
@@ -993,6 +1218,15 @@ function App() {
                     <span className="flex items-center gap-1 sm:gap-2 text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
                       💬 {post.comments?.length || 0}
                     </span>
+                    {post.is_anonymous && post.user_id !== user.id && (
+                      <button 
+                        onClick={() => handleInitiateAnonymousChat(post)}
+                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors text-xs sm:text-sm font-semibold ml-2 sm:ml-4"
+                        title="Écrire un message privé anonyme à l'auteur"
+                      >
+                        ✉️ Message Anonyme
+                      </button>
+                    )}
                     {user.role === 'admin' ? (
                       <button 
                         onClick={() => handleDeletePost(post.id)} 
@@ -1061,19 +1295,25 @@ function App() {
               <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">{user.role === 'coach' ? 'Discussions' : 'Coachs'}</h2>
               {contacts.length > 0 ? contacts.map(coach => (
                 <div 
-                  key={coach.id} 
+                  key={coach.is_anonymous ? `anon-${coach.id}-${coach.post_id}` : `normal-${coach.id}`} 
                   onClick={() => setSelectedCoach(coach)}
-                  className={`p-3 rounded-2xl cursor-pointer transition-all mb-2 flex items-center gap-3 ${selectedCoach?.id === coach.id ? 'bg-teal-100 dark:bg-teal-900/40 border text-teal-700 dark:text-teal-400 border-teal-200 dark:text-teal-700 dark:text-teal-400 border-teal-500/30' : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border border-transparent'}`}
+                  className={`p-3 rounded-2xl cursor-pointer transition-all mb-2 flex items-center gap-3 ${
+                    selectedCoach?.id === coach.id && selectedCoach?.is_anonymous === coach.is_anonymous && selectedCoach?.post_id === coach.post_id
+                      ? 'bg-teal-100 dark:bg-teal-900/40 border text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-550/30'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border border-transparent'
+                  }`}
                 >
                   <div className="w-10 h-10 shrink-0 bg-gradient-to-br from-teal-600 to-teal-700 rounded-full flex items-center justify-center text-white font-bold relative">
-                    {coach.pseudo.charAt(0).toUpperCase()}
+                    {coach.is_anonymous ? '🤫' : coach.pseudo.charAt(0).toUpperCase()}
                     {parseInt(coach.unread_count) > 0 && (
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
                     )}
                   </div>
                   <div className="truncate flex-1">
                     <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{coach.pseudo}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.role === 'coach' ? 'Utilisateur' : 'Professionnel'}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {coach.is_anonymous ? 'Discussion Anonyme' : (user.role === 'coach' ? 'Utilisateur' : 'Professionnel')}
+                    </p>
                   </div>
                   {parseInt(coach.unread_count) > 0 && (
                     <div className="bg-rose-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shrink-0 shadow-sm animate-pulse">
@@ -1087,22 +1327,54 @@ function App() {
             </div>
 
             {/* Chat Area */}
-            <div className={`w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl flex flex-col shadow-lg h-[500px] md:h-[600px] overflow-hidden ${selectedCoach ? 'flex' : 'hidden md:flex'}`}>
+            <div 
+              key={selectedCoach?.is_anonymous ? `chat-anon-${selectedCoach.id}-${selectedCoach.post_id}` : (selectedCoach ? `chat-normal-${selectedCoach.id}` : 'chat-empty')}
+              className={`w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-3xl flex flex-col shadow-lg h-[500px] md:h-[600px] overflow-hidden animate-fade-in ${selectedCoach ? 'flex' : 'hidden md:flex'}`}
+            >
               {selectedCoach ? (
                 <>
-                  <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex items-center gap-3">
-                    <button 
-                      type="button" 
-                      onClick={() => setSelectedCoach(null)} 
-                      className="md:hidden p-1.5 hover:bg-slate-200 dark:hover:bg-slate-850 rounded-lg text-slate-500 hover:text-slate-850 dark:hover:text-slate-200 transition-colors"
-                      title="Retour"
-                    >
-                      ⬅️
-                    </button>
-                    <div className="w-8 h-8 shrink-0 bg-gradient-to-br from-teal-600 to-teal-700 rounded-full flex items-center justify-center text-white font-bold text-xs">
-                      {selectedCoach.pseudo.charAt(0).toUpperCase()}
+                  <div className="p-4 border-b border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <button 
+                        type="button" 
+                        onClick={() => setSelectedCoach(null)} 
+                        className="md:hidden p-1.5 hover:bg-slate-200 dark:hover:bg-slate-850 rounded-lg text-slate-500 hover:text-slate-850 dark:hover:text-slate-200 transition-colors"
+                        title="Retour"
+                      >
+                        ⬅️
+                      </button>
+                      <div className="w-8 h-8 shrink-0 bg-gradient-to-br from-teal-600 to-teal-700 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                        {selectedCoach.is_anonymous ? '🤫' : selectedCoach.pseudo.charAt(0).toUpperCase()}
+                      </div>
+                      <h3 className="font-bold text-slate-900 dark:text-slate-100">Discussion avec {selectedCoach.pseudo}</h3>
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-slate-100">Discussion avec {selectedCoach.pseudo}</h3>
+                    
+                    {/* Discussion Sourdine / Mute Button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const coachId = selectedCoach.id;
+                        setMutedConversations(prev => {
+                          let next;
+                          if (prev.includes(coachId)) {
+                            next = prev.filter(id => id !== coachId);
+                          } else {
+                            next = [...prev, coachId];
+                          }
+                          localStorage.setItem('rever_muted_conversations', JSON.stringify(next));
+                          return next;
+                        });
+                      }}
+                      className={`p-2 rounded-xl transition-all border flex items-center gap-1.5 text-xs font-semibold ${
+                        mutedConversations.includes(selectedCoach.id)
+                          ? 'bg-rose-50/60 hover:bg-rose-100/80 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 border-rose-200 dark:border-rose-900/40'
+                          : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
+                      }`}
+                      title={mutedConversations.includes(selectedCoach.id) ? "Mise en sourdine active (cliquer pour réactiver le son)" : "Mettre en sourdine la discussion"}
+                    >
+                      <span>{mutedConversations.includes(selectedCoach.id) ? '🔕' : '🔔'}</span>
+                      <span className="hidden sm:inline">{mutedConversations.includes(selectedCoach.id) ? 'Mute active' : 'Sourdine'}</span>
+                    </button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse font-sans">
                     <div className="flex flex-col gap-4">
@@ -1119,6 +1391,7 @@ function App() {
                           </div>
                         )
                       })}
+                      <div ref={messagesEndRef} />
                     </div>
                   </div>
                   <form onSubmit={handleSendChatMessage} className="p-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex gap-2">
@@ -1139,6 +1412,204 @@ function App() {
                   <div className="text-5xl mb-4 opacity-50 animate-bounce" style={{ animationDuration: '3s' }}>💬</div>
                   <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200 mb-2">Vos messages privés</h3>
                   <p className="text-sm">Sélectionnez un coach dans la liste pour commencer une discussion en toute confidentialité.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {view === 'settings' && (
+          <div className="relative z-10 max-w-2xl mx-auto animate-[fadeIn_0.4s_ease-out] space-y-6">
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-3xl">🔔</span>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Réglages des Notifications</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Personnalisez vos alertes pour rester connecté sans interruption.</p>
+                </div>
+              </div>
+
+              {/* Native Permission Request Banner */}
+              {typeof Notification !== 'undefined' && Notification.permission !== 'granted' && (
+                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 rounded-3xl p-5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-center sm:text-left">
+                    <h3 className="font-semibold text-sm">Autorisation système requise</h3>
+                    <p className="text-xs text-amber-700/80 dark:text-amber-300/70 mt-1">Vous devez autoriser les notifications de votre navigateur pour recevoir les alertes.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                          alert('Notifications système activées avec succès ! 🎉');
+                          // Trigger test chime
+                          audioSynth.play(notifSound);
+                        } else {
+                          alert('Les notifications ont été refusées. Veuillez les autoriser dans les paramètres de votre navigateur.');
+                        }
+                        // Refresh component state
+                        setNotifEnabled(permission === 'granted');
+                      });
+                    }}
+                    className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-2xl transition-all shadow-md shrink-0"
+                  >
+                    Autoriser les alertes
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-6">
+                {/* Global Toggle switch */}
+                <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Activer les notifications</h3>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Recevoir des alertes de publications et de messages</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !notifEnabled;
+                      setNotifEnabled(next);
+                      localStorage.setItem('rever_notif_enabled', next.toString());
+                      if (next) {
+                        // Ask permission if not granted
+                        if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
+                          Notification.requestPermission();
+                        }
+                        audioSynth.play(notifSound);
+                      }
+                    }}
+                    className={`w-12 h-6 rounded-full p-1 transition-all ${notifEnabled ? 'bg-teal-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${notifEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {/* Sound selection */}
+                <div className={`space-y-3 transition-opacity ${notifEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Choisir le son</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { id: 'doux', label: '🍃 Doux (Carillon)', emoji: '🔔' },
+                      { id: 'alerte', label: '⚡ Alerte (Bip)', emoji: '🚨' },
+                      { id: 'cosmique', label: '✨ Cosmique (Sweep)', emoji: '🚀' }
+                    ].map(snd => (
+                      <button
+                        key={snd.id}
+                        type="button"
+                        onClick={() => {
+                          setNotifSound(snd.id);
+                          localStorage.setItem('rever_notif_sound', snd.id);
+                          // Play immediate preview
+                          audioSynth.play(snd.id);
+                        }}
+                        className={`p-4 rounded-3xl border text-center transition-all flex flex-col items-center justify-center gap-1.5 ${
+                          notifSound === snd.id
+                            ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-500 text-teal-700 dark:text-teal-400 font-bold scale-[1.02]'
+                            : 'bg-transparent border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/30 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        <span className="text-lg">{snd.emoji}</span>
+                        <span className="text-xs">{snd.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Vibration selection */}
+                <div className={`space-y-3 transition-opacity ${notifEnabled ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Modèle de vibration</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { id: 'none', label: 'Sans vibration' },
+                      { id: 'simple', label: 'Simple court' },
+                      { id: 'double', label: 'Double pulsation' },
+                      { id: 'long', label: 'Vibration continue' }
+                    ].map(vib => (
+                      <button
+                        key={vib.id}
+                        type="button"
+                        onClick={() => {
+                          setNotifVibe(vib.id);
+                          localStorage.setItem('rever_notif_vibe', vib.id);
+                          // Trigger preview vibration
+                          if ('vibrate' in navigator) {
+                            if (vib.id === 'simple') navigator.vibrate(200);
+                            else if (vib.id === 'double') navigator.vibrate([150, 100, 150]);
+                            else if (vib.id === 'long') navigator.vibrate(500);
+                          }
+                        }}
+                        className={`p-3 rounded-2xl border text-center text-xs transition-all ${
+                          notifVibe === vib.id
+                            ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-500 text-teal-700 dark:text-teal-400 font-semibold'
+                            : 'bg-transparent border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900/30 text-slate-600 dark:text-slate-400'
+                        }`}
+                      >
+                        {vib.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Content Privacy (Masquer le contenu) */}
+                <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-3xl border border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Masquer le contenu</h3>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Remplacer le texte par "Contenu masqué" sur l'écran d'accueil</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !notifHideContent;
+                      setNotifHideContent(next);
+                      localStorage.setItem('rever_notif_hide_content', next.toString());
+                    }}
+                    className={`w-12 h-6 rounded-full p-1 transition-all ${notifHideContent ? 'bg-teal-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-white transition-all transform ${notifHideContent ? 'translate-x-6' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Muted Conversations List Card */}
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
+              <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50 mb-1">Discussions en Sourdine</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Ces conversations ne déclenchent pas d'alertes sonores ou de notifications popup.</p>
+              
+              {mutedConversations.length > 0 ? (
+                <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+                  {mutedConversations.map(mutedId => {
+                    return (
+                      <div key={mutedId} className="py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-500">
+                            🔇
+                          </div>
+                          <div>
+                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Discussion #{mutedId}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMutedConversations(prev => {
+                              const next = prev.filter(id => id !== mutedId);
+                              localStorage.setItem('rever_muted_conversations', JSON.stringify(next));
+                              return next;
+                            });
+                          }}
+                          className="px-3 py-1.5 bg-slate-105 hover:bg-slate-200 dark:bg-slate-750 dark:hover:bg-slate-700 text-teal-600 dark:text-teal-400 text-xs font-bold rounded-xl transition-all"
+                        >
+                          Réactiver le son
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-4 text-center text-xs text-slate-400 dark:text-slate-500">
+                  Aucune discussion n'est actuellement en sourdine.
                 </div>
               )}
             </div>

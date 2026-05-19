@@ -13,20 +13,46 @@ router.get('/:userId1/:userId2', requireAuth, async (req, res) => {
     }
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
     const offset = parseInt(req.query.offset, 10) || 0;
-    const messages = await db.getMessages(uid1, uid2, limit, offset);
+    const postId = req.query.postId ? parseInt(req.query.postId, 10) : null;
+    const messages = await db.getMessages(uid1, uid2, postId, limit, offset);
     res.json(messages);
   } catch {
     res.status(500).json({ error: 'Erreur récupération messages.' });
   }
 });
 
+const { sendDirectNotification } = require('../lib/notificationHub');
+
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { receiverId, text } = req.body;
+    let { receiverId, text, isAnonymous, postId } = req.body;
+
+    if (isAnonymous && postId) {
+      // Find the author of the post
+      const post = await db.getPostById(postId);
+      if (!post) {
+        return res.status(404).json({ error: 'Publication non trouvée.' });
+      }
+      receiverId = post.user_id;
+    }
+
     if (!receiverId || !text?.trim()) {
       return res.status(400).json({ error: 'Destinataire et message requis.' });
     }
-    await db.sendMessage(req.user.id, receiverId, text);
+    const msg = await db.sendMessage(req.user.id, receiverId, text, isAnonymous || false, postId || null);
+    
+    // Send live message notification to receiver
+    sendDirectNotification(receiverId, {
+      type: 'new-message',
+      title: 'Nouveau message',
+      body: isAnonymous ? 'Message de Anonyme' : `Message de ${req.user.pseudo}`,
+      content: text,
+      senderId: req.user.id,
+      senderPseudo: isAnonymous ? 'Anonyme' : req.user.pseudo,
+      isAnonymous: isAnonymous || false,
+      postId: postId || null
+    });
+
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: 'Erreur envoi message.' });

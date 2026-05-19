@@ -78,6 +78,8 @@ const initDb = async () => {
     `);
 
     await query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE`);
+    await query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE`);
+    await query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL`);
 
     await query(`
       CREATE TABLE IF NOT EXISTS quotes (
@@ -229,7 +231,7 @@ const getFeed = async (userId, limit = 20, offset = 0) => {
   const { rows: posts } = await query(
     `SELECT p.id, p.user_id, p.text, p.image_url, p.likes, p.created_at,
             p.is_reported, p.reports_count, p.is_anonymous,
-            CASE WHEN p.is_anonymous = TRUE THEN 'Anonyme' ELSE u.pseudo END AS username,
+            CASE WHEN p.is_anonymous = TRUE THEN 'Anonyme' WHEN p.user_id = $3 THEN u.pseudo ELSE LEFT(u.pseudo, 1) || '.' END AS username,
             CASE WHEN p.is_anonymous = TRUE THEN NULL ELSE u.avatar END AS user_avatar,
             EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $3) AS liked_by_me
      FROM posts p
@@ -275,20 +277,37 @@ const getFeed = async (userId, limit = 20, offset = 0) => {
   };
 };
 
-const getMessages = async (userId1, userId2, limit = 50, offset = 0) => {
-  const { rows } = await query(
-    `SELECT m.*,
-            u1.pseudo AS sender_pseudo,
-            u2.pseudo AS receiver_pseudo
-     FROM messages m
-     JOIN users u1 ON m.sender_id = u1.id
-     JOIN users u2 ON m.receiver_id = u2.id
-     WHERE (m.sender_id = $1 AND m.receiver_id = $2)
-        OR (m.sender_id = $2 AND m.receiver_id = $1)
-     ORDER BY m.created_at ASC
-     LIMIT $3 OFFSET $4`,
-    [userId1, userId2, limit, offset]
-  );
+const getMessages = async (userId1, userId2, postId = null, limit = 50, offset = 0) => {
+  let queryText;
+  let params;
+  if (postId) {
+    queryText = `
+      SELECT m.*,
+             CASE WHEN m.is_anonymous = TRUE THEN 'Anonyme' ELSE u1.pseudo END AS sender_pseudo,
+             CASE WHEN m.is_anonymous = TRUE THEN 'Anonyme' ELSE u2.pseudo END AS receiver_pseudo
+      FROM messages m
+      JOIN users u1 ON m.sender_id = u1.id
+      JOIN users u2 ON m.receiver_id = u2.id
+      WHERE ((m.sender_id = $1 AND m.receiver_id = $2) OR (m.sender_id = $2 AND m.receiver_id = $1))
+        AND m.post_id = $3 AND m.is_anonymous = TRUE
+      ORDER BY m.created_at ASC
+      LIMIT $4 OFFSET $5`;
+    params = [userId1, userId2, postId, limit, offset];
+  } else {
+    queryText = `
+      SELECT m.*,
+             u1.pseudo AS sender_pseudo,
+             u2.pseudo AS receiver_pseudo
+      FROM messages m
+      JOIN users u1 ON m.sender_id = u1.id
+      JOIN users u2 ON m.receiver_id = u2.id
+      WHERE ((m.sender_id = $1 AND m.receiver_id = $2) OR (m.sender_id = $2 AND m.receiver_id = $1))
+        AND m.is_anonymous = FALSE
+      ORDER BY m.created_at ASC
+      LIMIT $3 OFFSET $4`;
+    params = [userId1, userId2, limit, offset];
+  }
+  const { rows } = await query(queryText, params);
   return rows;
 };
 
@@ -300,25 +319,55 @@ const getOtherUser = async (userId) => {
   return rows[0];
 };
 
-const sendMessage = async (senderId, receiverId, text) => {
+const sendMessage = async (senderId, receiverId, text, isAnonymous = false, postId = null) => {
   const { rows } = await query(
-    `INSERT INTO messages (sender_id, receiver_id, text) VALUES ($1, $2, $3) RETURNING id`,
-    [senderId, receiverId, text]
+    `INSERT INTO messages (sender_id, receiver_id, text, is_anonymous, post_id) 
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [senderId, receiverId, text, isAnonymous, postId]
   );
   return { id: rows[0].id };
 };
 
 const getConversations = async (userId) => {
   const { rows } = await query(
-    `SELECT u.id, u.first_name, u.last_name, u.pseudo, u.role, u.avatar,
-            (SELECT COUNT(*)::int FROM messages
-             WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE) AS unread_count
-     FROM users u
-     WHERE u.id IN (
-       SELECT sender_id FROM messages WHERE receiver_id = $1
-       UNION
-       SELECT receiver_id FROM messages WHERE sender_id = $1
-     )`,
+    `SELECT DISTINCT ON (u.id, is_anonymous, post_id)
+           u.id AS id,
+           u.first_name AS first_name,
+           u.last_name AS last_name,
+           u.pseudo AS pseudo,
+           u.role AS role,
+           u.avatar AS avatar,
+           FALSE AS is_anonymous,
+           NULL::integer AS post_id,
+           (SELECT COUNT(*)::int FROM messages
+            WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE AND is_anonymous = FALSE) AS unread_count,
+           MAX(m.created_at) AS last_message_time
+    FROM users u
+    JOIN messages m ON (m.sender_id = u.id AND m.receiver_id = $1) OR (m.sender_id = $1 AND m.receiver_id = u.id)
+    WHERE m.is_anonymous = FALSE
+    GROUP BY u.id
+    
+    UNION ALL
+    
+    SELECT DISTINCT ON (u.id, is_anonymous, post_id)
+           u.id AS id,
+           'Anonyme' AS first_name,
+           'Anonyme' AS last_name,
+           CASE WHEN p.user_id = u.id THEN 'Auteur Anonyme' ELSE 'Lecteur Anonyme' END AS pseudo,
+           'user' AS role,
+           NULL AS avatar,
+           TRUE AS is_anonymous,
+           m.post_id AS post_id,
+           (SELECT COUNT(*)::int FROM messages
+            WHERE sender_id = u.id AND receiver_id = $1 AND is_read = FALSE AND is_anonymous = TRUE AND post_id = m.post_id) AS unread_count,
+           MAX(m.created_at) AS last_message_time
+    FROM users u
+    JOIN messages m ON (m.sender_id = u.id AND m.receiver_id = $1) OR (m.sender_id = $1 AND m.receiver_id = u.id)
+    JOIN posts p ON m.post_id = p.id
+    WHERE m.is_anonymous = TRUE
+    GROUP BY u.id, m.post_id, p.user_id
+    
+    ORDER BY last_message_time DESC`,
     [userId]
   );
   return rows;

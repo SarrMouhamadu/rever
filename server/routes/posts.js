@@ -17,6 +17,8 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+const { broadcastNotification } = require('../lib/notificationHub');
+
 router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
     const { text, isAnonymous } = req.body;
@@ -26,6 +28,18 @@ router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req,
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
     const isAnon = isAnonymous === undefined ? true : (isAnonymous === 'true' || isAnonymous === true);
     const post = await db.createPost(req.user.id, text, imageUrl, isAnon);
+    
+    // Broadcast notification to all active clients except the creator
+    broadcastNotification({
+      type: 'new-post',
+      title: 'Nouvelle publication',
+      body: isAnon ? 'Une nouvelle confession anonyme a été publiée.' : `${req.user.pseudo} a publié un message.`,
+      content: text,
+      postId: post.id,
+      isAnonymous: isAnon,
+      author: isAnon ? 'Anonyme' : req.user.pseudo
+    }, req.user.id);
+
     res.json({ success: true, id: post.id });
   } catch (err) {
     if (err.message?.includes('autorisées')) {
