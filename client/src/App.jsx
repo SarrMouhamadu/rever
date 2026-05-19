@@ -7,7 +7,6 @@ import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
 import AuthScreen from './pages/AuthScreen';
 import ThemeToggle from './components/ui/ThemeToggle';
-import Button from './components/ui/Button';
 import { audioSynth } from './utils/audioSynth';
 
 const formatDuration = (seconds) => {
