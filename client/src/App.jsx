@@ -408,15 +408,32 @@ function App() {
     } catch (error) { console.error(error); }
   };
 
-  const fetchChatMessages = async (coachId) => {
+  const fetchChatMessages = async (coachId, coachCtx) => {
     try {
-      const url = selectedCoach?.is_anonymous && selectedCoach.post_id
-        ? `/api/messages/${user.id}/${coachId}?postId=${selectedCoach.post_id}`
+      // Accept explicit coachCtx from SSE handler (avoids stale closure on selectedCoach state)
+      const ctx = coachCtx !== undefined ? coachCtx : selectedCoach;
+      const url = ctx?.is_anonymous && ctx?.post_id
+        ? `/api/messages/${user.id}/${coachId}?postId=${ctx.post_id}`
         : `/api/messages/${user.id}/${coachId}`;
       const res = await api.get(url);
       setChatMessages(res.data);
     } catch (error) { console.error(error); }
   };
+
+  // ─── Stable function refs (assigned each render) ───────────────────────────
+  // This pattern lets the SSE handler (created once) always call the latest
+  // version of each callback without being re-mounted.
+  const fetchChatMsgRef    = useRef();
+  fetchChatMsgRef.current  = fetchChatMessages;
+
+  const markAsReadRef      = useRef();
+  markAsReadRef.current    = markAsRead;
+
+  const fetchContactsRef   = useRef();
+  fetchContactsRef.current = fetchContacts;
+
+  const fetchUnreadRef     = useRef();
+  fetchUnreadRef.current   = fetchUnreadCount;
 
   useEffect(() => {
     if (user && view === 'messages') fetchContacts();
@@ -481,15 +498,15 @@ function App() {
     };
 
     // ── OS banner ──
-    const triggerBanner = (title, body) => {
+    const triggerBanner = (title, body, tag = 'rever-notif') => {
       if (!notifEnabledRef.current) return;
       if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
       try {
         const n = new Notification(title, {
           body: notifHideRef.current ? 'Contenu masqué.' : body,
           icon: '/favicon.ico',
-          tag: title,          // prevents duplicate banners for same event
-          renotify: false,
+          tag,           // unique per event — prevents cross-overwrite, allows same-type dedup
+          renotify: true, // ring again even if same tag
         });
         n.onclick = () => { window.focus(); n.close(); };
       } catch (e) {
@@ -512,9 +529,8 @@ function App() {
         const data = JSON.parse(e.data);
         triggerAudio();
         triggerVibration();
-        triggerBanner(data.title, `${data.author}: ${data.content}`);
+        triggerBanner(data.title, `${data.author}: ${data.content}`, `post-${data.postId || Date.now()}`);
         incrementBadge();
-        // Refresh feed if user is watching it
         if (viewRef.current === 'feed') {
           fetchFeed(0, false);
         }
@@ -535,18 +551,18 @@ function App() {
         if (!isMuted) {
           triggerAudio();
           triggerVibration();
-          triggerBanner(data.title, `${data.senderPseudo}: ${data.content}`);
+          triggerBanner(data.title, `${data.senderPseudo}: ${data.content}`, `msg-${senderId}-${Date.now()}`);
         }
         incrementBadge();
 
         const sc = selectedCoachRef.current;
         if (viewRef.current === 'messages' && sc && parseInt(sc.id, 10) === senderId) {
-          // Active chat — refresh messages in real time
-          fetchChatMessages(sc.id);
-          markAsRead(sc.id);
+          // Pass sc explicitly to avoid stale selectedCoach closure in fetchChatMessages
+          fetchChatMsgRef.current(sc.id, sc);
+          markAsReadRef.current(sc.id);
         } else {
-          fetchContacts();
-          fetchUnreadCount();
+          fetchContactsRef.current();
+          fetchUnreadRef.current();
         }
       } catch (err) {
         console.error('[SSE] message handler error:', err);
