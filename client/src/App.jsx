@@ -129,12 +129,6 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    setView('login');
-    setAuthForm({ firstName: '', lastName: '', contact: '', password: '', pseudo: '', loginId: '' });
-  };
-
   const fetchFeed = useCallback(async (offset = 0, append = false) => {
     setFeedLoading(true);
     try {
@@ -249,6 +243,25 @@ function App() {
     } catch (error) {
       console.error(error);
       alert('Erreur lors de la suppression de la publication.');
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    if (!window.confirm('Voulez-vous vraiment supprimer ce commentaire ?')) return;
+    try {
+      await api.delete(`/api/posts/comment/${commentId}`);
+      setFeed((prev) => prev.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            comments: post.comments.filter(c => c.id !== commentId)
+          };
+        }
+        return post;
+      }));
+    } catch (error) {
+      console.error(error);
+      alert('Erreur lors de la suppression du commentaire.');
     }
   };
 
@@ -1266,9 +1279,20 @@ function App() {
                   
                   <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 sm:pt-5">
                     {post.comments?.map(comment => (
-                      <div key={comment.id} className="mb-3 sm:mb-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/30 rounded-2xl">
-                        <p className="text-[10px] sm:text-xs font-semibold text-teal-600 dark:text-teal-300 mb-1">{comment.username}</p>
-                        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">{comment.text}</p>
+                      <div key={comment.id} className="mb-3 sm:mb-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/30 rounded-2xl relative group">
+                        <div className="flex justify-between items-start">
+                          <p className="text-[10px] sm:text-xs font-semibold text-teal-600 dark:text-teal-300 mb-1">{comment.username}</p>
+                          {(comment.user_id === user.id || user.role === 'admin') && (
+                            <button
+                              onClick={() => handleDeleteComment(post.id, comment.id)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-rose-500 hover:text-rose-600 font-bold"
+                              title="Supprimer ce commentaire"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 pr-4">{comment.text}</p>
                       </div>
                     ))}
                     <div className="flex gap-2 mt-3 sm:mt-4">

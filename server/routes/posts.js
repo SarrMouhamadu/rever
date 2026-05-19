@@ -71,6 +71,19 @@ router.post('/:id/comment', requireAuth, async (req, res) => {
   }
 });
 
+router.delete('/comment/:commentId', requireAuth, async (req, res) => {
+  try {
+    const success = await db.deleteComment(req.params.commentId, req.user.id);
+    if (!success) {
+      return res.status(403).json({ error: 'Non autorisé ou commentaire introuvable.' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur lors de la suppression du commentaire" });
+  }
+});
+
 router.put('/:id', requireAuth, async (req, res) => {
   try {
     const { text } = req.body;

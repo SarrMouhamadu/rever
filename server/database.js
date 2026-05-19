@@ -223,8 +223,25 @@ const addComment = async (postId, userId, text) => {
     [postId, userId, text]
   );
   const comment = rows[0];
+  
+  const postRow = await query('SELECT user_id, is_anonymous FROM posts WHERE id = $1', [postId]);
   const userRow = await query('SELECT pseudo FROM users WHERE id = $1', [userId]);
-  return { ...comment, username: userRow.rows[0].pseudo };
+  
+  const isPostAuthor = postRow.rows[0].user_id === userId;
+  const isAnonymousPost = postRow.rows[0].is_anonymous;
+  
+  const username = (isAnonymousPost && isPostAuthor) ? 'Anonyme (Auteur)' : userRow.rows[0].pseudo;
+  
+  return { ...comment, username };
+};
+
+const deleteComment = async (commentId, userId) => {
+  // Only the author of the comment (or an admin) can delete it
+  const { rowCount } = await query(
+    `DELETE FROM comments WHERE id = $1 AND (user_id = $2 OR EXISTS (SELECT 1 FROM users WHERE id = $2 AND role = 'admin'))`,
+    [commentId, userId]
+  );
+  return rowCount > 0;
 };
 
 const getFeed = async (userId, limit = 20, offset = 0) => {
@@ -247,9 +264,12 @@ const getFeed = async (userId, limit = 20, offset = 0) => {
 
   const postIds = posts.map((p) => p.id);
   const { rows: comments } = await query(
-    `SELECT c.id, c.post_id, c.user_id, c.text, c.created_at, u.pseudo AS username
+    `SELECT c.id, c.post_id, c.user_id, c.text, c.created_at, 
+            CASE WHEN p.is_anonymous = TRUE AND c.user_id = p.user_id THEN 'Anonyme (Auteur)'
+                 ELSE u.pseudo END AS username
      FROM comments c
      JOIN users u ON c.user_id = u.id
+     JOIN posts p ON c.post_id = p.id
      WHERE c.post_id = ANY($1::int[])
      ORDER BY c.created_at ASC`,
     [postIds]
@@ -636,6 +656,7 @@ module.exports = {
   createPost,
   likePost,
   addComment,
+  deleteComment,
   getFeed,
   getAdminUsers,
   getMessages,
