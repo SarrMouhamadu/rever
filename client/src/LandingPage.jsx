@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import api from './api/client';
-import {
   ArrowRight,
   ChatsCircle,
   Heart,
   EnvelopeSimple,
   Phone,
   UserCircle,
+  Users,
+  ShieldCheck,
+  Plant,
+  Heartbeat
 } from '@phosphor-icons/react';
 import heroImage from '../image.png';
 import Button from './components/ui/Button';
@@ -83,7 +86,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       subtitle: 'Membres actifs',
       desc: 'Partages anonymes, bienveillants et écoute mutuelle. Santé mentale étudiante au cœur de l\'Afrique.',
       badge: 'Live',
-      icon: '🌱',
+      icon: <Users weight="regular" />,
       gradient: 'from-indigo-500/10 via-purple-500/5 to-pink-500/10 dark:from-indigo-950/60 dark:via-purple-950/40 dark:to-pink-950/60 border-purple-500/30 dark:border-purple-500/20 text-purple-900 dark:text-purple-300',
       badgeClass: 'bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-400/30',
       glow: 'shadow-purple-500/5'
@@ -93,7 +96,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       subtitle: 'Coachs actifs',
       desc: 'Des professionnels de santé mentale pour vous accompagner au Sénégal et en Afrique.',
       badge: 'Disponibles',
-      icon: '🧘',
+      icon: <Heartbeat weight="regular" />,
       gradient: 'from-teal-500/10 via-emerald-500/5 to-cyan-500/10 dark:from-teal-950/60 dark:via-emerald-950/40 dark:to-cyan-950/60 border-teal-500/30 dark:border-teal-500/20 text-teal-900 dark:text-teal-300',
       badgeClass: 'bg-teal-500/20 text-teal-800 dark:text-teal-300 border-teal-400/30',
       glow: 'shadow-teal-500/5'
@@ -103,7 +106,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       subtitle: 'Anonymat garanti',
       desc: 'Espace sécurisé, chiffré et conforme au RGPD. Parlez sans exposer votre identité.',
       badge: 'Sécurisé',
-      icon: '🔒',
+      icon: <ShieldCheck weight="regular" />,
       gradient: 'from-amber-500/10 via-rose-500/5 to-orange-500/10 dark:from-amber-950/60 dark:via-rose-950/40 dark:to-orange-950/60 border-amber-500/30 dark:border-amber-500/20 text-amber-900 dark:text-amber-300',
       badgeClass: 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-400/30',
       glow: 'shadow-amber-500/5'
@@ -275,9 +278,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-teal-950/5 dark:bg-teal-900/10 border-y border-teal-900/10 dark:border-teal-500/10">
           <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6 sm:gap-8 px-4">
   {[
-    { icon: '👥', text: 'Membres actifs' },
-    { icon: '🧘', text: 'Coachs certifiés' },
-    { icon: '100%', text: 'Anonymat garanti' }
+    { icon: <Users weight="regular" />, text: 'Membres actifs' },
+    { icon: <Heartbeat weight="regular" />, text: 'Coachs certifiés' },
+    { icon: <ShieldCheck weight="regular" />, text: 'Anonymat garanti' }
   ].map((stat, i) => {
     return (
       <div 
@@ -302,8 +305,8 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           className="glass-panel rounded-3xl p-10 flex flex-col items-center justify-center transition-transform duration-200 ease-out border border-zinc-200/60 dark:border-zinc-800/60 shadow-lg"
           style={{ transformStyle: 'preserve-3d', transform: 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)' }}
         >
-          <div className="transform-gpu transition-all duration-300 group-hover:-translate-y-3" style={{ transform: 'translateZ(60px)' }}>
-            <p className="text-5xl font-bold text-teal-700 dark:text-teal-400 drop-shadow-xl">{stat.icon}</p>
+          <div className="transform-gpu transition-all duration-300 group-hover:-translate-y-3 flex items-center justify-center text-teal-700 dark:text-teal-400 drop-shadow-xl text-5xl" style={{ transform: 'translateZ(60px)' }}>
+            {stat.icon}
           </div>
           <div className="mt-6" style={{ transform: 'translateZ(30px)' }}>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest">{stat.text}</p>

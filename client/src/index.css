@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,7 +13,7 @@
   }
 
   body {
-    font-family: 'Outfit', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro", "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
     @apply antialiased text-zinc-800 bg-stone-50 dark:text-zinc-200 dark:bg-zinc-950;
     /* Prevent horizontal scroll */
     overflow-x: hidden;
@@ -23,6 +21,9 @@
     -webkit-tap-highlight-color: transparent;
     /* Enable smooth momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    /* Apple typography smoothing */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Prevent iOS zoom on input focus (font-size must be >= 16px) */
