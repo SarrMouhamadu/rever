@@ -483,7 +483,6 @@ function App() {
   }, [user, view]);
 
   // ─── SSE: stable refs so the EventSource NEVER reopens on view/coach change ───
-  const notifEnabledRef    = useRef(notifEnabled);
   const notifSoundRef      = useRef(notifSound);
   const notifVibeRef       = useRef(notifVibe);
   const notifHideRef       = useRef(notifHideContent);
@@ -492,7 +491,6 @@ function App() {
   const selectedCoachRef   = useRef(selectedCoach);
 
   // Keep refs in sync with state without rebuilding the EventSource
-  useEffect(() => { notifEnabledRef.current  = notifEnabled;      }, [notifEnabled]);
   useEffect(() => { notifSoundRef.current    = notifSound;        }, [notifSound]);
   useEffect(() => { notifVibeRef.current     = notifVibe;         }, [notifVibe]);
   useEffect(() => { notifHideRef.current     = notifHideContent;  }, [notifHideContent]);
