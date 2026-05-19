@@ -274,8 +274,21 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         {/* STATS — Preuve sociale pour le SEO */}
         <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-teal-950/5 dark:bg-teal-900/10 border-y border-teal-900/10 dark:border-teal-500/10">
           <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 sm:gap-6 text-center">
+  <div>
+    <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">Membres actifs</p>
+    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Membres actifs</p>
+  </div>
+  <div>
+    <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">Coachs certifiés</p>
+    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Coachs certifiés</p>
+  </div>
+  <div>
+    <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">100%</p>
+    <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Anonymat garanti</p>
+  </div>
+</div>
             <div>
-              <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">{(communityStats && communityStats.activeMembers) || '500'}+</p>
+              <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400"><p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400"></p></p>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Membres actifs</p>
             </div>
             <div>
