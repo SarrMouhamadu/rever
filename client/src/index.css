@@ -7,14 +7,55 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Prevent iOS font-size inflation */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
 
   body {
     @apply font-sans antialiased text-zinc-800 bg-stone-50 dark:text-zinc-200 dark:bg-zinc-950;
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
+    /* Remove iOS tap highlight */
+    -webkit-tap-highlight-color: transparent;
+    /* Enable smooth momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* Better overscroll on iOS */
+    overscroll-behavior-y: none;
+  }
+
+  /* Prevent iOS zoom on input focus (font-size must be >= 16px) */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* On larger screens revert to normal size */
+  @media (min-width: 768px) {
+    input,
+    textarea,
+    select {
+      font-size: inherit;
+    }
   }
 
   ::selection {
     @apply bg-teal-200/80 text-zinc-900 dark:bg-teal-900/50 dark:text-zinc-100;
+  }
+
+  /* Better touch target minimum size */
+  button, a {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Smooth transitions on buttons */
+  button {
+    touch-action: manipulation;
   }
 }
 
@@ -44,6 +85,19 @@
   .focus-ring {
     @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 dark:focus-visible:ring-offset-zinc-950;
   }
+
+  /* Chat scrollable area with momentum */
+  .chat-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Safe area helpers for iPhone notch / home bar */
+  .safe-top    { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-left   { padding-left:  env(safe-area-inset-left); }
+  .safe-right  { padding-right: env(safe-area-inset-right); }
 }
 
 @keyframes slideUp {

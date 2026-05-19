@@ -438,93 +438,99 @@ function App() {
     }
   }, [user, view]);
 
+  // ─── SSE: stable refs so the EventSource NEVER reopens on view/coach change ───
+  const notifEnabledRef    = useRef(notifEnabled);
+  const notifSoundRef      = useRef(notifSound);
+  const notifVibeRef       = useRef(notifVibe);
+  const notifHideRef       = useRef(notifHideContent);
+  const mutedConvRef       = useRef(mutedConversations);
+  const viewRef            = useRef(view);
+  const selectedCoachRef   = useRef(selectedCoach);
+
+  // Keep refs in sync with state without rebuilding the EventSource
+  useEffect(() => { notifEnabledRef.current  = notifEnabled;      }, [notifEnabled]);
+  useEffect(() => { notifSoundRef.current    = notifSound;        }, [notifSound]);
+  useEffect(() => { notifVibeRef.current     = notifVibe;         }, [notifVibe]);
+  useEffect(() => { notifHideRef.current     = notifHideContent;  }, [notifHideContent]);
+  useEffect(() => { mutedConvRef.current     = mutedConversations;}, [mutedConversations]);
+  useEffect(() => { viewRef.current          = view;              }, [view]);
+  useEffect(() => { selectedCoachRef.current = selectedCoach;     }, [selectedCoach]);
+
+  // Stable SSE: only (re)connect when the logged-in user changes
   useEffect(() => {
     if (!user) return;
 
     const token = localStorage.getItem('rever_token');
     if (!token) return;
 
-    // Connect to Server-Sent Events notifications endpoint
     const url = `${API_BASE_URL}/api/notifications/subscribe?token=${encodeURIComponent(token)}`;
-    const eventSource = new EventSource(url);
+    const es = new EventSource(url);
 
-    // Helper to play notification sound
+    // ── audio ──
     const triggerAudio = () => {
-      if (notifEnabled) {
-        audioSynth.play(notifSound);
-      }
+      if (notifEnabledRef.current) audioSynth.play(notifSoundRef.current);
     };
 
-    // Helper to trigger phone vibration pattern
+    // ── vibration ──
     const triggerVibration = () => {
-      if (!notifEnabled || !('vibrate' in navigator)) return;
-      if (notifVibe === 'simple') {
-        navigator.vibrate(200);
-      } else if (notifVibe === 'double') {
-        navigator.vibrate([150, 100, 150]);
-      } else if (notifVibe === 'long') {
-        navigator.vibrate(500);
-      }
+      if (!notifEnabledRef.current || !('vibrate' in navigator)) return;
+      const v = notifVibeRef.current;
+      if (v === 'simple') navigator.vibrate(200);
+      else if (v === 'double') navigator.vibrate([150, 100, 150]);
+      else if (v === 'long')   navigator.vibrate(500);
     };
 
-    // Helper to show popup banner notification
+    // ── OS banner ──
     const triggerBanner = (title, body) => {
-      if (!notifEnabled) return;
-      if (Notification.permission === 'granted') {
-        try {
-          const notification = new Notification(title, {
-            body: notifHideContent ? 'Contenu masqué pour des raisons de confidentialité.' : body,
-            icon: '/favicon.ico'
-          });
-          
-          notification.onclick = () => {
-            window.focus();
-            notification.close();
-          };
-        } catch (e) {
-          console.warn('Native notification failed:', e);
-        }
+      if (!notifEnabledRef.current) return;
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+      try {
+        const n = new Notification(title, {
+          body: notifHideRef.current ? 'Contenu masqué.' : body,
+          icon: '/favicon.ico',
+          tag: title,          // prevents duplicate banners for same event
+          renotify: false,
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+      } catch (e) {
+        console.warn('[Notif] Native banner failed:', e);
       }
     };
 
-    // Helper to update app badge count
+    // ── badge ──
     const incrementBadge = () => {
       setNotifBadgeCount(prev => {
         const next = prev + 1;
-        if ('setAppBadge' in navigator) {
-          navigator.setAppBadge(next).catch(err => console.warn(err));
-        }
+        if ('setAppBadge' in navigator) navigator.setAppBadge(next).catch(() => {});
         return next;
       });
     };
 
-    eventSource.addEventListener('new-post', (e) => {
+    // ── new-post event ──
+    const onNewPost = (e) => {
       try {
         const data = JSON.parse(e.data);
-        
-        // Trigger alerts
         triggerAudio();
         triggerVibration();
         triggerBanner(data.title, `${data.author}: ${data.content}`);
         incrementBadge();
-
-        // If user is currently viewing feed, refresh it automatically in real time
-        if (view === 'feed') {
+        // Refresh feed if user is watching it
+        if (viewRef.current === 'feed') {
           fetchFeed(0, false);
-          fetchQuote();
         }
       } catch (err) {
-        console.error('Failed to handle new-post notification:', err);
+        console.error('[SSE] new-post handler error:', err);
       }
-    });
+    };
 
-    eventSource.addEventListener('message', (e) => {
+    // ── new-message (direct) event ──
+    const onNewMessage = (e) => {
       try {
         const data = JSON.parse(e.data);
-        
-        // Check if discussion with sender is muted
-        const isMuted = mutedConversations.includes(parseInt(data.senderId, 10)) || 
-                        mutedConversations.includes(data.senderId.toString());
+        const senderId = parseInt(data.senderId, 10);
+        const isMuted  = mutedConvRef.current.some(
+          id => parseInt(id, 10) === senderId
+        );
 
         if (!isMuted) {
           triggerAudio();
@@ -533,32 +539,35 @@ function App() {
         }
         incrementBadge();
 
-        // If user is active in discussion with sender, update active chat screen in real time
-        if (view === 'messages' && selectedCoach && parseInt(selectedCoach.id, 10) === parseInt(data.senderId, 10)) {
-          fetchChatMessages(selectedCoach.id);
-          markAsRead(selectedCoach.id);
+        const sc = selectedCoachRef.current;
+        if (viewRef.current === 'messages' && sc && parseInt(sc.id, 10) === senderId) {
+          // Active chat — refresh messages in real time
+          fetchChatMessages(sc.id);
+          markAsRead(sc.id);
         } else {
-          // Refresh list of conversations and count unread message
           fetchContacts();
           fetchUnreadCount();
         }
       } catch (err) {
-        console.error('Failed to handle message notification:', err);
+        console.error('[SSE] message handler error:', err);
       }
-    });
-
-    eventSource.onopen = () => {
-      console.log('[SSE] Connecté aux notifications temps réel.');
     };
 
-    eventSource.onerror = (err) => {
-      console.error('[SSE] Erreur connexion notifications, reconnexion...', err);
+    es.addEventListener('new-post', onNewPost);
+    es.addEventListener('message',  onNewMessage);
+
+    es.onopen  = () => console.log('[SSE] Connected to real-time notifications.');
+    es.onerror = () => {
+      // Browser auto-reconnects — no action needed, avoids noisy console
     };
 
     return () => {
-      eventSource.close();
+      es.removeEventListener('new-post', onNewPost);
+      es.removeEventListener('message',  onNewMessage);
+      es.close();
     };
-  }, [user, view, notifEnabled, notifSound, notifVibe, notifHideContent, mutedConversations, selectedCoach, fetchFeed, fetchChatMessages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);   // ← ONLY reconnect when user ID changes (login/logout)
 
   useEffect(() => {
     // Clear notifications badge count when active
@@ -970,14 +979,14 @@ function App() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-stone-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-300 font-sans relative overflow-x-hidden transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]">
+    <div className="min-h-[100dvh] bg-stone-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-300 font-sans relative overflow-x-hidden transition-colors duration-500">
       <div aria-hidden className="grain" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none fixed">
         <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-teal-500/10 dark:bg-teal-600/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-blue-500/10 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <nav className="w-full border-b border-slate-200 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50">
+      <nav className="w-full border-b border-slate-200 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex justify-between items-center">
           
           <div className="flex gap-4 sm:gap-6 md:gap-8 text-xs sm:text-sm uppercase tracking-wider font-semibold">
@@ -1139,7 +1148,7 @@ function App() {
               {feed.map((post, index) => (
                 <div 
                   key={post.id} 
-                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg hover:text-teal-700 dark:text-teal-400 border-teal-300 dark:hover:text-teal-700 dark:text-teal-400 border-teal-500/40 transition-all duration-500 hover:shadow-teal-900/15 hover:-translate-y-1 animate-[slideUp_0.6s_ease-out_both]"
+                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200 dark:border-slate-700/40 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg transition-all duration-300 animate-[slideUp_0.6s_ease-out_both]"
                   style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
                 >
                   <div className="flex items-center justify-between mb-4 sm:mb-5">
@@ -1283,9 +1292,9 @@ function App() {
         )}
 
         {view === 'messages' && (
-          <div className="relative z-10 flex flex-col md:flex-row gap-6 animate-[fadeIn_0.4s_ease-out]">
+          <div className="relative z-10 flex flex-col md:flex-row gap-3 md:gap-6 animate-[fadeIn_0.4s_ease-out]">
             {/* Coaches List */}
-            <div className={`w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl md:rounded-3xl p-4 shadow-lg h-[calc(100dvh-140px)] md:h-[600px] overflow-y-auto ${selectedCoach ? 'hidden md:block' : 'block'}`}>
+            <div className={`w-full md:w-1/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl md:rounded-3xl p-4 shadow-lg h-[calc(100dvh-130px-env(safe-area-inset-bottom))] md:h-[600px] chat-scroll ${selectedCoach ? 'hidden md:block' : 'block'}`}>
               <h2 className="text-lg font-bold mb-4 text-slate-900 dark:text-slate-100 px-2">{user.role === 'coach' ? 'Discussions' : 'Coachs'}</h2>
               {contacts.length > 0 ? contacts.map(coach => (
                 <div 
@@ -1323,7 +1332,7 @@ function App() {
             {/* Chat Area */}
             <div 
               key={selectedCoach?.is_anonymous ? `chat-anon-${selectedCoach.id}-${selectedCoach.post_id}` : (selectedCoach ? `chat-normal-${selectedCoach.id}` : 'chat-empty')}
-              className={`w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl md:rounded-3xl flex flex-col shadow-lg h-[calc(100dvh-140px)] md:h-[600px] overflow-hidden animate-fade-in ${selectedCoach ? 'flex' : 'hidden md:flex'}`}
+              className={`w-full md:w-2/3 bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl md:rounded-3xl flex flex-col shadow-lg h-[calc(100dvh-130px-env(safe-area-inset-bottom))] md:h-[600px] overflow-hidden animate-fade-in ${selectedCoach ? 'flex' : 'hidden md:flex'}`}
             >
               {selectedCoach ? (
                 <>
@@ -1370,7 +1379,7 @@ function App() {
                       <span className="hidden sm:inline">{mutedConversations.includes(selectedCoach.id) ? 'Mute active' : 'Sourdine'}</span>
                     </button>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col-reverse font-sans">
+                  <div className="flex-1 chat-scroll p-4 space-y-4 flex flex-col-reverse font-sans" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
                     <div className="flex flex-col gap-4">
                       {chatMessages.map(msg => {
                         const isMe = msg.sender_id === user.id;
@@ -1388,7 +1397,7 @@ function App() {
                       <div ref={messagesEndRef} />
                     </div>
                   </div>
-                  <form onSubmit={handleSendChatMessage} className="p-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex gap-2">
+                  <form onSubmit={handleSendChatMessage} className="p-3 border-t border-slate-200 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-900/30 flex gap-2" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
                     <input 
                       type="text" 
                       value={newChatMessage} 
