@@ -16,32 +16,32 @@ import IconBox from './components/ui/IconBox';
 const features = [
   {
     icon: ChatsCircle,
-    title: 'Partager librement',
-    body: 'Exprimez ce que vous traversez dans un espace sécurisé. Votre pseudo suffit — rien d’obligatoire au-delà.',
+    title: 'Parler librement & anonymement',
+    body: 'Exprimez ce que vous traversez — stress universitaire, solitude, pression sociale — dans un espace sécurisé. Votre pseudo suffit, sans jugement.',
   },
   {
     icon: UserCircle,
-    title: 'Coachs à l’écoute',
-    body: 'Des professionnels formés répondent en message privé, à votre rythme, sans jugement.',
+    title: 'Coachs professionnels à l\'écoute',
+    body: 'Des professionnels de santé mentale certifiés répondent en message privé, à votre rythme. Soutien émotionnel humain, disponible depuis le Sénégal et toute l\'Afrique.',
   },
   {
     icon: Heart,
-    title: 'Communauté bienveillante',
-    body: 'Des échanges modérés où chacun peut être entendu sans exposer son identité réelle.',
+    title: 'Communauté bienveillante & entraide',
+    body: 'Un réseau d\'entraide modéré où chaque étudiant africain peut être entendu. Bien-être étudiant, anonymat respecté, confiance garantie.',
   },
 ];
 
 const testimonials = [
   {
     quote:
-      'Pouvoir écrire sans que ma famille le sache m’a aidée pendant les partiels. La pression est toujours là, mais je respire mieux.',
+      'Pouvoir écrire sans que ma famille le sache m\'a aidée pendant les partiels. La pression est toujours là, mais je respire mieux.',
     initials: 'FD',
     name: 'Fatou D.',
     role: 'Master 2, Dakar',
   },
   {
     quote:
-      'Les coachs répondent vite et sans formules toutes faites. J’ai enfin trouvé des mots pour ce que je ressentais.',
+      'Les coachs répondent vite et sans formules toutes faites. J\'ai enfin trouvé des mots pour ce que je ressentais.',
     initials: 'AN',
     name: 'Aminata N.',
     role: 'Licence 3, Saint-Louis',
@@ -75,7 +75,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
     {
       title: 'Communauté en direct',
       subtitle: 'Membres actifs',
-      desc: 'Partages anonymes, bienveillants et écoute mutuelle sans jugement.',
+      desc: 'Partages anonymes, bienveillants et écoute mutuelle. Santé mentale étudiante au cœur de l\'Afrique.',
       badge: 'Live',
       icon: '🌱',
       gradient: 'from-indigo-500/10 via-purple-500/5 to-pink-500/10 dark:from-indigo-950/60 dark:via-purple-950/40 dark:to-pink-950/60 border-purple-500/30 dark:border-purple-500/20 text-purple-900 dark:text-purple-300',
@@ -83,9 +83,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       glow: 'shadow-purple-500/5'
     },
     {
-      title: 'Conseil & Écoute',
+      title: 'Soutien & Écoute',
       subtitle: 'Coachs actifs',
-      desc: 'Des professionnels certifiés pour vous accompagner pas à pas.',
+      desc: 'Des professionnels de santé mentale pour vous accompagner au Sénégal et en Afrique.',
       badge: 'Disponibles',
       icon: '🧘',
       gradient: 'from-teal-500/10 via-emerald-500/5 to-cyan-500/10 dark:from-teal-950/60 dark:via-emerald-950/40 dark:to-cyan-950/60 border-teal-500/30 dark:border-teal-500/20 text-teal-900 dark:text-teal-300',
@@ -93,9 +93,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       glow: 'shadow-teal-500/5'
     },
     {
-      title: 'Confidentialité',
-      subtitle: 'Accompagnement Pro',
-      desc: 'Espace crypté à haute sécurité et conformité totale au RGPD.',
+      title: 'Confidentialité totale',
+      subtitle: 'Anonymat garanti',
+      desc: 'Espace sécurisé, chiffré et conforme au RGPD. Parlez sans exposer votre identité.',
       badge: 'Sécurisé',
       icon: '🔒',
       gradient: 'from-amber-500/10 via-rose-500/5 to-orange-500/10 dark:from-amber-950/60 dark:via-rose-950/40 dark:to-orange-950/60 border-amber-500/30 dark:border-amber-500/20 text-amber-900 dark:text-amber-300',
@@ -130,22 +130,30 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       </header>
 
       <main>
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
+        {/* HERO — Santé mentale Afrique, bien-être étudiant, parler anonymement */}
+        <section aria-label="Présentation" className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="animate-slide-up space-y-8">
               <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-800 dark:text-teal-300 bg-teal-950/5 dark:bg-teal-400/10 border border-teal-900/10 dark:border-teal-500/20 px-4 py-2 rounded-full">
-                Espace confidentiel
+                Espace confidentiel · Sénégal & Afrique
               </p>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-[1.05] text-balance">
-                Vos émotions méritent d’être entendues
+                Vos émotions méritent d'être entendues
               </h1>
               <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-[65ch] font-light">
-                Une plateforme pour s’exprimer, échanger avec des coachs et trouver du soutien — sans
-                performance, sans jugement.
+                Une plateforme de soutien émotionnel pour les étudiants et jeunes d'Afrique — parlez anonymement, échangez avec des coachs et trouvez de l'aide sans jugement.
               </p>
+              {/* SEO contextual keywords — visible, authentic, within content */}
+              <ul className="flex flex-wrap gap-2" aria-label="Thématiques">
+                {['Santé mentale', 'Bien-être étudiant', 'Anonymat total', 'Soutien émotionnel', 'HealthTech Afrique'].map(tag => (
+                  <li key={tag} className="text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
+                    {tag}
+                  </li>
+                ))}
+              </ul>
               <div className="flex flex-wrap gap-3">
                 <Button onClick={onGetStarted}>
-                  Commencer
+                  Commencer gratuitement
                   <ArrowRight size={18} weight="bold" />
                 </Button>
                 <Button variant="outline" onClick={onContact}>
@@ -158,19 +166,21 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               <div className="rounded-4xl overflow-hidden border border-zinc-200/80 dark:border-zinc-800 shadow-soft dark:shadow-soft-dark bg-zinc-100 dark:bg-zinc-900">
                 <img
                   src={heroImage}
-                  alt="Personne en moment de calme, symbolisant l’écoute et le soutien"
+                  alt="Étudiant africain en moment de calme symbolisant le soutien émotionnel anonyme"
                   className="w-full h-auto object-cover"
                   loading="eager"
+                  width="600"
+                  height="400"
                 />
               </div>
-              <div 
+              <div
                 className="absolute -bottom-12 left-1/2 -translate-x-1/2 sm:left-[-1.5rem] sm:translate-x-0 w-[16rem] sm:w-[17rem] h-[11rem] sm:h-[11.5rem] select-none"
                 onClick={() => setActiveCard((prev) => (prev + 1) % 3)}
               >
                 {appleCards.map((card, i) => {
                   const diff = (i - activeCard + 3) % 3;
                   const isActive = diff === 0;
-                  
+
                   return (
                     <div
                       key={i}
@@ -192,7 +202,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                           {card.badge}
                         </span>
                       </div>
-                      
+
                       <div className="space-y-1">
                         <p className="text-[10px] font-bold uppercase tracking-wider opacity-65">
                           {card.title}
@@ -212,15 +222,19 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           </div>
         </section>
 
-        <section className="border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/30 py-20 md:py-28">
+        {/* FEATURES — Soutien psychologique, communauté bienveillante */}
+        <section aria-label="Fonctionnalités" className="border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/30 py-20 md:py-28">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="max-w-2xl mb-16 md:mb-20">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-3">
-                Accompagnement
+                Plateforme de soutien · IA & Bien-être
               </p>
               <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 text-balance">
                 Conçu pour la parole, pas pour la performance
               </h2>
+              <p className="mt-4 text-zinc-600 dark:text-zinc-400 font-light leading-relaxed">
+                Anonyme Pro combine intelligence artificielle et accompagnement humain pour offrir un soutien de santé mentale accessible à tous les jeunes d'Afrique.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 md:gap-12">
@@ -244,13 +258,32 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           </div>
         </section>
 
-        <section className="py-20 md:py-28 px-4 sm:px-6">
+        {/* STATS — Preuve sociale pour le SEO */}
+        <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-teal-950/5 dark:bg-teal-900/10 border-y border-teal-900/10 dark:border-teal-500/10">
+          <div className="max-w-4xl mx-auto grid grid-cols-3 gap-6 text-center">
+            <div>
+              <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">{communityStats.activeMembers || '500'}+</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Membres actifs</p>
+            </div>
+            <div>
+              <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">{communityStats.activeCoaches || '20'}+</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Coachs certifiés</p>
+            </div>
+            <div>
+              <p className="text-3xl md:text-4xl font-bold text-teal-700 dark:text-teal-400">100%</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2 font-medium uppercase tracking-wider">Anonymat garanti</p>
+            </div>
+          </div>
+        </section>
+
+        {/* TESTIMONIALS — Retours utilisateurs réels */}
+        <section aria-label="Témoignages" className="py-20 md:py-28 px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-3 text-center">
               Témoignages
             </p>
             <h2 className="text-3xl md:text-4xl font-semibold text-center text-zinc-900 dark:text-zinc-50 mb-12 text-balance">
-              Des parcours réels
+              Des étudiants africains témoignent
             </h2>
             <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
               {testimonials.map((t) => (
@@ -278,26 +311,31 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           </div>
         </section>
 
-        <section className="py-20 md:py-24 px-4 sm:px-6 border-t border-zinc-200/80 dark:border-zinc-800/80">
+        {/* CTA Section */}
+        <section aria-label="Inscription" className="py-20 md:py-24 px-4 sm:px-6 border-t border-zinc-200/80 dark:border-zinc-800/80">
           <div className="max-w-3xl mx-auto text-center glass-panel rounded-4xl p-10 md:p-14">
             <h2 className="text-2xl md:text-3xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4 text-balance">
               Prêt à faire le premier pas ?
             </h2>
             <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-md mx-auto leading-relaxed">
-              Création de compte gratuite. Vous choisissez ce que vous partagez et avec qui.
+              Création de compte gratuite. Rejoignez la communauté de soutien émotionnel pour les jeunes d'Afrique — 100% anonyme, 100% bienveillant.
             </p>
             <Button onClick={onGetStarted} variant="secondary">
-              Créer un compte
+              Créer un compte gratuitement
               <ArrowRight size={18} weight="bold" />
             </Button>
           </div>
         </section>
 
-        <section className="py-16 md:py-20 px-4 sm:px-6 bg-zinc-100/50 dark:bg-zinc-900/40">
+        {/* CONTACT */}
+        <section id="contact" aria-label="Contact" className="py-16 md:py-20 px-4 sm:px-6 bg-zinc-100/50 dark:bg-zinc-900/40">
           <div className="max-w-6xl mx-auto">
-            <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-10 text-center">
+            <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50 mb-3 text-center">
               Nous joindre
             </h2>
+            <p className="text-center text-sm text-zinc-500 dark:text-zinc-400 mb-10">
+              Une question sur la plateforme ? Un partenariat universitaire ou HealthTech à proposer ? Contactez-nous.
+            </p>
             <div className="grid sm:grid-cols-3 gap-4">
               {[
                 {
@@ -345,8 +383,11 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
 
       <footer className="border-t border-zinc-200 dark:border-zinc-800 py-10 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-zinc-500">
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">Anonyme Pro</span>
-          <nav className="flex gap-6">
+          <div>
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">Anonyme Pro</span>
+            <p className="text-xs text-zinc-400 mt-1">Plateforme africaine de santé mentale & soutien émotionnel · Sénégal</p>
+          </div>
+          <nav className="flex gap-6" aria-label="Navigation pied de page">
             <button type="button" onClick={onContact} className="hover:text-teal-700 dark:hover:text-teal-400 transition-colors">
               Contact
             </button>

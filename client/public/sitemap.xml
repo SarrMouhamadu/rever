@@ -1,8 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- Page principale -->
   <url>
     <loc>https://annonyme.pro/</loc>
+    <lastmod>2026-05-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://annonyme.pro/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://annonyme.pro/" />
   </url>
+
+  <!-- Section Contact -->
+  <url>
+    <loc>https://annonyme.pro/#contact</loc>
+    <lastmod>2026-05-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
 </urlset>
