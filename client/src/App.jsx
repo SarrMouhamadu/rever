@@ -2175,7 +2175,7 @@ function App() {
       </main>
 
       <footer className="w-full py-8 mt-12 border-t border-slate-200/60 dark:border-slate-800/40 bg-white/40 dark:bg-slate-950/20 backdrop-blur-sm text-center text-xs text-slate-400 dark:text-slate-600 space-y-3 relative z-10 font-sans">
-        <p className="font-light">© {new Date().getFullYear()} Anonyme Pro. Tous droits réservés.</p>
+        <p className="font-light">© {new Date().getFullYear()}. Tous droits réservés.</p>
       </footer>
 
       <style>{`
