@@ -87,9 +87,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       desc: 'Partages anonymes, bienveillants et écoute mutuelle. Santé mentale étudiante au cœur de l\'Afrique.',
       badge: 'Live',
       icon: <Users weight="regular" />,
-      gradient: 'from-indigo-500/10 via-purple-500/5 to-pink-500/10 dark:from-indigo-950/60 dark:via-purple-950/40 dark:to-pink-950/60 border-purple-500/30 dark:border-purple-500/20 text-purple-900 dark:text-purple-300',
-      badgeClass: 'bg-purple-500/20 text-purple-800 dark:text-purple-300 border-purple-400/30',
-      glow: 'shadow-purple-500/5'
+      gradient: 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-200/50 dark:border-zinc-700/50 text-zinc-900 dark:text-zinc-100',
+      badgeClass: 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600',
+      glow: ''
     },
     {
       title: 'Soutien & Écoute',
@@ -97,9 +97,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       desc: 'Des professionnels de santé mentale pour vous accompagner au Sénégal et en Afrique.',
       badge: 'Disponibles',
       icon: <Heartbeat weight="regular" />,
-      gradient: 'from-teal-500/10 via-emerald-500/5 to-cyan-500/10 dark:from-teal-950/60 dark:via-emerald-950/40 dark:to-cyan-950/60 border-teal-500/30 dark:border-teal-500/20 text-teal-900 dark:text-teal-300',
-      badgeClass: 'bg-teal-500/20 text-teal-800 dark:text-teal-300 border-teal-400/30',
-      glow: 'shadow-teal-500/5'
+      gradient: 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-200/50 dark:border-zinc-700/50 text-zinc-900 dark:text-zinc-100',
+      badgeClass: 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600',
+      glow: ''
     },
     {
       title: 'Confidentialité totale',
@@ -107,9 +107,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       desc: 'Espace sécurisé, chiffré et conforme au RGPD. Parlez sans exposer votre identité.',
       badge: 'Sécurisé',
       icon: <ShieldCheck weight="regular" />,
-      gradient: 'from-amber-500/10 via-rose-500/5 to-orange-500/10 dark:from-amber-950/60 dark:via-rose-950/40 dark:to-orange-950/60 border-amber-500/30 dark:border-amber-500/20 text-amber-900 dark:text-amber-300',
-      badgeClass: 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-400/30',
-      glow: 'shadow-amber-500/5'
+      gradient: 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-200/50 dark:border-zinc-700/50 text-zinc-900 dark:text-zinc-100',
+      badgeClass: 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600',
+      glow: ''
     }
   ];
 
@@ -141,7 +141,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         <section aria-label="Présentation" className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="animate-slide-up space-y-8">
-              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-teal-800 dark:text-teal-300 bg-teal-950/5 dark:bg-teal-400/10 border border-teal-900/10 dark:border-teal-500/20 px-4 py-2 rounded-full">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-800 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 border px-4 py-2 rounded-full">
                 Espace confidentiel · Sénégal & Afrique
               </p>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-[1.05] text-balance">
@@ -240,7 +240,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         <section aria-label="Fonctionnalités" className="border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/30 py-20 md:py-28">
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="max-w-2xl mb-16 md:mb-20">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-800 dark:text-zinc-300 mb-3">
                 Plateforme de soutien · IA & Bien-être
               </p>
               <h2 className="text-3xl md:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 text-balance">
@@ -273,7 +273,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         </section>
 
         {/* STATS — Preuve sociale pour le SEO */}
-        <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-teal-950/5 dark:bg-teal-900/10 border-y border-teal-900/10 dark:border-teal-500/10">
+        <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50 border-y border-zinc-200/50 dark:border-zinc-800/50">
           <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6 sm:gap-8 px-4">
   {[
     { icon: <Users weight="regular" />, text: 'Membres actifs' },
@@ -303,7 +303,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           className="glass-panel squircle p-10 flex flex-col items-center justify-center transition-transform duration-200 ease-out border-zinc-200/60 dark:border-zinc-800/60 shadow-lg"
           style={{ transformStyle: 'preserve-3d', transform: 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)' }}
         >
-          <div className="transform-gpu transition-all duration-300 group-hover:-translate-y-3 flex items-center justify-center text-teal-700 dark:text-teal-400 drop-shadow-xl text-5xl" style={{ transform: 'translateZ(60px)' }}>
+          <div className="transform-gpu transition-all duration-300 group-hover:-translate-y-3 flex items-center justify-center text-zinc-900 dark:text-zinc-100 text-5xl" style={{ transform: 'translateZ(60px)' }}>
             {stat.icon}
           </div>
           <div className="mt-6" style={{ transform: 'translateZ(30px)' }}>
@@ -319,7 +319,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         {/* TESTIMONIALS — Retours utilisateurs réels */}
         <section aria-label="Témoignages" className="py-20 md:py-28 px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-3 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-800 dark:text-zinc-300 mb-3 text-center">
               Témoignages
             </p>
             <h2 className="text-3xl md:text-4xl font-semibold text-center text-zinc-900 dark:text-zinc-50 mb-12 text-balance">
@@ -335,7 +335,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                     &ldquo;{t.quote}&rdquo;
                   </p>
                   <footer className="flex items-center gap-3 mt-8 pt-6 border-t border-zinc-200/80 dark:border-zinc-800/80">
-                    <div className="w-10 h-10 rounded-xl bg-teal-800 text-white flex items-center justify-center text-xs font-semibold">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-800 dark:bg-zinc-700 text-white flex items-center justify-center text-xs font-semibold">
                       {t.initials}
                     </div>
                     <div>
@@ -407,13 +407,13 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   onMouseLeave={() => setContactHover(null)}
                   className={`block p-6 squircle-sm transition-premium active-squeeze focus-ring ${
                     contactHover === c.id
-                      ? 'border-teal-600/40 bg-white dark:bg-zinc-900 shadow-glow -translate-y-1'
+                      ? 'border-blue-500/40 bg-white dark:bg-zinc-900 -translate-y-1'
                       : 'border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/60'
                   }`}
                 >
                   <IconBox icon={c.icon} className="mb-4" />
                   <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{c.title}</h3>
-                  <p className="text-sm text-teal-700 dark:text-teal-400 font-medium">{c.detail}</p>
+                  <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{c.detail}</p>
                 </a>
               ))}
             </div>

@@ -43,7 +43,7 @@
   }
 
   ::selection {
-    @apply bg-teal-200/80 text-zinc-900 dark:bg-teal-900/50 dark:text-zinc-100;
+    @apply bg-blue-200/80 text-zinc-900 dark:bg-blue-900/50 dark:text-zinc-100;
   }
 
   /* Better touch target minimum size */
@@ -81,7 +81,7 @@
   }
 
   .focus-ring {
-    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 dark:focus-visible:ring-offset-zinc-950;
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-50 dark:focus-visible:ring-offset-zinc-950;
   }
 
   /* Chat scrollable area with momentum */
@@ -136,11 +136,11 @@
 
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 12px rgba(20, 184, 166, 0.25);
+    box-shadow: 0 0 12px rgba(161, 161, 170, 0.15);
     opacity: 0.95;
   }
   50% {
-    box-shadow: 0 0 20px rgba(20, 184, 166, 0.5);
+    box-shadow: 0 0 20px rgba(161, 161, 170, 0.3);
     opacity: 1;
   }
 }
@@ -213,7 +213,7 @@
   transform: translateY(0) scale(0.98) translateZ(0);
 }
 
-/* Version premium avec ombrage doux en oklch/teal et accélération GPU */
+/* Version premium avec ombrage neutre */
 .hover-lift-premium {
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
   will-change: transform, box-shadow;
@@ -222,13 +222,13 @@
 
 .hover-lift-premium:hover {
   transform: translateY(-4px) translateZ(0);
-  box-shadow: 0 20px 40px -15px rgba(20, 184, 166, 0.14), 0 0 0 1px rgba(20, 184, 166, 0.08);
-  @apply border-teal-500/20 dark:border-teal-400/25;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  @apply border-zinc-200 dark:border-zinc-700;
 }
 
 .hover-lift-premium:active {
   transform: translateY(-1px) scale(0.98) translateZ(0);
-  box-shadow: 0 10px 20px -10px rgba(20, 184, 166, 0.1);
+  box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.05);
 }
 
 /* Effets tactiles active squeeze */
@@ -252,13 +252,13 @@
   transform: scale(0.98) translateZ(0);
 }
 
-/* Focus glow teal */
-.focus-glow-teal {
+/* Focus glow neutre/bleu */
+.focus-glow {
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.focus-glow-teal:focus {
-  @apply outline-none border-teal-500/60 dark:border-teal-400/50;
-  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.15);
+.focus-glow:focus {
+  @apply outline-none border-blue-500/60 dark:border-blue-400/50;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
 }
 
