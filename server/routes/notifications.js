@@ -1,5 +1,6 @@
 const express = require('express');
-const { verifyToken, requireAuth } = require('../lib/auth');
+const { verifyToken } = require('../lib/auth');
+const { requireAuth } = require('../middleware/auth');
 const { addClient, removeClient } = require('../lib/notificationHub');
 const db = require('../database');
 
