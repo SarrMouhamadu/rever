@@ -124,6 +124,20 @@ const initDb = async () => {
     `);
 
     await query(`CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC)`);
+    
+    await query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL,
+        source_id INTEGER,
+        actor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        message TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id, created_at DESC)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id, is_read)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(sender_id, receiver_id)`);
@@ -333,6 +347,7 @@ const getMessages = async (userId1, userId2, postId = null, limit = 50, offset =
   let params;
   if (postId) {
     queryText = `
+      WITH cte AS (
       SELECT m.*,
              CASE 
                WHEN m.is_anonymous = TRUE THEN 'Anonyme' 
@@ -349,11 +364,16 @@ const getMessages = async (userId1, userId2, postId = null, limit = 50, offset =
       JOIN users u2 ON m.receiver_id = u2.id
       WHERE ((m.sender_id = $1 AND m.receiver_id = $2) OR (m.sender_id = $2 AND m.receiver_id = $1))
         AND m.post_id = $3 AND m.is_anonymous = TRUE
-      ORDER BY m.created_at ASC
-      LIMIT $4 OFFSET $5`;
+      ORDER BY m.created_at DESC
+      LIMIT $4 OFFSET $5
+    )
+    SELECT * FROM (
+      SELECT * FROM cte ORDER BY created_at ASC
+    ) sub;`;
     params = [userId1, userId2, postId, limit, offset];
   } else {
     queryText = `
+      WITH cte AS (
       SELECT m.*,
              CASE WHEN u1.role = 'user' THEN UPPER(LEFT(u1.first_name, 1) || LEFT(u1.last_name, 1)) ELSE u1.pseudo END AS sender_pseudo,
              CASE WHEN u2.role = 'user' THEN UPPER(LEFT(u2.first_name, 1) || LEFT(u2.last_name, 1)) ELSE u2.pseudo END AS receiver_pseudo
@@ -362,8 +382,12 @@ const getMessages = async (userId1, userId2, postId = null, limit = 50, offset =
       JOIN users u2 ON m.receiver_id = u2.id
       WHERE ((m.sender_id = $1 AND m.receiver_id = $2) OR (m.sender_id = $2 AND m.receiver_id = $1))
         AND m.is_anonymous = FALSE
-      ORDER BY m.created_at ASC
-      LIMIT $3 OFFSET $4`;
+      ORDER BY m.created_at DESC
+      LIMIT $3 OFFSET $4
+    )
+    SELECT * FROM (
+      SELECT * FROM cte ORDER BY created_at ASC
+    ) sub;`;
     params = [userId1, userId2, limit, offset];
   }
   const { rows } = await query(queryText, params);
@@ -761,6 +785,41 @@ const getFriendshipStatus = async (userId, otherId) => {
   return { status, sender_id: rel.sender_id };
 };
 
+// Notifications
+const createNotificationForAll = async (type, sourceId, actorId, message) => {
+  try {
+    const { rows: users } = await query('SELECT id FROM users WHERE id != $1', [actorId]);
+    for (const u of users) {
+      await query(
+        `INSERT INTO notifications (user_id, type, source_id, actor_id, message) VALUES ($1, $2, $3, $4, $5)`,
+        [u.id, type, sourceId, actorId, message]
+      );
+    }
+  } catch (error) {
+    console.error('Error creating global notifications:', error);
+  }
+};
+
+const getUserNotifications = async (userId) => {
+  const { rows } = await query(
+    `SELECT n.*, u.pseudo as actor_pseudo, u.avatar as actor_avatar 
+     FROM notifications n 
+     LEFT JOIN users u ON n.actor_id = u.id 
+     WHERE n.user_id = $1 
+     ORDER BY n.created_at DESC LIMIT 50`,
+    [userId]
+  );
+  return rows;
+};
+
+const markNotificationAsRead = async (notificationId, userId) => {
+  await query(`UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2`, [notificationId, userId]);
+};
+
+const markAllNotificationsAsRead = async (userId) => {
+  await query(`UPDATE notifications SET is_read = TRUE WHERE user_id = $1`, [userId]);
+};
+
 initDb();
 
 module.exports = {
@@ -805,4 +864,8 @@ module.exports = {
   acceptFriendRequest,
   declineFriendRequestOrRemoveFriend,
   getFriendshipStatus,
+  createNotificationForAll,
+  getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
 };

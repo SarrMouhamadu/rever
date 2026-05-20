@@ -43,6 +43,10 @@ router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req,
       author: isAnon ? 'Anonyme' : maskedAuthor
     }, req.user.id);
 
+    // Save persistent notifications in DB
+    const notifMsg = isAnon ? 'Une nouvelle confession anonyme a été publiée.' : `${maskedAuthor} a publié un espace d'expression.`;
+    await db.createNotificationForAll('post', post.id, req.user.id, notifMsg);
+
     res.json({ success: true, id: post.id });
   } catch (err) {
     if (err.message?.includes('autorisées')) {
@@ -68,6 +72,19 @@ router.post('/:id/comment', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Commentaire vide.' });
     }
     const comment = await db.addComment(req.params.id, req.user.id, text);
+    
+    // Broadcast notification to all users
+    const authorInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
+    const maskedAuthor = req.user.role === 'user' ? authorInitials : req.user.pseudo;
+    const notifMsg = `${maskedAuthor} a commenté un post.`;
+    await db.createNotificationForAll('comment', req.params.id, req.user.id, notifMsg);
+    broadcastNotification({
+      type: 'new-comment',
+      title: 'Nouveau commentaire',
+      body: notifMsg,
+      postId: req.params.id
+    }, req.user.id);
+
     res.json(comment);
   } catch {
     res.status(500).json({ error: "Erreur lors de l'ajout du commentaire" });

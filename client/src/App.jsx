@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Bell, Check, X } from '@phosphor-icons/react';
 import api, { API_BASE_URL } from './api/client';
 import { useAuth } from './context/AuthContext';
 import { useTheme } from './hooks/useTheme';
@@ -148,6 +149,32 @@ function App() {
     }
   });
   const [notifBadgeCount, setNotifBadgeCount] = useState(0);
+
+  const [globalNotifications, setGlobalNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const globalUnreadCount = globalNotifications.filter(n => !n.is_read).length;
+
+  const fetchGlobalNotifications = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await api.get('/api/notifications');
+      setGlobalNotifications(res.data);
+    } catch (error) { console.error(error); }
+  }, [user]);
+
+  const markNotificationAsRead = async (id) => {
+    try {
+      await api.put(`/api/notifications/${id}/read`);
+      setGlobalNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (error) { console.error(error); }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await api.put('/api/notifications/read-all');
+      setGlobalNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (error) { console.error(error); }
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -503,6 +530,18 @@ function App() {
       return () => clearInterval(interval);
     }
   }, [user, view, fetchFeed]);
+
+  useEffect(() => {
+    if (user) {
+      fetchGlobalNotifications();
+      const interval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          fetchGlobalNotifications();
+        }
+      }, 15000); // 15 seconds
+      return () => clearInterval(interval);
+    }
+  }, [user, fetchGlobalNotifications]);
 
   const fetchContacts = async () => {
     try {
@@ -1109,19 +1148,42 @@ function App() {
   const handleSendChatMessage = async (e) => {
     e.preventDefault();
     if (!newChatMessage.trim() || !selectedCoach) return;
+    
+    const messageText = newChatMessage;
+    setNewChatMessage('');
+    
+    // Optimistic update for instant UI feedback
+    const tempMsg = {
+      id: `temp-${Date.now()}`,
+      sender_id: user.id,
+      receiver_id: selectedCoach.id,
+      content: messageText,
+      created_at: new Date().toISOString(),
+      is_anonymous: selectedCoach.is_anonymous || false,
+      post_id: selectedCoach.post_id || null,
+      text: messageText, // for UI mapping
+      sender_pseudo: user.pseudo
+    };
+    setChatMessages(prev => [...prev, tempMsg]);
+    // Force scroll immediately
+    setTimeout(scrollToBottom, 50);
+
     try {
       const payload = {
         receiverId: selectedCoach.id,
-        text: newChatMessage
+        text: messageText
       };
       if (selectedCoach.is_anonymous) {
         payload.isAnonymous = true;
         payload.postId = selectedCoach.post_id;
       }
       await api.post('/api/messages', payload);
-      setNewChatMessage('');
       fetchChatMessages(selectedCoach.id);
-    } catch (error) { console.error(error); }
+    } catch (error) { 
+      console.error(error); 
+      // Rollback on failure if needed, or let user refresh
+      fetchChatMessages(selectedCoach.id);
+    }
   };
 
   if (showContact && !user) {
@@ -1201,7 +1263,51 @@ function App() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 relative">
+            {user && (
+              <div className="relative">
+                <button 
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <Bell size={24} weight={globalUnreadCount > 0 ? "fill" : "regular"} className={globalUnreadCount > 0 ? "text-teal-600 dark:text-teal-400" : "text-slate-600 dark:text-slate-400"} />
+                  {globalUnreadCount > 0 && (
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-950"></span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl z-50 p-2">
+                    <div className="flex justify-between items-center mb-2 px-2 pt-2">
+                      <h3 className="font-bold text-sm">Notifications</h3>
+                      <button onClick={markAllNotificationsAsRead} className="text-xs text-blue-500 hover:text-blue-600">Tout marquer comme lu</button>
+                    </div>
+                    {globalNotifications.length === 0 ? (
+                      <p className="text-sm text-center text-slate-500 py-4">Aucune notification</p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {globalNotifications.map(notif => (
+                          <div 
+                            key={notif.id} 
+                            onClick={() => { markNotificationAsRead(notif.id); setShowNotifications(false); }}
+                            className={`p-3 rounded-xl cursor-pointer transition-colors ${notif.is_read ? 'opacity-70 hover:bg-slate-50 dark:hover:bg-zinc-800' : 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20'}`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <p className="text-sm font-medium">{notif.message}</p>
+                              {!notif.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1"></span>}
+                            </div>
+                            <span className="text-[10px] text-slate-500 mt-1 block">
+                              {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <div className="flex items-center gap-2">
               <span className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 sm:px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)] dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] dark:hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all duration-300 hover:scale-105 cursor-default flex items-center gap-1.5">
