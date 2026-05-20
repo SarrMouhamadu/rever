@@ -9,6 +9,7 @@ import ContactPage from './ContactPage';
 import AuthScreen from './pages/AuthScreen';
 import ThemeToggle from './components/ui/ThemeToggle';
 import { audioSynth } from './utils/audioSynth';
+import { generateIdempotencyKey, generateClientId, withIdempotency } from './utils/mutation';
 
 const formatDuration = (seconds) => {
   if (!seconds || seconds <= 0) return "0 s";
@@ -101,6 +102,9 @@ function App() {
   const [newPostImagePreview, setNewPostImagePreview] = useState(null);
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [commentInputs, setCommentInputs] = useState({});
+  const [isPosting, setIsPosting] = useState(false);
+  const [commentingPostIds, setCommentingPostIds] = useState({});
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
 
   const [contacts, setContacts] = useState([]);
   const [selectedCoach, setSelectedCoach] = useState(null);
@@ -237,24 +241,75 @@ function App() {
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
-    if (!newPostText.trim()) return;
-    
-    const formData = new FormData();
-    formData.append('text', newPostText);
-    formData.append('isAnonymous', isAnonymous);
-    if (newPostImage) {
-      formData.append('image', newPostImage);
-    }
-    
-    await api.post('/api/posts', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    
+    if (!newPostText.trim() || isPosting) return;
+
+    const text = newPostText.trim();
+    const imageFile = newPostImage;
+    const previewUrl = newPostImagePreview;
+    const anon = isAnonymous;
+    const clientId = generateClientId('post');
+    const idempotencyKey = generateIdempotencyKey();
+    const displayName = anon
+      ? 'Anonyme'
+      : user.role === 'user'
+        ? `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase()
+        : user.pseudo;
+
+    const optimisticPost = {
+      clientId,
+      id: clientId,
+      user_id: user.id,
+      text,
+      image_url: previewUrl || null,
+      likes: 0,
+      created_at: new Date().toISOString(),
+      is_reported: false,
+      reports_count: 0,
+      is_anonymous: anon,
+      username: displayName,
+      user_avatar: anon ? null : user.avatar,
+      liked_by_me: false,
+      comments: [],
+      _status: 'sending',
+    };
+
+    setIsPosting(true);
+    setFeed((prev) => [optimisticPost, ...prev]);
     setNewPostText('');
     setNewPostImage(null);
     setNewPostImagePreview(null);
     setIsAnonymous(true);
-    fetchFeed(0, false);
+
+    const formData = new FormData();
+    formData.append('text', text);
+    formData.append('isAnonymous', anon);
+    if (imageFile) formData.append('image', imageFile);
+
+    try {
+      const res = await api.post(
+        '/api/posts',
+        formData,
+        withIdempotency({ headers: { 'Content-Type': 'multipart/form-data' } }, idempotencyKey)
+      );
+      const serverPost = res.data;
+      setFeed((prev) =>
+        prev.map((p) => (p.clientId === clientId ? { ...serverPost, _status: 'sent' } : p))
+      );
+    } catch (error) {
+      console.error(error);
+      setFeed((prev) =>
+        prev.map((p) => (p.clientId === clientId ? { ...p, _status: 'failed' } : p))
+      );
+      setNewPostText(text);
+      if (imageFile) {
+        setNewPostImage(imageFile);
+        setNewPostImagePreview(previewUrl);
+      }
+      setIsAnonymous(anon);
+      alert(error.response?.data?.error || 'Erreur lors de la publication.');
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   const handleLike = async (postId) => {
@@ -284,20 +339,84 @@ function App() {
 
   const handleComment = async (postId) => {
     const text = commentInputs[postId];
-    if (!text?.trim()) return;
-    
+    if (!text?.trim() || commentingPostIds[postId]) return;
+
+    const post = feed.find((p) => p.id === postId);
+    const clientId = generateClientId('comment');
+    const idempotencyKey = generateIdempotencyKey();
+    const isPostAuthor = post?.user_id === user.id;
+    let username = user.pseudo;
+    if (isPostAuthor && post) {
+      if (post.is_anonymous) {
+        username = 'Anonyme (Auteur)';
+      } else {
+        const initials = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase();
+        username = `${initials} (Auteur)`;
+      }
+    }
+
+    const optimisticComment = {
+      clientId,
+      id: clientId,
+      post_id: postId,
+      user_id: user.id,
+      text: text.trim(),
+      created_at: new Date().toISOString(),
+      username,
+      _status: 'sending',
+    };
+
+    setCommentingPostIds((prev) => ({ ...prev, [postId]: true }));
+    setCommentInputs((prev) => ({ ...prev, [postId]: '' }));
+    setFeed((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? { ...p, comments: [...(p.comments || []), optimisticComment] }
+          : p
+      )
+    );
+
     try {
-      const comment = await api.post(`/api/posts/${postId}/comment`, { text });
-      setCommentInputs({ ...commentInputs, [postId]: '' });
+      const res = await api.post(
+        `/api/posts/${postId}/comment`,
+        { text: text.trim() },
+        withIdempotency({}, idempotencyKey)
+      );
+      const serverComment = res.data;
       setFeed((prev) =>
         prev.map((p) =>
           p.id === postId
-            ? { ...p, comments: [...(p.comments || []), comment.data] }
+            ? {
+                ...p,
+                comments: (p.comments || []).map((c) =>
+                  c.clientId === clientId ? { ...serverComment, _status: 'sent' } : c
+                ),
+              }
             : p
         )
       );
     } catch (error) {
       console.error(error);
+      setFeed((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? {
+                ...p,
+                comments: (p.comments || []).map((c) =>
+                  c.clientId === clientId ? { ...c, _status: 'failed' } : c
+                ),
+              }
+            : p
+        )
+      );
+      setCommentInputs((prev) => ({ ...prev, [postId]: text }));
+      alert(error.response?.data?.error || "Erreur lors de l'envoi du commentaire.");
+    } finally {
+      setCommentingPostIds((prev) => {
+        const next = { ...prev };
+        delete next[postId];
+        return next;
+      });
     }
   };
 
@@ -355,13 +474,12 @@ function App() {
     }
 
     try {
-      await api.post('/api/messages', {
-        postId: post.id,
-        text: text,
-        isAnonymous: true
-      });
-      
-      // Update selectedCoach state to redirect to the new chat
+      await api.post(
+        '/api/messages',
+        { postId: post.id, text, isAnonymous: true },
+        withIdempotency({}, generateIdempotencyKey())
+      );
+
       setSelectedCoach({
         id: post.user_id,
         pseudo: "Auteur Anonyme",
@@ -385,13 +503,12 @@ function App() {
     }
 
     try {
-      await api.post('/api/messages', {
-        receiverId: post.user_id,
-        text: text,
-        isAnonymous: false
-      });
-      
-      // Update selectedCoach state to redirect to the new chat
+      await api.post(
+        '/api/messages',
+        { receiverId: post.user_id, text, isAnonymous: false },
+        withIdempotency({}, generateIdempotencyKey())
+      );
+
       setSelectedCoach({
         id: post.user_id,
         pseudo: post.username,
@@ -631,6 +748,15 @@ function App() {
   const fetchUnreadRef     = useRef();
   fetchUnreadRef.current   = fetchUnreadCount;
 
+  const setFeedRef         = useRef();
+  setFeedRef.current       = setFeed;
+
+  const setChatMessagesRef = useRef();
+  setChatMessagesRef.current = setChatMessages;
+
+  const fetchFeedRef       = useRef();
+  fetchFeedRef.current     = fetchFeed;
+
   useEffect(() => {
     if (user && view === 'messages') fetchContacts();
     if (user) fetchUnreadCount();
@@ -724,11 +850,32 @@ function App() {
         triggerVibration();
         triggerBanner(data.title, `${data.author}: ${data.content}`, `post-${data.postId || Date.now()}`);
         incrementBadge();
-        if (viewRef.current === 'feed') {
-          fetchFeed(0, false);
+        if (viewRef.current === 'feed' && data.post) {
+          setFeedRef.current?.((prev) => {
+            if (prev.some((p) => p.id === data.post.id)) return prev;
+            return [data.post, ...prev];
+          });
+        } else if (viewRef.current === 'feed') {
+          fetchFeedRef.current?.(0, false);
         }
       } catch (err) {
         console.error('[SSE] new-post handler error:', err);
+      }
+    };
+
+    const onNewComment = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (viewRef.current !== 'feed' || !data.comment || !data.postId) return;
+        setFeedRef.current?.((prev) =>
+          prev.map((p) => {
+            if (p.id !== data.postId) return p;
+            if ((p.comments || []).some((c) => c.id === data.comment.id)) return p;
+            return { ...p, comments: [...(p.comments || []), data.comment] };
+          })
+        );
+      } catch (err) {
+        console.error('[SSE] new-comment handler error:', err);
       }
     };
 
@@ -750,8 +897,20 @@ function App() {
 
         const sc = selectedCoachRef.current;
         if (viewRef.current === 'messages' && sc && parseInt(sc.id, 10) === senderId) {
-          // Pass sc explicitly to avoid stale selectedCoach closure in fetchChatMessages
-          fetchChatMsgRef.current(sc.id, sc);
+          if (data.message) {
+            const msg = data.message;
+            const matchesThread =
+              (!sc.is_anonymous && !msg.is_anonymous) ||
+              (sc.is_anonymous && msg.is_anonymous && sc.post_id === msg.post_id);
+            if (matchesThread) {
+              setChatMessagesRef.current?.((prev) => {
+                if (prev.some((m) => m.id === msg.id)) return prev;
+                return [...prev, msg];
+              });
+            }
+          } else {
+            fetchChatMsgRef.current(sc.id, sc);
+          }
           markAsReadRef.current(sc.id);
         } else {
           fetchContactsRef.current();
@@ -763,6 +922,7 @@ function App() {
     };
 
     es.addEventListener('new-post', onNewPost);
+    es.addEventListener('new-comment', onNewComment);
     es.addEventListener('message',  onNewMessage);
 
     es.onopen  = () => console.log('[SSE] Connected to real-time notifications.');
@@ -772,6 +932,7 @@ function App() {
 
     return () => {
       es.removeEventListener('new-post', onNewPost);
+      es.removeEventListener('new-comment', onNewComment);
       es.removeEventListener('message',  onNewMessage);
       es.close();
     };
@@ -1147,42 +1308,62 @@ function App() {
 
   const handleSendChatMessage = async (e) => {
     e.preventDefault();
-    if (!newChatMessage.trim() || !selectedCoach) return;
-    
-    const messageText = newChatMessage;
-    setNewChatMessage('');
-    
-    // Optimistic update for instant UI feedback
+    if (!newChatMessage.trim() || !selectedCoach || isSendingMessage) return;
+
+    const messageText = newChatMessage.trim();
+    const coachCtx = selectedCoach;
+    const clientId = generateClientId('msg');
+    const idempotencyKey = generateIdempotencyKey();
+
+    const senderPseudo =
+      coachCtx.is_anonymous
+        ? 'Anonyme'
+        : user.role === 'user'
+          ? `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase()
+          : user.pseudo;
+
     const tempMsg = {
-      id: `temp-${Date.now()}`,
+      clientId,
+      id: clientId,
       sender_id: user.id,
-      receiver_id: selectedCoach.id,
-      content: messageText,
+      receiver_id: coachCtx.id,
+      text: messageText,
       created_at: new Date().toISOString(),
-      is_anonymous: selectedCoach.is_anonymous || false,
-      post_id: selectedCoach.post_id || null,
-      text: messageText, // for UI mapping
-      sender_pseudo: user.pseudo
+      is_anonymous: coachCtx.is_anonymous || false,
+      post_id: coachCtx.post_id || null,
+      sender_pseudo: senderPseudo,
+      _status: 'sending',
     };
-    setChatMessages(prev => [...prev, tempMsg]);
-    // Force scroll immediately
+
+    setIsSendingMessage(true);
+    setNewChatMessage('');
+    setChatMessages((prev) => [...prev, tempMsg]);
     setTimeout(scrollToBottom, 50);
 
     try {
       const payload = {
-        receiverId: selectedCoach.id,
-        text: messageText
+        receiverId: coachCtx.id,
+        text: messageText,
       };
-      if (selectedCoach.is_anonymous) {
+      if (coachCtx.is_anonymous) {
         payload.isAnonymous = true;
-        payload.postId = selectedCoach.post_id;
+        payload.postId = coachCtx.post_id;
       }
-      await api.post('/api/messages', payload);
-      fetchChatMessages(selectedCoach.id);
-    } catch (error) { 
-      console.error(error); 
-      // Rollback on failure if needed, or let user refresh
-      fetchChatMessages(selectedCoach.id);
+      const res = await api.post('/api/messages', payload, withIdempotency({}, idempotencyKey));
+      const serverMsg = res.data;
+      setChatMessages((prev) =>
+        prev.map((m) => (m.clientId === clientId ? { ...serverMsg, _status: 'sent' } : m))
+      );
+      fetchContacts();
+    } catch (error) {
+      console.error(error);
+      setChatMessages((prev) =>
+        prev.map((m) => (m.clientId === clientId ? { ...m, _status: 'failed' } : m))
+      );
+      setNewChatMessage(messageText);
+      alert(error.response?.data?.error || "Erreur lors de l'envoi du message.");
+    } finally {
+      setIsSendingMessage(false);
     }
   };
 
@@ -1433,10 +1614,11 @@ function App() {
                   </div>
                   <button 
                     type="submit" 
-                    disabled={!newPostText.trim()} 
+                    disabled={!newPostText.trim() || isPosting}
+                    aria-busy={isPosting}
                     className="w-full sm:w-auto px-6 py-2.5 bg-teal-700 hover:bg-teal-600 active-squeeze disabled:scale-100 disabled:opacity-50 text-white font-bold rounded-xl transition-premium shadow-md hover:shadow-teal-900/20 disabled:shadow-none"
                   >
-                    Publier
+                    {isPosting ? 'Publication…' : 'Publier'}
                   </button>
                 </div>
               </form>
@@ -1445,10 +1627,22 @@ function App() {
             <div className="space-y-6 sm:space-y-8">
               {feed.map((post, index) => (
                 <div 
-                  key={post.id} 
-                  className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/30 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg hover:shadow-xl dark:hover:shadow-teal-950/10 hover-lift-premium border border-transparent hover:border-teal-500/20 dark:hover:border-teal-400/25 transition-all duration-300 animate-slide-up relative overflow-hidden"
+                  key={post.clientId || post.id} 
+                  className={`bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg hover:shadow-xl dark:hover:shadow-teal-950/10 hover-lift-premium transition-all duration-300 animate-slide-up relative overflow-hidden ${
+                    post._status === 'sending'
+                      ? 'border-dashed border-teal-400/60 dark:border-teal-500/40 opacity-90'
+                      : post._status === 'failed'
+                        ? 'border-rose-400/60 dark:border-rose-500/40'
+                        : 'border-slate-200/50 dark:border-slate-700/30 border-transparent hover:border-teal-500/20 dark:hover:border-teal-400/25'
+                  }`}
                   style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
                 >
+                  {post._status === 'sending' && (
+                    <p className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 mb-3 uppercase tracking-wider">Publication en cours…</p>
+                  )}
+                  {post._status === 'failed' && (
+                    <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 mb-3 uppercase tracking-wider">Échec de publication</p>
+                  )}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-5">
                     <div className="flex items-center gap-3">
                       <div>
@@ -1500,7 +1694,7 @@ function App() {
                   )}
                   {post.image_url && (
                     <div className="mb-3 sm:mb-4">
-                      <img src={getFullImageUrl(post.image_url)} alt="Publication" loading="lazy" className="w-full max-h-64 sm:max-h-96 object-cover rounded-xl" />
+                      <img src={getFullImageUrl(post.image_url)} alt="Publication" loading="lazy" className={`w-full max-h-64 sm:max-h-96 object-cover rounded-xl ${post._status === 'sending' ? 'opacity-80' : ''}`} />
                     </div>
                   )}
                   <div className="flex flex-wrap items-center gap-3 sm:gap-6 mb-3 sm:mb-4 border-t border-slate-200 dark:border-slate-800 pt-3 sm:pt-4 justify-between w-full">
@@ -1563,7 +1757,9 @@ function App() {
                   
                   <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 sm:pt-5">
                     {post.comments?.map(comment => (
-                      <div key={comment.id} className="mb-3 sm:mb-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/30 rounded-2xl relative group">
+                      <div key={comment.clientId || comment.id} className={`mb-3 sm:mb-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 border rounded-2xl relative group ${
+                        comment._status === 'sending' ? 'border-dashed border-teal-400/50 opacity-80' : comment._status === 'failed' ? 'border-rose-400/50' : 'border-slate-200 dark:border-slate-700/30'
+                      }`}>
                         <div className="flex justify-between items-start">
                           <p className="text-[10px] sm:text-xs font-semibold text-teal-600 dark:text-teal-300 mb-1">{comment.username}</p>
                           {(comment.user_id === user.id || user.role === 'admin') && (
@@ -1576,7 +1772,11 @@ function App() {
                             </button>
                           )}
                         </div>
-                        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 pr-4">{comment.text}</p>
+                        <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 pr-4">
+                          {comment.text}
+                          {comment._status === 'sending' && <span className="ml-2 text-teal-600 dark:text-teal-400 text-[10px]">Envoi…</span>}
+                          {comment._status === 'failed' && <span className="ml-2 text-rose-600 dark:text-rose-400 text-[10px]">Échec</span>}
+                        </p>
                       </div>
                     ))}
                     <div className="flex gap-2 mt-3 sm:mt-4">
@@ -1585,14 +1785,16 @@ function App() {
                         placeholder="Écrire un commentaire..."
                         value={commentInputs[post.id] || ''}
                         onChange={(e) => handleCommentInputChange(post.id, e.target.value)}
-                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus-ring focus-glow-teal transition-all"
+                        disabled={!!commentingPostIds[post.id]}
+                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus-ring focus-glow-teal transition-all disabled:opacity-60"
                       />
                       <button 
                         onClick={() => handleComment(post.id)}
-                        disabled={!commentInputs[post.id]?.trim()}
-                        className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-xl text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md hover:shadow-teal-900/20"
+                        disabled={!commentInputs[post.id]?.trim() || !!commentingPostIds[post.id]}
+                        aria-busy={!!commentingPostIds[post.id]}
+                        className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-xl text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md hover:shadow-teal-900/20 min-w-[3rem]"
                       >
-                        ✓
+                        {commentingPostIds[post.id] ? '…' : '✓'}
                       </button>
                     </div>
                   </div>
@@ -1871,11 +2073,11 @@ function App() {
                       {chatMessages.map(msg => {
                         const isMe = msg.sender_id === user.id;
                         return (
-                          <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50'} animate-spring-pop shadow-sm`}>
+                          <div key={msg.clientId || msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50'} animate-spring-pop shadow-sm ${msg._status === 'sending' ? 'opacity-75' : ''} ${msg._status === 'failed' ? 'ring-1 ring-rose-400/60' : ''}`}>
                               <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                               <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                                {new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                {msg._status === 'sending' ? 'Envoi…' : msg._status === 'failed' ? 'Échec' : new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                           </div>
@@ -1890,10 +2092,11 @@ function App() {
                       value={newChatMessage} 
                       onChange={(e) => setNewChatMessage(e.target.value)}
                       placeholder="Votre message..."
-                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm focus-glow-teal text-slate-900 dark:text-slate-100 shadow-sm"
+                      disabled={isSendingMessage}
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm focus-glow-teal text-slate-900 dark:text-slate-100 shadow-sm disabled:opacity-60"
                     />
-                    <button type="submit" disabled={!newChatMessage.trim()} className="px-6 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md">
-                      Envoyer
+                    <button type="submit" disabled={!newChatMessage.trim() || isSendingMessage} aria-busy={isSendingMessage} className="px-6 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md min-w-[6.5rem]">
+                      {isSendingMessage ? 'Envoi…' : 'Envoyer'}
                     </button>
                   </form>
                 </>

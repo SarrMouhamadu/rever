@@ -2,6 +2,7 @@ import { API_BASE_URL } from '../api/client';
 
 export function getFullImageUrl(url) {
   if (!url) return null;
+  if (url.startsWith('blob:')) return url;
   if (url.startsWith('http')) {
     return url.replace('localhost', window.location.hostname);
   }

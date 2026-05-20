@@ -61,13 +61,13 @@ const sendDirectNotification = (receiverId, payload) => {
 /**
  * Broadcast a notification to all active users (except optionally the sender)
  */
-const broadcastNotification = (payload, senderId = null) => {
+const broadcastNotification = (payload, senderId = null, eventName = 'new-post') => {
   const sId = senderId ? parseInt(senderId, 10) : null;
   for (const [userId, userClients] of clients.entries()) {
-    if (sId && userId === sId) continue; // Skip sender
+    if (sId && userId === sId) continue;
     for (const res of userClients) {
       try {
-        sendSSE(res, 'new-post', payload);
+        sendSSE(res, eventName, payload);
       } catch (err) {
         removeClient(userId, res);
       }

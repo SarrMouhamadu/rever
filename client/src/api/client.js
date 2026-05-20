@@ -5,7 +5,7 @@ const isLocal =
   window.location.hostname === '127.0.0.1';
 
 export const API_BASE_URL = isLocal
-  ? `http://${window.location.hostname}:8085`
+  ? `http://${window.location.hostname}:5001`
   : 'https://api.annonyme.pro';
 
 const api = axios.create({ baseURL: API_BASE_URL });
@@ -14,6 +14,9 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('rever_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (config.idempotencyKey) {
+    config.headers['X-Idempotency-Key'] = config.idempotencyKey;
   }
   return config;
 });

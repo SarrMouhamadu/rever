@@ -3,6 +3,7 @@ const db = require('../database');
 const { requireAuth } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
 const { uploadLimiter } = require('../middleware/rateLimit');
+const { idempotency } = require('../middleware/idempotency');
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 const { broadcastNotification } = require('../lib/notificationHub');
 
-router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req, res) => {
+router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
     const { text, isAnonymous } = req.body;
     if (!text?.trim()) {
@@ -27,9 +28,9 @@ router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req,
     }
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
     const isAnon = isAnonymous === undefined ? true : (isAnonymous === 'true' || isAnonymous === true);
-    const post = await db.createPost(req.user.id, text, imageUrl, isAnon);
-    
-    // Broadcast notification to all active clients except the creator
+    const created = await db.createPost(req.user.id, text, imageUrl, isAnon);
+    const post = await db.getEnrichedPostById(created.id, req.user.id);
+
     const authorInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
     const maskedAuthor = req.user.role === 'user' ? authorInitials : req.user.pseudo;
 
@@ -40,14 +41,14 @@ router.post('/', requireAuth, uploadLimiter, upload.single('image'), async (req,
       content: text,
       postId: post.id,
       isAnonymous: isAnon,
-      author: isAnon ? 'Anonyme' : maskedAuthor
-    }, req.user.id);
+      author: isAnon ? 'Anonyme' : maskedAuthor,
+      post,
+    }, req.user.id, 'new-post');
 
-    // Save persistent notifications in DB
     const notifMsg = isAnon ? 'Une nouvelle confession anonyme a été publiée.' : `${maskedAuthor} a publié un espace d'expression.`;
     await db.createNotificationForAll('post', post.id, req.user.id, notifMsg);
 
-    res.json({ success: true, id: post.id });
+    res.json(post);
   } catch (err) {
     if (err.message?.includes('autorisées')) {
       return res.status(400).json({ error: err.message });
@@ -65,15 +66,14 @@ router.post('/:id/like', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/:id/comment', requireAuth, async (req, res) => {
+router.post('/:id/comment', requireAuth, idempotency, async (req, res) => {
   try {
     const { text } = req.body;
     if (!text?.trim()) {
       return res.status(400).json({ error: 'Commentaire vide.' });
     }
     const comment = await db.addComment(req.params.id, req.user.id, text);
-    
-    // Broadcast notification to all users
+
     const authorInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
     const maskedAuthor = req.user.role === 'user' ? authorInitials : req.user.pseudo;
     const notifMsg = `${maskedAuthor} a commenté un post.`;
@@ -82,8 +82,9 @@ router.post('/:id/comment', requireAuth, async (req, res) => {
       type: 'new-comment',
       title: 'Nouveau commentaire',
       body: notifMsg,
-      postId: req.params.id
-    }, req.user.id);
+      postId: parseInt(req.params.id, 10),
+      comment,
+    }, req.user.id, 'new-comment');
 
     res.json(comment);
   } catch {

@@ -628,6 +628,35 @@ const getPostById = async (postId) => {
   return rows[0];
 };
 
+const getEnrichedPostById = async (postId, userId) => {
+  const { rows: posts } = await query(
+    `SELECT p.id, p.user_id, p.text, p.image_url, p.likes, p.created_at,
+            p.is_reported, p.reports_count, p.is_anonymous,
+            CASE 
+              WHEN p.is_anonymous = TRUE THEN 'Anonyme' 
+              WHEN p.user_id = $2 THEN u.pseudo 
+              ELSE UPPER(LEFT(u.first_name, 1) || LEFT(u.last_name, 1)) 
+            END AS username,
+            CASE 
+              WHEN p.is_anonymous = TRUE THEN NULL 
+              WHEN p.user_id = $2 THEN u.avatar 
+              ELSE NULL 
+            END AS user_avatar,
+            EXISTS(SELECT 1 FROM post_likes pl WHERE pl.post_id = p.id AND pl.user_id = $2) AS liked_by_me
+     FROM posts p
+     JOIN users u ON p.user_id = u.id
+     WHERE p.id = $1`,
+    [postId, userId]
+  );
+  if (posts.length === 0) return null;
+  const post = posts[0];
+  return {
+    ...post,
+    liked_by_me: post.liked_by_me,
+    comments: [],
+  };
+};
+
 const updatePost = async (postId, text) => {
   await query('UPDATE posts SET text = $1 WHERE id = $2', [text, postId]);
 };
@@ -854,6 +883,7 @@ module.exports = {
   getLatestQuote,
   createQuote,
   getPostById,
+  getEnrichedPostById,
   updatePost,
   saveContactMessage,
   getContactMessages,

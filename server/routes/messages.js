@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../database');
 const { requireAuth, requireSelf } = require('../middleware/auth');
+const { idempotency } = require('../middleware/idempotency');
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.get('/:userId1/:userId2', requireAuth, async (req, res) => {
 
 const { sendDirectNotification } = require('../lib/notificationHub');
 
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, idempotency, async (req, res) => {
   try {
     let { receiverId, text, isAnonymous, postId } = req.body;
 
@@ -53,10 +54,11 @@ router.post('/', requireAuth, async (req, res) => {
       senderId: req.user.id,
       senderPseudo: maskedSender,
       isAnonymous: isAnonymous || false,
-      postId: postId || null
+      postId: postId || null,
+      message: msg,
     });
 
-    res.json({ success: true });
+    res.json(msg);
   } catch {
     res.status(500).json({ error: 'Erreur envoi message.' });
   }
