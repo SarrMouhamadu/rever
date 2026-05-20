@@ -10,6 +10,12 @@ import AuthScreen from './pages/AuthScreen';
 import ThemeToggle from './components/ui/ThemeToggle';
 import { audioSynth } from './utils/audioSynth';
 import { generateIdempotencyKey, generateClientId, withIdempotency } from './utils/mutation';
+import {
+  isPushSupported,
+  setupPushNotifications,
+  unregisterPushNotifications,
+  getPushPermission,
+} from './utils/pushNotifications';
 
 const formatDuration = (seconds) => {
   if (!seconds || seconds <= 0) return "0 s";
@@ -153,6 +159,9 @@ function App() {
     }
   });
   const [notifBadgeCount, setNotifBadgeCount] = useState(0);
+  const [pushStatus, setPushStatus] = useState(() =>
+    isPushSupported() ? getPushPermission() : 'unsupported'
+  );
 
   const [globalNotifications, setGlobalNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -186,9 +195,8 @@ function App() {
     try {
       const userData = await register(authForm);
       setView('feed');
-      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
+      const pushRes = await setupPushNotifications();
+      setPushStatus(pushRes.ok ? 'granted' : getPushPermission());
     } catch (err) {
       setAuthError(err.response?.data?.error || "Erreur lors de l'inscription");
     }
@@ -200,15 +208,15 @@ function App() {
     try {
       const userData = await login(authForm.loginId, authForm.password);
       setView(userData.role === 'admin' ? 'admin-dashboard' : 'feed');
-      if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-        Notification.requestPermission();
-      }
+      const pushRes = await setupPushNotifications();
+      setPushStatus(pushRes.ok ? 'granted' : getPushPermission());
     } catch (err) {
       setAuthError(err.response?.data?.error || "Identifiants incorrects");
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await unregisterPushNotifications();
     logout();
     setView('login');
     setAuthForm({ firstName: '', lastName: '', contact: '', password: '', pseudo: '', loginId: '' });
@@ -660,6 +668,40 @@ function App() {
     }
   }, [user, fetchGlobalNotifications]);
 
+  useEffect(() => {
+    if (!user) return;
+    // Auto‑enable push notifications if supported and not yet granted
+    if (isPushSupported() && pushStatus === 'default') {
+      setupPushNotifications()
+        .then(res => setPushStatus(res.ok ? 'granted' : getPushPermission()))
+        .catch(e => console.error('Push setup error:', e));
+    }
+    // Initialise Server‑Sent Events for real‑time notifications
+    const token = localStorage.getItem('rever_token');
+    const eventSource = new EventSource(`${API_BASE_URL}/api/notifications/subscribe?token=${token}`);
+    eventSource.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      setGlobalNotifications(prev => [data, ...prev]);
+      setNotifBadgeCount(prev => prev + 1);
+    };
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+    return () => {
+      eventSource.close();
+    };
+  }, [user, pushStatus]);
+
+  const handleEnablePush = async () => {
+    const res = await setupPushNotifications();
+    setPushStatus(res.ok ? 'granted' : getPushPermission());
+    if (!res.ok && res.reason === 'denied') {
+      alert('Autorisez les notifications dans les réglages de votre navigateur ou téléphone.');
+    } else if (!res.ok && res.reason === 'server_unconfigured') {
+      alert('Les notifications push ne sont pas encore activées sur le serveur (clés VAPID).');
+    }
+  };
+
   const fetchContacts = async () => {
     try {
       if (!user) return;
@@ -757,6 +799,9 @@ function App() {
   const fetchFeedRef       = useRef();
   fetchFeedRef.current     = fetchFeed;
 
+  const fetchGlobalNotifRef = useRef();
+  fetchGlobalNotifRef.current = fetchGlobalNotifications;
+
   useEffect(() => {
     if (user && view === 'messages') fetchContacts();
     if (user) fetchUnreadCount();
@@ -842,14 +887,23 @@ function App() {
       });
     };
 
-    // ── new-post event ──
+    const handleTargetedAlert = (data, tagPrefix) => {
+      triggerAudio();
+      triggerVibration();
+      triggerBanner(data.title, data.body, `${tagPrefix}-${data.postId || Date.now()}`);
+      incrementBadge();
+      fetchGlobalNotifRef.current?.();
+    };
+
+    // ── new-post event (publications utilisateurs) ──
     const onNewPost = (e) => {
       try {
         const data = JSON.parse(e.data);
         triggerAudio();
         triggerVibration();
-        triggerBanner(data.title, `${data.author}: ${data.content}`, `post-${data.postId || Date.now()}`);
+        triggerBanner(data.title, data.body || `${data.author}: ${data.content}`, `post-${data.postId || Date.now()}`);
         incrementBadge();
+        fetchGlobalNotifRef.current?.();
         if (viewRef.current === 'feed' && data.post) {
           setFeedRef.current?.((prev) => {
             if (prev.some((p) => p.id === data.post.id)) return prev;
@@ -860,6 +914,54 @@ function App() {
         }
       } catch (err) {
         console.error('[SSE] new-post handler error:', err);
+      }
+    };
+
+    const onCoachPost = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        triggerAudio();
+        triggerVibration();
+        triggerBanner(data.title, data.body, `coach-post-${data.postId || Date.now()}`);
+        incrementBadge();
+        fetchGlobalNotifRef.current?.();
+        if (viewRef.current === 'feed' && data.post) {
+          setFeedRef.current?.((prev) => {
+            if (prev.some((p) => p.id === data.post.id)) return prev;
+            return [data.post, ...prev];
+          });
+        } else if (viewRef.current === 'feed') {
+          fetchFeedRef.current?.(0, false);
+        }
+      } catch (err) {
+        console.error('[SSE] coach-post handler error:', err);
+      }
+    };
+
+    const onPostLiked = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        handleTargetedAlert(data, 'like');
+      } catch (err) {
+        console.error('[SSE] post-liked handler error:', err);
+      }
+    };
+
+    const onPostCommented = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        handleTargetedAlert(data, 'comment');
+        if (viewRef.current === 'feed' && data.comment && data.postId) {
+          setFeedRef.current?.((prev) =>
+            prev.map((p) => {
+              if (p.id !== data.postId) return p;
+              if ((p.comments || []).some((c) => c.id === data.comment.id)) return p;
+              return { ...p, comments: [...(p.comments || []), data.comment] };
+            })
+          );
+        }
+      } catch (err) {
+        console.error('[SSE] post-commented handler error:', err);
       }
     };
 
@@ -922,6 +1024,9 @@ function App() {
     };
 
     es.addEventListener('new-post', onNewPost);
+    es.addEventListener('coach-post', onCoachPost);
+    es.addEventListener('post-liked', onPostLiked);
+    es.addEventListener('post-commented', onPostCommented);
     es.addEventListener('new-comment', onNewComment);
     es.addEventListener('message',  onNewMessage);
 
@@ -932,6 +1037,9 @@ function App() {
 
     return () => {
       es.removeEventListener('new-post', onNewPost);
+      es.removeEventListener('coach-post', onCoachPost);
+      es.removeEventListener('post-liked', onPostLiked);
+      es.removeEventListener('post-commented', onPostCommented);
       es.removeEventListener('new-comment', onNewComment);
       es.removeEventListener('message',  onNewMessage);
       es.close();
@@ -2113,6 +2221,36 @@ function App() {
 
         {view === 'settings' && (
           <div className="relative z-10 max-w-2xl mx-auto animate-view-change space-y-6">
+
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
+              <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50 mb-1">Notifications sur le téléphone</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                Recevez likes, commentaires et publications coach même quand l&apos;app est fermée.
+                Sur iPhone : ajoutez le site à l&apos;écran d&apos;accueil puis activez les notifications.
+              </p>
+              {isPushSupported() ? (
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
+                    pushStatus === 'granted'
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300'
+                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300'
+                  }`}>
+                    {pushStatus === 'granted' ? 'Activées' : pushStatus === 'denied' ? 'Refusées' : 'Non configurées'}
+                  </span>
+                  {pushStatus !== 'granted' && (
+                    <button
+                      type="button"
+                      onClick={handleEnablePush}
+                      className="px-4 py-2 bg-teal-700 hover:bg-teal-600 text-white text-sm font-bold rounded-xl transition-colors"
+                    >
+                      Activer les notifications
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">Non supporté sur ce navigateur.</p>
+              )}
+            </div>
 
             {/* Muted Conversations List Card */}
             <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">

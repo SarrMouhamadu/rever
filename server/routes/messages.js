@@ -22,7 +22,8 @@ router.get('/:userId1/:userId2', requireAuth, async (req, res) => {
   }
 });
 
-const { sendDirectNotification } = require('../lib/notificationHub');
+const { notifyUser } = require('../lib/userNotify');
+const { APP_URL } = require('../lib/pushService');
 
 router.post('/', requireAuth, idempotency, async (req, res) => {
   try {
@@ -46,16 +47,27 @@ router.post('/', requireAuth, idempotency, async (req, res) => {
     const senderInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
     const maskedSender = isAnonymous ? 'Anonyme' : (req.user.role === 'user' ? senderInitials : req.user.pseudo);
 
-    sendDirectNotification(receiverId, {
-      type: 'new-message',
-      title: 'Nouveau message',
-      body: `Message de ${maskedSender}`,
-      content: text,
-      senderId: req.user.id,
-      senderPseudo: maskedSender,
-      isAnonymous: isAnonymous || false,
-      postId: postId || null,
-      message: msg,
+    const notifBody = `Message de ${maskedSender}`;
+    await notifyUser(receiverId, {
+      type: 'message',
+      sourceId: msg.id,
+      actorId: req.user.id,
+      message: notifBody,
+      pushTitle: 'Nouveau message',
+      pushBody: notifBody,
+      url: `${APP_URL}/`,
+      sseEvent: 'message',
+      ssePayload: {
+        type: 'new-message',
+        title: 'Nouveau message',
+        body: notifBody,
+        content: text,
+        senderId: req.user.id,
+        senderPseudo: maskedSender,
+        isAnonymous: isAnonymous || false,
+        postId: postId || null,
+        message: msg,
+      },
     });
 
     res.json(msg);

@@ -45,12 +45,12 @@ setInterval(() => {
 /**
  * Send a direct notification to a specific user
  */
-const sendDirectNotification = (receiverId, payload) => {
+const sendDirectNotification = (receiverId, payload, eventName = 'notification') => {
   const rId = parseInt(receiverId, 10);
   if (clients.has(rId)) {
     for (const res of clients.get(rId)) {
       try {
-        sendSSE(res, 'message', payload);
+        sendSSE(res, eventName, payload);
       } catch (err) {
         removeClient(rId, res);
       }
@@ -75,9 +75,15 @@ const broadcastNotification = (payload, senderId = null, eventName = 'new-post')
   }
 };
 
+const hasActiveConnection = (userId) => {
+  const uid = parseInt(userId, 10);
+  return clients.has(uid) && clients.get(uid).size > 0;
+};
+
 module.exports = {
   addClient,
   removeClient,
   sendDirectNotification,
-  broadcastNotification
+  broadcastNotification,
+  hasActiveConnection,
 };

@@ -34,6 +34,10 @@ services:
       - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD}
       - CORS_ORIGINS=https://annonyme.pro,https://www.annonyme.pro
       - NODE_ENV=production
+      - APP_URL=https://annonyme.pro
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:contact@annonyme.pro}
       # Variables pour nginx-proxy & acme-companion (SSL automatique)
       - VIRTUAL_HOST=api.annonyme.pro
       - VIRTUAL_PORT=5001

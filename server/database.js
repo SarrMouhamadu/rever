@@ -142,6 +142,19 @@ const initDb = async () => {
     await query(`CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id, is_read)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages(sender_id, receiver_id)`);
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_agent TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    await query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)`);
+
     const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'ChangeMeAdmin2026!';
     const adminHash = await hashPassword(adminPassword);
     await query(
@@ -233,7 +246,8 @@ const likePost = async (postId, userId) => {
        FROM posts p WHERE p.id = $1`,
       [postId, userId]
     );
-    return rows[0] || { likes: 0, liked_by_me: false };
+    const row = rows[0] || { likes: 0, liked_by_me: false };
+    return { ...row, wasNewLike: inserted.rowCount > 0 };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -815,6 +829,17 @@ const getFriendshipStatus = async (userId, otherId) => {
 };
 
 // Notifications
+const createNotificationForUser = async (userId, type, sourceId, actorId, message) => {
+  try {
+    await query(
+      `INSERT INTO notifications (user_id, type, source_id, actor_id, message) VALUES ($1, $2, $3, $4, $5)`,
+      [userId, type, sourceId, actorId, message]
+    );
+  } catch (error) {
+    console.error('Error creating user notification:', error);
+  }
+};
+
 const createNotificationForAll = async (type, sourceId, actorId, message) => {
   try {
     const { rows: users } = await query('SELECT id FROM users WHERE id != $1', [actorId]);
@@ -847,6 +872,42 @@ const markNotificationAsRead = async (notificationId, userId) => {
 
 const markAllNotificationsAsRead = async (userId) => {
   await query(`UPDATE notifications SET is_read = TRUE WHERE user_id = $1`, [userId]);
+};
+
+const savePushSubscription = async (userId, { endpoint, p256dh, auth, userAgent }) => {
+  await query(
+    `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth, user_agent)
+     VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (endpoint) DO UPDATE SET
+       user_id = EXCLUDED.user_id,
+       p256dh = EXCLUDED.p256dh,
+       auth = EXCLUDED.auth,
+       user_agent = EXCLUDED.user_agent`,
+    [userId, endpoint, p256dh, auth, userAgent]
+  );
+};
+
+const deletePushSubscription = async (endpoint, userId = null) => {
+  if (userId) {
+    await query(`DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2`, [
+      endpoint,
+      userId,
+    ]);
+  } else {
+    await query(`DELETE FROM push_subscriptions WHERE endpoint = $1`, [endpoint]);
+  }
+};
+
+const deletePushSubscriptionsForUser = async (userId) => {
+  await query(`DELETE FROM push_subscriptions WHERE user_id = $1`, [userId]);
+};
+
+const getPushSubscriptionsForUser = async (userId) => {
+  const { rows } = await query(
+    `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = $1`,
+    [userId]
+  );
+  return rows;
 };
 
 initDb();
@@ -894,8 +955,13 @@ module.exports = {
   acceptFriendRequest,
   declineFriendRequestOrRemoveFriend,
   getFriendshipStatus,
+  createNotificationForUser,
   createNotificationForAll,
   getUserNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  savePushSubscription,
+  deletePushSubscription,
+  deletePushSubscriptionsForUser,
+  getPushSubscriptionsForUser,
 };

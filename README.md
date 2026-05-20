@@ -46,6 +46,20 @@ export GEMINI_API_KEY="..."
 docker compose up -d --build
 ```
 
+## Notifications Web Push (téléphone)
+
+Générer les clés VAPID une fois :
+
+```bash
+cd server && node scripts/generate-vapid-keys.js
+```
+
+Copier `VAPID_PUBLIC_KEY` et `VAPID_PRIVATE_KEY` dans `server/.env` et sur le VPS (`docker compose`).
+
+- **App ouverte** : SSE + bannières navigateur (son, vibration)
+- **App fermée** : Web Push via Service Worker (`/sw.js`)
+- **iPhone** : ajouter annonyme.pro à l’écran d’accueil, puis activer les notifications
+
 ## Sécurité
 
 - Mots de passe hachés (bcrypt)

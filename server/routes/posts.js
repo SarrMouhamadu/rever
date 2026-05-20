@@ -7,6 +7,13 @@ const { idempotency } = require('../middleware/idempotency');
 
 const router = express.Router();
 
+const maskedActorLabel = (user) => {
+  if (user.role === 'user') {
+    return (user.first_name.charAt(0) + user.last_name.charAt(0)).toUpperCase();
+  }
+  return user.pseudo;
+};
+
 router.get('/', requireAuth, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
@@ -19,6 +26,8 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 const { broadcastNotification } = require('../lib/notificationHub');
+const { notifyUser, notifyAllExcept } = require('../lib/userNotify');
+const { APP_URL } = require('../lib/pushService');
 
 router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image'), async (req, res) => {
   try {
@@ -31,22 +40,60 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
     const created = await db.createPost(req.user.id, text, imageUrl, isAnon);
     const post = await db.getEnrichedPostById(created.id, req.user.id);
 
-    const authorInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
-    const maskedAuthor = req.user.role === 'user' ? authorInitials : req.user.pseudo;
+    const maskedAuthor = maskedActorLabel(req.user);
+    const isCoach = req.user.role === 'coach';
 
-    broadcastNotification({
-      type: 'new-post',
-      title: 'Nouvelle publication',
-      body: isAnon ? 'Une nouvelle confession anonyme a été publiée.' : `${maskedAuthor} a publié un message.`,
-      content: text,
-      postId: post.id,
-      isAnonymous: isAnon,
-      author: isAnon ? 'Anonyme' : maskedAuthor,
-      post,
-    }, req.user.id, 'new-post');
-
-    const notifMsg = isAnon ? 'Une nouvelle confession anonyme a été publiée.' : `${maskedAuthor} a publié un espace d'expression.`;
-    await db.createNotificationForAll('post', post.id, req.user.id, notifMsg);
+    if (isCoach) {
+      const notifMsg = `${req.user.pseudo} a publié un message (coach).`;
+      await notifyAllExcept(req.user.id, {
+        type: 'coach-post',
+        sourceId: post.id,
+        message: notifMsg,
+        pushTitle: 'Publication coach',
+        pushBody: notifMsg,
+        url: `${APP_URL}/`,
+        sseBroadcast: {
+          eventName: 'coach-post',
+          payload: {
+            type: 'coach-post',
+            title: 'Publication coach',
+            body: notifMsg,
+            content: text,
+            postId: post.id,
+            author: req.user.pseudo,
+            post,
+          },
+        },
+      });
+    } else {
+      const notifMsg = isAnon
+        ? 'Une nouvelle confession anonyme a été publiée.'
+        : `${maskedAuthor} a publié un espace d'expression.`;
+      const feedBody = isAnon
+        ? 'Une nouvelle confession anonyme a été publiée.'
+        : `${maskedAuthor} a publié un message.`;
+      await notifyAllExcept(req.user.id, {
+        type: 'post',
+        sourceId: post.id,
+        message: notifMsg,
+        pushTitle: 'Nouvelle publication',
+        pushBody: feedBody,
+        url: `${APP_URL}/`,
+        sseBroadcast: {
+          eventName: 'new-post',
+          payload: {
+            type: 'new-post',
+            title: 'Nouvelle publication',
+            body: feedBody,
+            content: text,
+            postId: post.id,
+            isAnonymous: isAnon,
+            author: isAnon ? 'Anonyme' : maskedAuthor,
+            post,
+          },
+        },
+      });
+    }
 
     res.json(post);
   } catch (err) {
@@ -59,7 +106,36 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
 
 router.post('/:id/like', requireAuth, async (req, res) => {
   try {
-    const result = await db.likePost(req.params.id, req.user.id);
+    const postId = parseInt(req.params.id, 10);
+    const post = await db.getPostById(postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Publication introuvable.' });
+    }
+
+    const result = await db.likePost(postId, req.user.id);
+
+    if (result.wasNewLike && post.user_id !== req.user.id) {
+      const masked = maskedActorLabel(req.user);
+      const notifMsg = `${masked} a aimé votre publication.`;
+      await notifyUser(post.user_id, {
+        type: 'like',
+        sourceId: postId,
+        actorId: req.user.id,
+        message: notifMsg,
+        pushTitle: 'Nouveau like',
+        pushBody: notifMsg,
+        url: `${APP_URL}/`,
+        sseEvent: 'post-liked',
+        ssePayload: {
+          type: 'post-liked',
+          title: 'Nouveau like',
+          body: notifMsg,
+          postId,
+          actorId: req.user.id,
+        },
+      });
+    }
+
     res.json(result);
   } catch {
     res.status(500).json({ error: 'Erreur lors du like' });
@@ -68,23 +144,53 @@ router.post('/:id/like', requireAuth, async (req, res) => {
 
 router.post('/:id/comment', requireAuth, idempotency, async (req, res) => {
   try {
+    const postId = parseInt(req.params.id, 10);
+    const post = await db.getPostById(postId);
+    if (!post) {
+      return res.status(404).json({ error: 'Publication introuvable.' });
+    }
+
     const { text } = req.body;
     if (!text?.trim()) {
       return res.status(400).json({ error: 'Commentaire vide.' });
     }
-    const comment = await db.addComment(req.params.id, req.user.id, text);
+    const comment = await db.addComment(postId, req.user.id, text);
 
-    const authorInitials = (req.user.first_name.charAt(0) + req.user.last_name.charAt(0)).toUpperCase();
-    const maskedAuthor = req.user.role === 'user' ? authorInitials : req.user.pseudo;
-    const notifMsg = `${maskedAuthor} a commenté un post.`;
-    await db.createNotificationForAll('comment', req.params.id, req.user.id, notifMsg);
-    broadcastNotification({
-      type: 'new-comment',
-      title: 'Nouveau commentaire',
-      body: notifMsg,
-      postId: parseInt(req.params.id, 10),
-      comment,
-    }, req.user.id, 'new-comment');
+    const maskedAuthor = maskedActorLabel(req.user);
+
+    if (post.user_id !== req.user.id) {
+      const notifMsg = `${maskedAuthor} a commenté votre publication.`;
+      await notifyUser(post.user_id, {
+        type: 'comment',
+        sourceId: postId,
+        actorId: req.user.id,
+        message: notifMsg,
+        pushTitle: 'Nouveau commentaire',
+        pushBody: notifMsg,
+        url: `${APP_URL}/`,
+        sseEvent: 'post-commented',
+        ssePayload: {
+          type: 'post-commented',
+          title: 'Nouveau commentaire',
+          body: notifMsg,
+          postId,
+          comment,
+          actorId: req.user.id,
+        },
+      });
+    }
+
+    broadcastNotification(
+      {
+        type: 'new-comment',
+        title: 'Nouveau commentaire',
+        body: `${maskedAuthor} a commenté une publication.`,
+        postId,
+        comment,
+      },
+      req.user.id,
+      'new-comment'
+    );
 
     res.json(comment);
   } catch {
