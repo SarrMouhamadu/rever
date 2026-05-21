@@ -40,7 +40,9 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
     const created = await db.createPost(req.user.id, text, imageUrl, isAnon);
     const post = await db.getEnrichedPostById(created.id, req.user.id);
 
-    const maskedAuthor = maskedActorLabel(req.user);
+    // Récupérer l'utilisateur complet pour maskedActorLabel
+    const fullUser = await db.getUserById(req.user.id);
+    const maskedAuthor = maskedActorLabel(fullUser);
     const isCoach = req.user.role === 'coach';
 
     if (isCoach) {
