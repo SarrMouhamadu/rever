@@ -47,26 +47,30 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
 
     if (isCoach) {
       const notifMsg = `${req.user.pseudo} a publié un message (coach).`;
-      await notifyAllExcept(req.user.id, {
-        type: 'coach-post',
-        sourceId: post.id,
-        message: notifMsg,
-        pushTitle: 'Publication coach',
-        pushBody: notifMsg,
-        url: `${APP_URL}/`,
-        sseBroadcast: {
-          eventName: 'coach-post',
-          payload: {
-            type: 'coach-post',
-            title: 'Publication coach',
-            body: notifMsg,
-            content: text,
-            postId: post.id,
-            author: req.user.pseudo,
-            post,
+      try {
+        await notifyAllExcept(req.user.id, {
+          type: 'coach-post',
+          sourceId: post.id,
+          message: notifMsg,
+          pushTitle: 'Publication coach',
+          pushBody: notifMsg,
+          url: `${APP_URL}/`,
+          sseBroadcast: {
+            eventName: 'coach-post',
+            payload: {
+              type: 'coach-post',
+              title: 'Publication coach',
+              body: notifMsg,
+              content: text,
+              postId: post.id,
+              author: req.user.pseudo,
+              post,
+            },
           },
-        },
-      });
+        });
+      } catch (notificationError) {
+        console.error('Notification error (coach-post):', notificationError);
+      }
     } else {
       const notifMsg = isAnon
         ? 'Une nouvelle confession anonyme a été publiée.'
@@ -74,27 +78,31 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
       const feedBody = isAnon
         ? 'Une nouvelle confession anonyme a été publiée.'
         : `${maskedAuthor} a publié un message.`;
-      await notifyAllExcept(req.user.id, {
-        type: 'post',
-        sourceId: post.id,
-        message: notifMsg,
-        pushTitle: 'Nouvelle publication',
-        pushBody: feedBody,
-        url: `${APP_URL}/`,
-        sseBroadcast: {
-          eventName: 'new-post',
-          payload: {
-            type: 'new-post',
-            title: 'Nouvelle publication',
-            body: feedBody,
-            content: text,
-            postId: post.id,
-            isAnonymous: isAnon,
-            author: isAnon ? 'Anonyme' : maskedAuthor,
-            post,
+      try {
+        await notifyAllExcept(req.user.id, {
+          type: 'post',
+          sourceId: post.id,
+          message: notifMsg,
+          pushTitle: 'Nouvelle publication',
+          pushBody: feedBody,
+          url: `${APP_URL}/`,
+          sseBroadcast: {
+            eventName: 'new-post',
+            payload: {
+              type: 'new-post',
+              title: 'Nouvelle publication',
+              body: feedBody,
+              content: text,
+              postId: post.id,
+              isAnonymous: isAnon,
+              author: isAnon ? 'Anonyme' : maskedAuthor,
+              post,
+            },
           },
-        },
-      });
+        });
+      } catch (notificationError) {
+        console.error('Notification error (post):', notificationError);
+      }
     }
 
     res.json(post);
