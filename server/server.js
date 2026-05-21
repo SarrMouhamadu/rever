@@ -16,7 +16,7 @@ const contactRoutes = require('./routes/contact');
 const analyticsRoutes = require('./routes/analytics');
 const notificationsRoutes = require('./routes/notifications');
 const pushRoutes = require('./routes/push');
-const { pool } = require('./database');
+const { pool, initDbReady } = require('./database');
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -69,15 +69,25 @@ app.use((err, _req, res, _next) => {
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ error: 'Fichier trop volumineux (max 5 Mo).' });
   }
+  if (err.message?.includes('autorisées')) {
+    return res.status(400).json({ error: err.message });
+  }
   console.error(err);
   res.status(500).json({ error: 'Erreur serveur.' });
 });
 
 if (require.main === module) {
   const bindHost = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
-  app.listen(port, bindHost, () => {
-    console.log(`Serveur démarré sur http://${bindHost}:${port}`);
-  });
+  initDbReady
+    .then(() => {
+      app.listen(port, bindHost, () => {
+        console.log(`Serveur démarré sur http://${bindHost}:${port}`);
+      });
+    })
+    .catch((err) => {
+      console.error('Impossible de démarrer : échec init DB', err);
+      process.exit(1);
+    });
 }
 
 module.exports = app;

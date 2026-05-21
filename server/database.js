@@ -231,10 +231,10 @@ const loginUser = async (loginIdentifier, password) => {
   return publicUser(user);
 };
 
-const createPost = async (userId, text, imageUrl, isAnonymous = true, originalPostId = null) => {
+const createPost = async (userId, text, imageUrl, isAnonymous = true) => {
   const { rows } = await query(
-    `INSERT INTO posts (user_id, text, image_url, is_anonymous, original_post_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-    [userId, text, imageUrl, isAnonymous, originalPostId]
+    `INSERT INTO posts (user_id, text, image_url, is_anonymous) VALUES ($1, $2, $3, $4) RETURNING id`,
+    [userId, text, imageUrl, isAnonymous]
   );
   return { id: rows[0].id };
 };
@@ -927,9 +927,10 @@ const getPushSubscriptionsForUser = async (userId) => {
   return rows;
 };
 
-initDb();
+const initDbReady = initDb();
 
 module.exports = {
+  initDbReady,
   recordVisitor,
   pool,
   query,

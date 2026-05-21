@@ -8,10 +8,13 @@ const { idempotency } = require('../middleware/idempotency');
 const router = express.Router();
 
 const maskedActorLabel = (user) => {
+  if (!user) return 'Quelqu\'un';
   if (user.role === 'user') {
-    return (user.first_name.charAt(0) + user.last_name.charAt(0)).toUpperCase();
+    const initials =
+      `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase();
+    return initials || user.pseudo || 'Quelqu\'un';
   }
-  return user.pseudo;
+  return user.pseudo || 'Quelqu\'un';
 };
 
 router.get('/', requireAuth, async (req, res) => {
@@ -39,15 +42,17 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
     const isAnon = isAnonymous === undefined ? true : (isAnonymous === 'true' || isAnonymous === true);
     const created = await db.createPost(req.user.id, text, imageUrl, isAnon);
     const post = await db.getEnrichedPostById(created.id, req.user.id);
+    if (!post) {
+      return res.status(500).json({ error: 'Publication créée mais introuvable.' });
+    }
 
-    // Récupérer l'utilisateur complet pour maskedActorLabel
     const fullUser = await db.getUserById(req.user.id);
     const maskedAuthor = maskedActorLabel(fullUser);
     const isCoach = req.user.role === 'coach';
 
+    try {
     if (isCoach) {
       const notifMsg = `${req.user.pseudo} a publié un message (coach).`;
-      try {
         await notifyAllExcept(req.user.id, {
           type: 'coach-post',
           sourceId: post.id,
@@ -68,9 +73,6 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
             },
           },
         });
-      } catch (notificationError) {
-        console.error('Notification error (coach-post):', notificationError);
-      }
     } else {
       const notifMsg = isAnon
         ? 'Une nouvelle confession anonyme a été publiée.'
@@ -78,7 +80,6 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
       const feedBody = isAnon
         ? 'Une nouvelle confession anonyme a été publiée.'
         : `${maskedAuthor} a publié un message.`;
-      try {
         await notifyAllExcept(req.user.id, {
           type: 'post',
           sourceId: post.id,
@@ -100,9 +101,9 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
             },
           },
         });
-      } catch (notificationError) {
-        console.error('Notification error (post):', notificationError);
-      }
+    }
+    } catch (notificationError) {
+      console.error('Notification error (create post):', notificationError);
     }
 
     res.json(post);
