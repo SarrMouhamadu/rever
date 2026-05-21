@@ -8,6 +8,11 @@ import LandingPage from './LandingPage';
 import ContactPage from './ContactPage';
 import AuthScreen from './pages/AuthScreen';
 import ThemeToggle from './components/ui/ThemeToggle';
+import {
+  CoachCertificationsSection,
+  CoachCertificationsBanner,
+  CoachCertBadges,
+} from './components/CoachCertifications';
 import { audioSynth } from './utils/audioSynth';
 import { generateIdempotencyKey, generateClientId, withIdempotency } from './utils/mutation';
 import {
@@ -1961,8 +1966,11 @@ function App() {
                             {coach.pseudo}
                             <span className="text-[9px] bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">🤝 Ami</span>
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex flex-wrap items-center gap-1">
                             {coach.is_anonymous ? 'Discussion Anonyme' : (user.role === 'coach' ? 'Utilisateur' : 'Professionnel')}
+                            {!coach.is_anonymous && coach.role === 'coach' && user.role !== 'coach' && (
+                              <CoachCertBadges />
+                            )}
                           </p>
                         </div>
                         {parseInt(coach.unread_count) > 0 && (
@@ -2020,8 +2028,11 @@ function App() {
                           <p className="font-semibold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
                             {coach.pseudo}
                           </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate flex flex-wrap items-center gap-1">
                             {coach.is_anonymous ? 'Discussion Anonyme' : (user.role === 'coach' ? 'Utilisateur' : 'Professionnel')}
+                            {!coach.is_anonymous && coach.role === 'coach' && user.role !== 'coach' && (
+                              <CoachCertBadges />
+                            )}
                           </p>
                         </div>
                         {parseInt(coach.unread_count) > 0 && (
@@ -2095,6 +2106,10 @@ function App() {
                       <span className="hidden sm:inline">{mutedConversations.includes(selectedCoach.id) ? 'Mute active' : 'Sourdine'}</span>
                     </button>
                   </div>
+
+                  {user.role !== 'coach' && selectedCoach.role === 'coach' && !selectedCoach.is_anonymous && (
+                    <CoachCertificationsBanner className="mt-2" />
+                  )}
                   
                   {/* Friendship Status Banner */}
                   {!selectedCoach.is_anonymous && (
@@ -2222,6 +2237,10 @@ function App() {
 
         {view === 'settings' && (
           <div className="relative z-10 max-w-2xl mx-auto animate-view-change space-y-6">
+
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
+              <CoachCertificationsSection />
+            </div>
 
             <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
               <h3 className="text-sm font-bold text-slate-950 dark:text-slate-50 mb-1">Notifications sur le téléphone</h3>

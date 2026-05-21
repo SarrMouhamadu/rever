@@ -16,6 +16,7 @@ import heroImage from '../image.png';
 import Button from './components/ui/Button';
 import ThemeToggle from './components/ui/ThemeToggle';
 import IconBox from './components/ui/IconBox';
+import { CoachCertificationsSection } from './components/CoachCertifications';
 
 const features = [
   {
@@ -333,6 +334,16 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
     );
   })}
 </div>
+        </section>
+
+        {/* CERTIFICATIONS COACHS */}
+        <section
+          aria-label="Certifications des coachs"
+          className="py-20 md:py-28 px-4 sm:px-6 border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/40 dark:bg-zinc-900/20"
+        >
+          <div className="max-w-6xl mx-auto">
+            <CoachCertificationsSection />
+          </div>
         </section>
 
         {/* TESTIMONIALS — Retours utilisateurs réels */}
