@@ -30,18 +30,7 @@ const initDb = async () => {
 
     await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`);
 
-    await query(`
-      CREATE TABLE IF NOT EXISTS posts (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        text TEXT NOT NULL,
-        image_url TEXT,
-        likes INTEGER DEFAULT 0,
-        is_reported BOOLEAN DEFAULT FALSE,
-        reports_count INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    
 
     await query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE`);
     await query(`UPDATE posts SET is_anonymous = FALSE WHERE created_at < '2026-05-18 09:00:00'`);
@@ -219,10 +208,10 @@ const loginUser = async (loginIdentifier, password) => {
   return publicUser(user);
 };
 
-const createPost = async (userId, text, imageUrl, isAnonymous = true) => {
+const createPost = async (userId, text, imageUrl, isAnonymous = true, originalPostId = null) => {
   const { rows } = await query(
-    `INSERT INTO posts (user_id, text, image_url, is_anonymous) VALUES ($1, $2, $3, $4) RETURNING id`,
-    [userId, text, imageUrl, isAnonymous]
+    `INSERT INTO posts (user_id, text, image_url, is_anonymous, original_post_id) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [userId, text, imageUrl, isAnonymous, originalPostId]
   );
   return { id: rows[0].id };
 };
