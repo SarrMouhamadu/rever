@@ -30,7 +30,29 @@ const initDb = async () => {
 
     await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`);
 
-    
+    await query(`
+      CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        text TEXT NOT NULL,
+        image_url TEXT,
+        likes INTEGER DEFAULT 0,
+        is_reported BOOLEAN DEFAULT FALSE,
+        reports_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_anonymous BOOLEAN DEFAULT TRUE,
+        original_post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL,
+        report_reasons TEXT
+      )
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS post_tags (
+        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+        tag VARCHAR(100) NOT NULL,
+        PRIMARY KEY (post_id, tag)
+      )
+    `);
 
     await query(`ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE`);
     await query(`UPDATE posts SET is_anonymous = FALSE WHERE created_at < '2026-05-18 09:00:00'`);
@@ -214,6 +236,11 @@ const createPost = async (userId, text, imageUrl, isAnonymous = true, originalPo
     [userId, text, imageUrl, isAnonymous, originalPostId]
   );
   return { id: rows[0].id };
+};
+
+const addPostTags = async (postId, tags) => {
+  const values = tags.map((_, i) => `($1, $${i + 2})`).join(',');
+  await query(`INSERT INTO post_tags (post_id, tag) VALUES ${values}`, [postId, ...tags]);
 };
 
 const likePost = async (postId, userId) => {
