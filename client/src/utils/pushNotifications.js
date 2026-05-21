@@ -33,9 +33,10 @@ export async function setupPushNotifications() {
     return { ok: false, reason: 'unsupported' };
   }
 
-  // Assume permission is granted; browsers will only deliver push if the user has previously granted it.
-  // We no longer trigger Notification.requestPermission() here to avoid prompting the user on each load.
-  const permission = 'granted';
+  let permission = Notification.permission;
+  if (permission === 'default') {
+    permission = await Notification.requestPermission();
+  }
   if (permission !== 'granted') {
     return { ok: false, reason: 'denied' };
   }
