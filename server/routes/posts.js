@@ -100,7 +100,8 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
     if (err.message?.includes('autorisées')) {
       return res.status(400).json({ error: err.message });
     }
-    res.status(500).json({ error: 'Erreur lors de la création' });
+    console.error('Error creating post:', err);
+    res.status(500).json({ error: err.message || 'Erreur lors de la création' });
   }
 });
 
