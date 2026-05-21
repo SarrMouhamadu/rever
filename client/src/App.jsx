@@ -59,12 +59,12 @@ const getAvatarColor = (pseudo) => {
     hash = trimmed.charCodeAt(i) + ((hash << 5) - hash);
   }
   const colors = [
-    'bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-400 border border-teal-200/60 dark:border-teal-900/30',
-    'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-900/30',
-    'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/30',
-    'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/30',
-    'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/30',
-    'bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-400 border border-sky-200/60 dark:border-sky-900/30',
+    'chip-live-sky',
+    'chip-live-coral',
+    'chip-live-lavender',
+    'chip-live-sage',
+    'chip-live-peach',
+    'chip-live-rose',
   ];
   const index = Math.abs(hash) % colors.length;
   return colors[index];
@@ -1500,11 +1500,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-stone-50 dark:bg-zinc-950 text-zinc-800 dark:text-zinc-300 font-sans relative overflow-x-hidden transition-colors duration-500">
+    <div className="min-h-[100dvh] bg-canvas dark:bg-canvas-dark text-zinc-800 dark:text-zinc-300 font-sans relative overflow-x-hidden transition-colors duration-500">
       <div aria-hidden className="grain" />
       <div className="absolute inset-0 overflow-hidden pointer-events-none fixed">
-        <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-teal-500/10 dark:bg-teal-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-blue-500/10 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-0 right-0 w-[30rem] h-[30rem] bg-accent-500/10 dark:bg-accent-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] ambient-blob-sky rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/3 left-1/4 w-64 h-64 ambient-blob-coral rounded-full blur-3xl opacity-70" style={{ animationDelay: '4s' }}></div>
       </div>
 
       <nav className="w-full border-b border-slate-200 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur sticky top-0 z-50" style={{ paddingTop: 'env(safe-area-inset-top)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
@@ -1515,7 +1516,7 @@ function App() {
               onClick={() => setView('feed')} 
               className={`transition-premium active-squeeze py-2 px-3 sm:px-4 rounded-xl ${
                 view === 'feed' 
-                  ? 'text-teal-700 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-400/10 font-bold' 
+                  ? 'text-accent-700 dark:text-accent-400 bg-accent-500/10 dark:bg-accent-400/10 font-bold' 
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-zinc-900/60'
               }`}
             >
@@ -1526,7 +1527,7 @@ function App() {
                 onClick={() => setView('messages')} 
                 className={`relative transition-premium active-squeeze py-2 px-3 sm:px-4 rounded-xl ${
                   view === 'messages' 
-                    ? 'text-teal-700 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-400/10 font-bold' 
+                    ? 'text-accent-700 dark:text-accent-400 bg-accent-500/10 dark:bg-accent-400/10 font-bold' 
                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-zinc-900/60'
                 }`}
               >
@@ -1543,7 +1544,7 @@ function App() {
                 onClick={() => setView('admin-dashboard')} 
                 className={`transition-premium active-squeeze py-2 px-3 sm:px-4 rounded-xl ${
                   view === 'admin-dashboard' 
-                    ? 'text-teal-700 dark:text-teal-400 bg-teal-500/10 dark:bg-teal-400/10 font-bold' 
+                    ? 'text-accent-700 dark:text-accent-400 bg-accent-500/10 dark:bg-accent-400/10 font-bold' 
                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-zinc-900/60'
                 }`}
               >
@@ -1559,7 +1560,7 @@ function App() {
                   onClick={() => setShowNotifications(!showNotifications)}
                   className="relative p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  <Bell size={24} weight={globalUnreadCount > 0 ? "fill" : "regular"} className={globalUnreadCount > 0 ? "text-teal-600 dark:text-teal-400" : "text-slate-600 dark:text-slate-400"} />
+                  <Bell size={24} weight={globalUnreadCount > 0 ? "fill" : "regular"} className={globalUnreadCount > 0 ? "text-accent-600 dark:text-accent-400" : "text-slate-600 dark:text-slate-400"} />
                   {globalUnreadCount > 0 && (
                     <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white dark:border-slate-950"></span>
                   )}
@@ -1569,7 +1570,7 @@ function App() {
                   <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl z-50 p-2">
                     <div className="flex justify-between items-center mb-2 px-2 pt-2">
                       <h3 className="font-bold text-sm">Notifications</h3>
-                      <button onClick={markAllNotificationsAsRead} className="text-xs text-blue-500 hover:text-blue-600">Tout marquer comme lu</button>
+                      <button onClick={markAllNotificationsAsRead} className="text-xs text-accent-600 dark:text-accent-400 hover:text-accent-500">Tout marquer comme lu</button>
                     </div>
                     {globalNotifications.length === 0 ? (
                       <p className="text-sm text-center text-slate-500 py-4">Aucune notification</p>
@@ -1579,11 +1580,11 @@ function App() {
                           <div 
                             key={notif.id} 
                             onClick={() => { markNotificationAsRead(notif.id); setShowNotifications(false); }}
-                            className={`p-3 rounded-xl cursor-pointer transition-colors ${notif.is_read ? 'opacity-70 hover:bg-slate-50 dark:hover:bg-zinc-800' : 'bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20'}`}
+                            className={`p-3 rounded-xl cursor-pointer transition-colors ${notif.is_read ? 'opacity-70 hover:bg-slate-50 dark:hover:bg-zinc-800' : 'bg-live-sky-muted/80 dark:bg-live-sky-dark/15 hover:bg-live-sky-muted dark:hover:bg-live-sky-dark/25'}`}
                           >
                             <div className="flex justify-between items-start">
                               <p className="text-sm font-medium">{notif.message}</p>
-                              {!notif.is_read && <span className="w-2 h-2 bg-blue-500 rounded-full mt-1"></span>}
+                              {!notif.is_read && <span className="w-2 h-2 bg-live-sky rounded-full mt-1"></span>}
                             </div>
                             <span className="text-[10px] text-slate-500 mt-1 block">
                               {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -1599,7 +1600,7 @@ function App() {
             
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <div className="flex items-center gap-2">
-              <span className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-3 sm:px-4 py-1.5 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.05)] dark:shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] dark:hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all duration-300 hover:scale-105 cursor-default flex items-center gap-1.5">
+              <span className="text-[10px] sm:text-xs chip-live-sage px-3 sm:px-4 py-1.5 rounded-full transition-all duration-300 hover:scale-105 cursor-default flex items-center gap-1.5">
                 <span className="animate-bounce inline-block" style={{ animationDuration: '2s' }}>{user.role === 'admin' ? '👑' : user.role === 'coach' ? '🧘' : `🌱`}</span>
                 <span className="hidden sm:inline font-medium tracking-wide"> {user.role === 'admin' ? 'Admin' : user.role === 'coach' ? 'Coach' : user.pseudo}</span>
               </span>
@@ -1614,14 +1615,14 @@ function App() {
           <div className="relative z-10 animate-view-change">
             {/* Daily Quote / Motivation Banner */}
             {quote && (
-              <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-teal-700 dark:text-teal-400 border-teal-200/50 dark:text-teal-700 dark:text-teal-400 border-teal-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8 mb-6 sm:mb-8 shadow-xl shadow-teal-900/5 hover:shadow-teal-900/10 transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
-                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full blur-3xl opacity-20 pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
+              <div className="relative overflow-hidden bg-live-lavender-muted/60 dark:bg-live-lavender-dark/10 border border-live-lavender/25 dark:border-live-lavender/20 text-accent-700 dark:text-accent-400 rounded-2xl sm:rounded-3xl p-4 sm:p-8 mb-6 sm:mb-8 shadow-glow-lavender hover:shadow-glow transition-all duration-500 animate-[fadeIn_0.8s_ease-out] group">
+                <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-live-coral/25 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform duration-700"></div>
                 <div className="flex gap-4 items-start relative z-10">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg shadow-teal-900/20 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                  <div className="w-12 h-12 bg-live-peach-muted dark:bg-live-peach-dark/30 border border-live-peach/30 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 shadow-sm transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
                     ✨
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xs sm:text-sm font-bold tracking-widest text-teal-600 dark:text-teal-300 uppercase mb-2">
+                    <h3 className="text-xs sm:text-sm font-bold tracking-widest text-accent-600 dark:text-accent-300 uppercase mb-2">
                       Motivation du jour
                     </h3>
                     <p className="text-base sm:text-lg text-slate-800 dark:text-slate-200 font-light leading-relaxed italic">
@@ -1639,7 +1640,7 @@ function App() {
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
+                        className="flex items-center gap-1.5 px-3 py-1.5 chip-live-sage rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
                       >
                         <span className="text-xs sm:text-sm">💬</span> WhatsApp
                       </a>
@@ -1652,7 +1653,7 @@ function App() {
                           setQuoteCopied(true);
                           setTimeout(() => setQuoteCopied(false), 2000);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20 dark:border-pink-500/30 text-pink-600 dark:text-pink-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
+                        className="flex items-center gap-1.5 px-3 py-1.5 chip-live-rose rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
                       >
                         <span className="text-xs sm:text-sm">{quoteCopied ? '✅' : '📸'}</span>
                         {quoteCopied ? 'Copié !' : 'Instagram'}
@@ -1669,7 +1670,7 @@ function App() {
                               url: 'https://annonyme.pro'
                             }).catch((err) => console.log('Share canceled', err));
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
+                          className="flex items-center gap-1.5 px-3 py-1.5 chip-live-lavender rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-premium hover:scale-105 shadow-sm active-squeeze"
                         >
                           <span className="text-xs sm:text-sm">🔗</span> Plus...
                         </button>
@@ -1680,12 +1681,12 @@ function App() {
               </div>
             )}
 
-            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl sm:rounded-3xl p-4 sm:p-7 mb-8 sm:mb-10 shadow-lg shadow-teal-900/5 animate-[slideUp_0.6s_ease-out_both] hover:shadow-teal-900/10 transition-shadow duration-500">
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-2xl sm:rounded-3xl p-4 sm:p-7 mb-8 sm:mb-10 shadow-lg shadow-accent-900/5 animate-[slideUp_0.6s_ease-out_both] hover:shadow-accent-900/10 transition-shadow duration-500">
               <form onSubmit={handleCreatePost}>
                 <textarea 
                   value={newPostText} onChange={(e) => setNewPostText(e.target.value)}
                   placeholder="Partagez vos pensées..."
-                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus-glow-teal transition-all"
+                  className="w-full h-20 sm:h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-4 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus-glow-accent transition-all"
                 />
                 {newPostImagePreview && (
                   <div className="mt-3 sm:mt-4 relative">
@@ -1712,7 +1713,7 @@ function App() {
                       onClick={() => setIsAnonymous(!isAnonymous)}
                       className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-xs sm:text-sm font-bold transition-premium shadow-sm active:scale-95 ${
                         isAnonymous 
-                          ? 'bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/20 hover:bg-teal-500/20' 
+                          ? 'bg-accent-500/10 text-accent-700 dark:text-accent-400 border-accent-500/20 hover:bg-accent-500/20' 
                           : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700/50 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
                       }`}
                     >
@@ -1724,7 +1725,7 @@ function App() {
                     type="submit" 
                     disabled={!newPostText.trim() || isPosting}
                     aria-busy={isPosting}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-teal-700 hover:bg-teal-600 active-squeeze disabled:scale-100 disabled:opacity-50 text-white font-bold rounded-xl transition-premium shadow-md hover:shadow-teal-900/20 disabled:shadow-none"
+                    className="w-full sm:w-auto px-6 py-2.5 bg-accent-700 hover:bg-accent-600 active-squeeze disabled:scale-100 disabled:opacity-50 text-white font-bold rounded-xl transition-premium shadow-md hover:shadow-accent-900/20 disabled:shadow-none"
                   >
                     {isPosting ? 'Publication…' : 'Publier'}
                   </button>
@@ -1736,17 +1737,17 @@ function App() {
               {feed.map((post, index) => (
                 <div 
                   key={post.clientId || post.id} 
-                  className={`bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg hover:shadow-xl dark:hover:shadow-teal-950/10 hover-lift-premium transition-all duration-300 animate-slide-up relative overflow-hidden ${
+                  className={`bg-white/80 dark:bg-slate-800/40 backdrop-blur-md border rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-lg hover:shadow-xl dark:hover:shadow-accent-950/10 hover-lift-premium transition-all duration-300 animate-slide-up relative overflow-hidden ${
                     post._status === 'sending'
-                      ? 'border-dashed border-teal-400/60 dark:border-teal-500/40 opacity-90'
+                      ? 'border-dashed border-accent-400/60 dark:border-accent-500/40 opacity-90'
                       : post._status === 'failed'
                         ? 'border-rose-400/60 dark:border-rose-500/40'
-                        : 'border-slate-200/50 dark:border-slate-700/30 border-transparent hover:border-teal-500/20 dark:hover:border-teal-400/25'
+                        : 'border-slate-200/50 dark:border-slate-700/30 border-transparent hover:border-accent-500/20 dark:hover:border-accent-400/25'
                   }`}
                   style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
                 >
                   {post._status === 'sending' && (
-                    <p className="text-[11px] font-semibold text-teal-600 dark:text-teal-400 mb-3 uppercase tracking-wider">Publication en cours…</p>
+                    <p className="text-[11px] font-semibold text-accent-600 dark:text-accent-400 mb-3 uppercase tracking-wider">Publication en cours…</p>
                   )}
                   {post._status === 'failed' && (
                     <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 mb-3 uppercase tracking-wider">Échec de publication</p>
@@ -1780,12 +1781,12 @@ function App() {
                       <textarea
                         value={editingPostText}
                         onChange={(e) => setEditingPostText(e.target.value)}
-                        className="w-full h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-teal-600/50 transition-all"
+                        className="w-full h-24 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus:border-accent-600/50 transition-all"
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleUpdatePost(post.id)}
-                          className="px-4 py-2 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md"
+                          className="px-4 py-2 bg-gradient-to-r from-accent-700 to-accent-600 hover:from-purple-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-md"
                         >
                           Sauvegarder
                         </button>
@@ -1827,7 +1828,7 @@ function App() {
                     {post.is_anonymous && post.user_id !== user.id && (
                       <button 
                         onClick={() => handleInitiateAnonymousChat(post)}
-                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-premium hover:translate-x-0.5 hover:scale-[1.03] active:scale-95 text-xs sm:text-sm font-bold"
+                        className="flex items-center gap-1 sm:gap-2 text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 transition-premium hover:translate-x-0.5 hover:scale-[1.03] active:scale-95 text-xs sm:text-sm font-bold"
                         title="Écrire un message privé anonyme à l'auteur"
                       >
                         ✉️ Message Anonyme
@@ -1837,7 +1838,7 @@ function App() {
                     {!post.is_anonymous && post.user_id !== user.id && (
                       <button 
                         onClick={() => handleInitiatePrivateChat(post)}
-                        className="flex items-center gap-1 sm:gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-premium hover:translate-x-0.5 hover:scale-[1.03] active:scale-95 text-xs sm:text-sm font-bold"
+                        className="flex items-center gap-1 sm:gap-2 text-accent-600 dark:text-accent-400 hover:text-accent-700 dark:hover:text-accent-300 transition-premium hover:translate-x-0.5 hover:scale-[1.03] active:scale-95 text-xs sm:text-sm font-bold"
                         title="Envoyer un message privé à l'auteur"
                       >
                         ✉️ Message Privé
@@ -1866,10 +1867,10 @@ function App() {
                   <div className="border-t border-slate-200 dark:border-slate-700/50 pt-4 sm:pt-5">
                     {post.comments?.map(comment => (
                       <div key={comment.clientId || comment.id} className={`mb-3 sm:mb-4 p-3 sm:p-4 bg-slate-50 dark:bg-slate-900/50 border rounded-2xl relative group ${
-                        comment._status === 'sending' ? 'border-dashed border-teal-400/50 opacity-80' : comment._status === 'failed' ? 'border-rose-400/50' : 'border-slate-200 dark:border-slate-700/30'
+                        comment._status === 'sending' ? 'border-dashed border-accent-400/50 opacity-80' : comment._status === 'failed' ? 'border-rose-400/50' : 'border-slate-200 dark:border-slate-700/30'
                       }`}>
                         <div className="flex justify-between items-start">
-                          <p className="text-[10px] sm:text-xs font-semibold text-teal-600 dark:text-teal-300 mb-1">{comment.username}</p>
+                          <p className="text-[10px] sm:text-xs font-semibold text-accent-600 dark:text-accent-300 mb-1">{comment.username}</p>
                           {(comment.user_id === user.id || user.role === 'admin') && (
                             <button
                               onClick={() => handleDeleteComment(post.id, comment.id)}
@@ -1882,7 +1883,7 @@ function App() {
                         </div>
                         <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 pr-4">
                           {comment.text}
-                          {comment._status === 'sending' && <span className="ml-2 text-teal-600 dark:text-teal-400 text-[10px]">Envoi…</span>}
+                          {comment._status === 'sending' && <span className="ml-2 text-accent-600 dark:text-accent-400 text-[10px]">Envoi…</span>}
                           {comment._status === 'failed' && <span className="ml-2 text-rose-600 dark:text-rose-400 text-[10px]">Échec</span>}
                         </p>
                       </div>
@@ -1894,13 +1895,13 @@ function App() {
                         value={commentInputs[post.id] || ''}
                         onChange={(e) => handleCommentInputChange(post.id, e.target.value)}
                         disabled={!!commentingPostIds[post.id]}
-                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus-ring focus-glow-teal transition-all disabled:opacity-60"
+                        className="flex-1 bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-2.5 sm:p-3 text-base md:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus-ring focus-glow-accent transition-all disabled:opacity-60"
                       />
                       <button 
                         onClick={() => handleComment(post.id)}
                         disabled={!commentInputs[post.id]?.trim() || !!commentingPostIds[post.id]}
                         aria-busy={!!commentingPostIds[post.id]}
-                        className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-xl text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md hover:shadow-teal-900/20 min-w-[3rem]"
+                        className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-accent-700 to-accent-600 hover:from-purple-500 hover:to-blue-500 text-white font-medium rounded-xl text-xs sm:text-sm disabled:opacity-50 transition-all shadow-md hover:shadow-accent-900/20 min-w-[3rem]"
                       >
                         {commentingPostIds[post.id] ? '…' : '✓'}
                       </button>
@@ -1935,7 +1936,7 @@ function App() {
               <div className="space-y-4">
                 {/* Section 1: Amis sympas */}
                 <div>
-                  <h3 className="text-[11px] font-extrabold tracking-wider uppercase text-teal-600 dark:text-teal-400 mb-2 px-2 flex items-center gap-1.5">
+                  <h3 className="text-[11px] font-extrabold tracking-wider uppercase text-accent-600 dark:text-accent-400 mb-2 px-2 flex items-center gap-1.5">
                     <span>🤝</span> Amis sympas
                   </h3>
                   {contacts.filter(c => c.is_friend || c.friendship_status === 'accepted').length > 0 ? (
@@ -1945,7 +1946,7 @@ function App() {
                         onClick={() => setSelectedCoach(coach)}
                         className={`p-3 rounded-2xl cursor-pointer mb-2 flex items-center gap-3 border transition-all duration-300 hover:translate-x-1 active-squeeze-sm ${
                           selectedCoach?.id === coach.id && selectedCoach?.is_anonymous === coach.is_anonymous && selectedCoach?.post_id === coach.post_id
-                            ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-550/30 shadow-md translate-x-1'
+                            ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-400 border-accent-200 dark:border-accent-550/30 shadow-md translate-x-1'
                             : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border-transparent bg-slate-55/20 dark:bg-slate-900/10'
                         }`}
                       >
@@ -1983,8 +1984,8 @@ function App() {
                 <div className="flex items-center justify-center gap-2.5 my-3 py-1">
                   <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700/40 to-slate-300 dark:to-slate-700/60"></div>
                   <div className="flex gap-1.5 items-center justify-center shrink-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-teal-500/10 dark:bg-teal-400/10 flex items-center justify-center border border-teal-500/30 dark:border-teal-400/30">
-                      <span className="w-1 h-1 rounded-full bg-teal-500 dark:bg-teal-400 animate-pulse"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-accent-500/10 dark:bg-accent-400/10 flex items-center justify-center border border-accent-500/30 dark:border-accent-400/30">
+                      <span className="w-1 h-1 rounded-full bg-accent-500 dark:bg-accent-400 animate-pulse"></span>
                     </span>
                     <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 flex items-center justify-center border border-slate-300/40 dark:border-slate-500/30">
                       <span className="w-0.5 h-0.5 rounded-full bg-slate-450 dark:bg-slate-550"></span>
@@ -2005,7 +2006,7 @@ function App() {
                         onClick={() => setSelectedCoach(coach)}
                         className={`p-3 rounded-2xl cursor-pointer mb-2 flex items-center gap-3 border transition-all duration-300 hover:translate-x-1 active-squeeze-sm ${
                           selectedCoach?.id === coach.id && selectedCoach?.is_anonymous === coach.is_anonymous && selectedCoach?.post_id === coach.post_id
-                            ? 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-550/30 shadow-md translate-x-1'
+                            ? 'bg-accent-100 dark:bg-accent-900/40 text-accent-700 dark:text-accent-400 border-accent-200 dark:border-accent-550/30 shadow-md translate-x-1'
                             : 'hover:bg-slate-50 dark:hover:bg-slate-700/40 border-transparent bg-slate-55/10 dark:bg-slate-900/5'
                         }`}
                       >
@@ -2135,7 +2136,7 @@ function App() {
                       {/* Case 3: Friend Request Received */}
                       {selectedCoach.friendship_status === 'pending' && selectedCoach.friendship_sender_id !== user.id && (
                         <>
-                          <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold">
+                          <div className="flex items-center gap-2 text-accent-700 dark:text-accent-400 font-semibold">
                             <span>👋</span>
                             <span>{selectedCoach.pseudo} vous a envoyé une demande d'ami !</span>
                           </div>
@@ -2167,7 +2168,7 @@ function App() {
                           <button
                             type="button"
                             onClick={() => handleSendFriendRequest(selectedCoach.id)}
-                            className="shrink-0 px-4 py-1.5 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-bold rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
+                            className="shrink-0 px-4 py-1.5 bg-gradient-to-r from-accent-700 to-accent-600 text-white font-bold rounded-lg transition-all hover:scale-105 active:scale-95 shadow-sm"
                           >
                             🤝 Ajouter en ami
                           </button>
@@ -2182,7 +2183,7 @@ function App() {
                         const isMe = msg.sender_id === user.id;
                         return (
                           <div key={msg.clientId || msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50'} animate-spring-pop shadow-sm ${msg._status === 'sending' ? 'opacity-75' : ''} ${msg._status === 'failed' ? 'ring-1 ring-rose-400/60' : ''}`}>
+                            <div className={`max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-700/60 text-slate-800 dark:text-slate-200 rounded-bl-sm border border-slate-200 dark:border-slate-600/50'} animate-spring-pop shadow-sm ${msg._status === 'sending' ? 'opacity-75' : ''} ${msg._status === 'failed' ? 'ring-1 ring-rose-400/60' : ''}`}>
                               <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
                               <p className={`text-[10px] mt-1 text-right ${isMe ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
                                 {msg._status === 'sending' ? 'Envoi…' : msg._status === 'failed' ? 'Échec' : new Date(msg.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -2201,9 +2202,9 @@ function App() {
                       onChange={(e) => setNewChatMessage(e.target.value)}
                       placeholder="Votre message..."
                       disabled={isSendingMessage}
-                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm focus-glow-teal text-slate-900 dark:text-slate-100 shadow-sm disabled:opacity-60"
+                      className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 rounded-xl p-3 text-base md:text-sm focus-glow-accent text-slate-900 dark:text-slate-100 shadow-sm disabled:opacity-60"
                     />
-                    <button type="submit" disabled={!newChatMessage.trim() || isSendingMessage} aria-busy={isSendingMessage} className="px-6 bg-gradient-to-r from-teal-700 to-teal-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md min-w-[6.5rem]">
+                    <button type="submit" disabled={!newChatMessage.trim() || isSendingMessage} aria-busy={isSendingMessage} className="px-6 bg-gradient-to-r from-accent-700 to-accent-600 text-white font-bold rounded-xl disabled:opacity-50 transition-all hover:scale-105 shadow-md min-w-[6.5rem]">
                       {isSendingMessage ? 'Envoi…' : 'Envoyer'}
                     </button>
                   </form>
@@ -2241,7 +2242,7 @@ function App() {
                     <button
                       type="button"
                       onClick={handleEnablePush}
-                      className="px-4 py-2 bg-teal-700 hover:bg-teal-600 text-white text-sm font-bold rounded-xl transition-colors"
+                      className="px-4 py-2 bg-accent-700 hover:bg-accent-600 text-white text-sm font-bold rounded-xl transition-colors"
                     >
                       Activer les notifications
                     </button>
@@ -2279,7 +2280,7 @@ function App() {
                               return next;
                             });
                           }}
-                          className="px-3 py-1.5 bg-slate-105 hover:bg-slate-200 dark:bg-slate-750 dark:hover:bg-slate-700 text-teal-600 dark:text-teal-400 text-xs font-bold rounded-xl transition-all"
+                          className="px-3 py-1.5 bg-slate-105 hover:bg-slate-200 dark:bg-slate-750 dark:hover:bg-slate-700 text-accent-600 dark:text-accent-400 text-xs font-bold rounded-xl transition-all"
                         >
                           Réactiver le son
                         </button>
@@ -2303,7 +2304,7 @@ function App() {
             <aside className="w-full lg:w-64 shrink-0 bg-white/60 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-4 lg:p-6 shadow-sm space-y-4 lg:space-y-8 lg:sticky lg:top-24 lg:self-start">
               <div className="flex items-center justify-between lg:justify-start lg:gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-md">
+                  <div className="w-10 h-10 bg-gradient-to-br from-accent-600 to-accent-700 rounded-2xl flex items-center justify-center text-white font-extrabold shadow-md">
                     👑
                   </div>
                   <div>
@@ -2337,35 +2338,35 @@ function App() {
               <nav className="flex flex-row overflow-x-auto lg:flex-col gap-2 pb-2 lg:pb-0 scrollbar-none">
                 <button 
                   onClick={() => setAdminTab('metrics')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'metrics' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'metrics' ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>📊</span> Métriques
                 </button>
                 <button 
                   onClick={() => setAdminTab('users')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'users' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'users' ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>👥</span> Comptes
                 </button>
                 <button 
                   onClick={() => setAdminTab('moderation')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'moderation' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'moderation' ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>🚨</span> Modération {reportedPosts.length > 0 && <span className="px-1.5 py-0.5 text-[9px] bg-rose-500 text-white rounded-full ml-1">{reportedPosts.length}</span>}
                 </button>
                 <button 
                   onClick={() => setAdminTab('quote')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'quote' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'quote' ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>✨</span> Citation
                 </button>
                 <button 
                   onClick={() => setAdminTab('contact')}
-                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'contact' ? 'bg-gradient-to-r from-teal-700 to-teal-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
+                  className={`whitespace-nowrap px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 lg:gap-3 ${adminTab === 'contact' ? 'bg-gradient-to-r from-accent-700 to-accent-600 text-white shadow-md' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}`}
                 >
                   <span>✉️</span> Contact
                   {contactMessages.length > 0 && (
-                    <span className="px-1.5 py-0.5 text-[9px] bg-teal-600 text-white rounded-full ml-1">
+                    <span className="px-1.5 py-0.5 text-[9px] bg-accent-600 text-white rounded-full ml-1">
                       {contactMessages.length}
                     </span>
                   )}
@@ -2432,7 +2433,7 @@ function App() {
                   {adminTab === 'metrics' && (
                     <button 
                       onClick={handleGeneratePDF}
-                      className="px-5 py-2.5 bg-teal-700 hover:bg-teal-600 text-white font-semibold rounded-xl transition-colors"
+                      className="px-5 py-2.5 bg-accent-700 hover:bg-accent-600 text-white font-semibold rounded-xl transition-colors"
                     >
                       📄 Exporter Rapport PDF
                     </button>
@@ -2463,7 +2464,7 @@ function App() {
                         <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
                           <div className="flex justify-between items-center mb-6">
                             <span className="text-4xl">👥</span>
-                            <span className="text-[10px] font-bold px-3 py-1 bg-teal-100 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 rounded-full tracking-wider uppercase">Membres</span>
+                            <span className="text-[10px] font-bold px-3 py-1 bg-accent-100 dark:bg-accent-950/40 text-accent-700 dark:text-accent-300 rounded-full tracking-wider uppercase">Membres</span>
                           </div>
                           <h4 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Utilisateurs</h4>
                           <p className="text-4xl font-extrabold text-slate-900 dark:text-white mt-3">{adminMetrics.totalUsers}</p>
@@ -2592,7 +2593,7 @@ function App() {
                 <div className="bg-white/40 dark:bg-slate-800/30 backdrop-blur-md border border-slate-200/60 dark:border-slate-700/30 rounded-3xl p-8 shadow-sm space-y-8 animate-[slideUp_0.4s_ease-out]">
                   <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center">
                     <h3 className="text-xl font-light text-slate-800 dark:text-slate-200">
-                      Membres inscrits <span className="text-xs text-teal-600 font-bold ml-2">({adminUsers.length})</span>
+                      Membres inscrits <span className="text-xs text-accent-600 font-bold ml-2">({adminUsers.length})</span>
                     </h3>
                     
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -2604,7 +2605,7 @@ function App() {
                           placeholder="Rechercher pseudo, prénom, contact..."
                           value={adminSearch}
                           onChange={(e) => setAdminSearch(e.target.value)}
-                          className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/30 rounded-2xl pl-10 pr-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-teal-700 dark:text-teal-400 border-teal-500 transition-all font-light text-slate-800 dark:text-slate-200"
+                          className="w-full bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-700/30 rounded-2xl pl-10 pr-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-accent-700 dark:text-accent-400 border-accent-500 transition-all font-light text-slate-800 dark:text-slate-200"
                         />
                       </div>
                       
@@ -2612,7 +2613,7 @@ function App() {
                       <select
                         value={adminRoleFilter}
                         onChange={(e) => setAdminRoleFilter(e.target.value)}
-                        className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-2xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-teal-700 dark:text-teal-400 border-teal-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-semibold shadow-sm hover:text-teal-700 dark:text-teal-400 border-teal-500/50"
+                        className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-2xl px-4 py-2.5 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-accent-700 dark:text-accent-400 border-accent-500 text-slate-700 dark:text-slate-300 transition-all cursor-pointer font-semibold shadow-sm hover:text-accent-700 dark:text-accent-400 border-accent-500/50"
                       >
                         <option value="all">🌐 Tous les rôles</option>
                         <option value="user">🌱 Simple User</option>
@@ -2655,7 +2656,7 @@ function App() {
                             <td className="py-5 px-6">
                               <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                 u.role === 'admin' 
-                                  ? 'bg-teal-100 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300' 
+                                  ? 'bg-accent-100 dark:bg-accent-950/40 text-accent-700 dark:text-accent-300' 
                                   : u.role === 'coach' 
                                     ? 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300' 
                                     : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
@@ -2668,7 +2669,7 @@ function App() {
                                 <select 
                                   value={u.role}
                                   onChange={(e) => handleUpdateUserRole(u.id, e.target.value)}
-                                  className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-teal-700 dark:text-teal-400 border-teal-500 text-slate-700 dark:text-slate-300 transition-all duration-300 cursor-pointer font-semibold shadow-sm hover:text-teal-700 dark:text-teal-400 border-teal-500/50"
+                                  className="bg-white/80 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700/50 rounded-xl px-4 py-2 text-xs outline-none focus:ring-2 focus:ring-purple-500/20 focus:text-accent-700 dark:text-accent-400 border-accent-500 text-slate-700 dark:text-slate-300 transition-all duration-300 cursor-pointer font-semibold shadow-sm hover:text-accent-700 dark:text-accent-400 border-accent-500/50"
                                 >
                                   <option value="user">🌱 Simple User</option>
                                   <option value="coach">🧘 Professional Coach</option>
@@ -2772,7 +2773,7 @@ function App() {
                               <p className="font-semibold text-slate-900 dark:text-slate-100">{msg.name}</p>
                               <a
                                 href={`mailto:${msg.email}?subject=Re: Anonyme Pro`}
-                                className="text-sm text-teal-700 dark:text-teal-400 hover:underline"
+                                className="text-sm text-accent-700 dark:text-accent-400 hover:underline"
                               >
                                 {msg.email}
                               </a>
@@ -2790,7 +2791,7 @@ function App() {
                           <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
                             <a
                               href={`mailto:${msg.email}?subject=Re: Votre message — Anonyme Pro`}
-                              className="px-4 py-2 text-xs font-semibold bg-teal-700 hover:bg-teal-600 text-white rounded-lg transition-colors"
+                              className="px-4 py-2 text-xs font-semibold bg-accent-700 hover:bg-accent-600 text-white rounded-lg transition-colors"
                             >
                               Répondre par email
                             </a>
@@ -2837,12 +2838,12 @@ function App() {
                             placeholder="Entrez une citation inspirante ou un message de motivation..."
                             rows="4"
                             required
-                            className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus-glow-teal transition-all"
+                            className="w-full bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/50 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none outline-none focus-ring focus-glow-accent transition-all"
                           />
                         </div>
                         <button
                           type="submit"
-                          className="w-full py-3 bg-gradient-to-r from-teal-700 to-teal-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:shadow-lg hover:shadow-teal-900/25"
+                          className="w-full py-3 bg-gradient-to-r from-accent-700 to-accent-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all hover:shadow-lg hover:shadow-accent-900/25"
                         >
                           🚀 Publier pour tous les utilisateurs
                         </button>
@@ -2854,13 +2855,13 @@ function App() {
                       <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                         Aperçu en direct
                       </h4>
-                      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-teal-700 dark:text-teal-400 border-teal-200/50 dark:text-teal-700 dark:text-teal-400 border-teal-500/30 rounded-3xl p-6 shadow-xl shadow-teal-900/5">
+                      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-500/20 dark:via-purple-500/20 dark:to-pink-500/20 border text-accent-700 dark:text-accent-400 border-accent-200/50 dark:text-accent-700 dark:text-accent-400 border-accent-500/30 rounded-3xl p-6 shadow-xl shadow-accent-900/5">
                         <div className="flex gap-4 items-start">
                           <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-xl flex-shrink-0 shadow-md">
                             ✨
                           </div>
                           <div>
-                            <h3 className="text-[10px] font-bold tracking-widest text-teal-600 dark:text-teal-300 uppercase mb-1">
+                            <h3 className="text-[10px] font-bold tracking-widest text-accent-600 dark:text-accent-300 uppercase mb-1">
                               Motivation du jour
                             </h3>
                             <p className="text-sm text-slate-800 dark:text-slate-200 font-light leading-relaxed italic">

@@ -6,7 +6,7 @@ import ThemeToggle from './components/ui/ThemeToggle';
 import IconBox from './components/ui/IconBox';
 
 const inputClass =
-  'w-full bg-stone-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-base md:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-glow-teal';
+  'w-full bg-canvas dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-base md:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-glow-accent';
 
 function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -34,7 +34,7 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
     <div className="min-h-[100dvh] relative">
       <div aria-hidden className="grain" />
 
-      <header className="sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-canvas/90 dark:bg-zinc-950/90 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <button
             type="button"
@@ -89,12 +89,12 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
               <a
                 key={link.label}
                 href={link.href}
-                className="flex gap-4 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-teal-600/30 transition-premium active-squeeze hover-lift-premium shadow-sm focus-ring group"
+                className="flex gap-4 p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-accent-600/30 transition-premium active-squeeze hover-lift-premium shadow-sm focus-ring group"
               >
                 <IconBox icon={link.icon} className="!w-10 !h-10 shrink-0" />
                 <div>
                   <p className="text-xs text-zinc-500">{link.label}</p>
-                  <p className="font-medium text-teal-800 dark:text-teal-300">{link.value}</p>
+                  <p className="font-medium text-accent-800 dark:text-accent-300">{link.value}</p>
                 </div>
               </a>
             ))}
@@ -103,7 +103,7 @@ function ContactPage({ onBack, onGetStarted, theme, toggleTheme }) {
           <div className="glass-panel p-6 md:p-8 rounded-3xl">
             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-6">Message</h2>
             {success && (
-              <p className="mb-4 text-sm text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/40 border border-teal-200/80 dark:border-teal-900/50 rounded-xl px-4 py-3 animate-spring-pop">
+              <p className="mb-4 text-sm text-accent-800 dark:text-accent-300 bg-accent-50 dark:bg-accent-950/40 border border-accent-200/80 dark:border-accent-900/50 rounded-xl px-4 py-3 animate-spring-pop">
                 Message reçu. Nous vous répondrons sous 24 h ouvrées.
               </p>
             )}

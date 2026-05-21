@@ -88,9 +88,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       desc: 'Partages anonymes, bienveillants et écoute mutuelle. Santé mentale étudiante au cœur de l\'Afrique.',
       badge: 'Live',
       icon: <Users weight="regular" />,
-      gradient: 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-200/50 dark:border-zinc-700/50 text-zinc-900 dark:text-zinc-100',
-      badgeClass: 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600',
-      glow: ''
+      gradient: 'bg-live-sky-muted/90 dark:bg-live-sky-dark/15 border-live-sky/25 dark:border-live-sky/20 text-zinc-900 dark:text-zinc-100',
+      badgeClass: 'chip-live-sky',
+      glow: 'shadow-glow-sky',
     },
     {
       title: 'Soutien & Écoute',
@@ -98,9 +98,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       desc: 'Des professionnels de santé mentale pour vous accompagner au Sénégal et en Afrique.',
       badge: 'Disponibles',
       icon: <Heartbeat weight="regular" />,
-      gradient: 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-200/50 dark:border-zinc-700/50 text-zinc-900 dark:text-zinc-100',
-      badgeClass: 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600',
-      glow: ''
+      gradient: 'bg-live-coral-muted/90 dark:bg-live-coral-dark/15 border-live-coral/25 dark:border-live-coral/20 text-zinc-900 dark:text-zinc-100',
+      badgeClass: 'chip-live-coral',
+      glow: 'shadow-glow-coral',
     },
     {
       title: 'Confidentialité totale',
@@ -108,15 +108,24 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
       desc: 'Espace sécurisé, chiffré et conforme au RGPD. Parlez sans exposer votre identité.',
       badge: 'Sécurisé',
       icon: <ShieldCheck weight="regular" />,
-      gradient: 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-200/50 dark:border-zinc-700/50 text-zinc-900 dark:text-zinc-100',
-      badgeClass: 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border-zinc-300 dark:border-zinc-600',
-      glow: ''
-    }
+      gradient: 'bg-live-lavender-muted/90 dark:bg-live-lavender-dark/15 border-live-lavender/25 dark:border-live-lavender/20 text-zinc-900 dark:text-zinc-100',
+      badgeClass: 'chip-live-lavender',
+      glow: 'shadow-glow-lavender',
+    },
+  ];
+
+  const featureTones = ['sky', 'coral', 'sage'];
+  const tagChips = [
+    { label: 'Santé mentale', className: 'chip-live-sky' },
+    { label: 'Bien-être étudiant', className: 'chip-live-sage' },
+    { label: 'Anonymat total', className: 'chip-live-lavender' },
+    { label: 'Soutien émotionnel', className: 'chip-live-coral' },
+    { label: 'HealthTech Afrique', className: 'chip-live-peach' },
   ];
 
   return (
     <div className="min-h-[100dvh] relative">
-      <header className="sticky top-0 z-40 border-b-2 border-zinc-200/80 dark:border-zinc-800/80 bg-stone-50/90 dark:bg-zinc-950/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-zinc-200/70 dark:border-zinc-800/70 bg-canvas/90 dark:bg-canvas-dark/90 backdrop-blur-2xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <span className="text-sm font-semibold tracking-[0.18em] uppercase text-zinc-900 dark:text-zinc-100">
             Anonyme Pro
@@ -125,7 +134,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
             <button
               type="button"
               onClick={onContact}
-              className="hidden sm:inline text-sm text-zinc-600 dark:text-zinc-400 hover:text-teal-700 dark:hover:text-teal-400 transition-premium active-squeeze hover:scale-105 focus-ring rounded-lg px-3 py-2"
+              className="hidden sm:inline text-sm text-zinc-600 dark:text-zinc-400 hover:text-accent-600 dark:hover:text-accent-400 transition-premium active-squeeze hover:scale-105 focus-ring rounded-lg px-3 py-2"
             >
               Contact
             </button>
@@ -142,7 +151,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         <section aria-label="Présentation" className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-20 md:pt-24 md:pb-28">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div className="animate-slide-up space-y-8">
-              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-800 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 border px-4 py-2 rounded-full">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] chip-live-sage px-4 py-2 rounded-full">
                 Espace confidentiel · Sénégal & Afrique
               </p>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-[1.05] text-balance">
@@ -153,9 +162,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               </p>
               {/* SEO contextual keywords — visible, authentic, within content */}
               <ul className="flex flex-wrap gap-2" aria-label="Thématiques">
-                {['Santé mentale', 'Bien-être étudiant', 'Anonymat total', 'Soutien émotionnel', 'HealthTech Afrique'].map(tag => (
-                  <li key={tag} className="text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">
-                    {tag}
+                {tagChips.map((tag) => (
+                  <li key={tag.label} className={`text-[10px] font-semibold uppercase tracking-wider px-3 py-1 rounded-full ${tag.className}`}>
+                    {tag.label}
                   </li>
                 ))}
               </ul>
@@ -258,7 +267,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   key={item.title}
                   className={`flex gap-5 p-6 md:p-8 squircle border-zinc-200/60 dark:border-zinc-800/60 hover-lift-premium transition-all group ${i === 2 ? 'md:col-span-2 md:max-w-xl' : ''}`}
                 >
-                  <IconBox icon={item.icon} className="shrink-0" />
+                  <IconBox icon={item.icon} tone={featureTones[i]} className="shrink-0" />
                   <div>
                     <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
                       {item.title}
@@ -277,9 +286,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         <section aria-label="Statistiques" className="py-16 md:py-20 px-4 sm:px-6 bg-zinc-50 dark:bg-zinc-900/50 border-y border-zinc-200/50 dark:border-zinc-800/50">
           <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-6 sm:gap-8 px-4">
   {[
-    { icon: <Users weight="regular" />, text: 'Membres actifs' },
-    { icon: <Heartbeat weight="regular" />, text: 'Coachs certifiés' },
-    { icon: <ShieldCheck weight="regular" />, text: 'Anonymat garanti' }
+    { icon: <Users weight="regular" />, text: 'Membres actifs', iconTone: 'sky' },
+    { icon: <Heartbeat weight="regular" />, text: 'Coachs certifiés', iconTone: 'coral' },
+    { icon: <ShieldCheck weight="regular" />, text: 'Anonymat garanti', iconTone: 'lavender' },
   ].map((stat, i) => {
     return (
       <div 
@@ -304,7 +313,16 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
           className="glass-panel squircle p-10 flex flex-col items-center justify-center transition-transform duration-200 ease-out border-zinc-200/60 dark:border-zinc-800/60 shadow-lg"
           style={{ transformStyle: 'preserve-3d', transform: 'rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)' }}
         >
-          <div className="transform-gpu transition-all duration-300 group-hover:-translate-y-3 flex items-center justify-center text-zinc-900 dark:text-zinc-100 text-5xl" style={{ transform: 'translateZ(60px)' }}>
+          <div
+            className={`transform-gpu transition-all duration-300 group-hover:-translate-y-3 flex items-center justify-center text-5xl ${
+              stat.iconTone === 'sky'
+                ? 'text-live-sky-dark dark:text-live-sky'
+                : stat.iconTone === 'coral'
+                  ? 'text-live-coral-dark dark:text-live-coral'
+                  : 'text-live-lavender-dark dark:text-live-lavender'
+            }`}
+            style={{ transform: 'translateZ(60px)' }}
+          >
             {stat.icon}
           </div>
           <div className="mt-6" style={{ transform: 'translateZ(30px)' }}>
@@ -336,7 +354,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                     &ldquo;{t.quote}&rdquo;
                   </p>
                   <footer className="flex items-center gap-3 mt-8 pt-6 border-t border-zinc-200/80 dark:border-zinc-800/80">
-                    <div className="w-10 h-10 rounded-xl bg-zinc-800 dark:bg-zinc-700 text-white flex items-center justify-center text-xs font-semibold">
+                    <div className="w-10 h-10 rounded-xl bg-accent-600/90 dark:bg-accent-500/80 text-white flex items-center justify-center text-xs font-semibold shadow-sm">
                       {t.initials}
                     </div>
                     <div>
@@ -406,13 +424,13 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
                   href={c.href}
                   onMouseEnter={() => setContactHover(c.id)}
                   onMouseLeave={() => setContactHover(null)}
-                  className={`block p-6 squircle-sm transition-premium active-squeeze focus-ring ${
+                  className={`block p-6 squircle-sm transition-premium active-squeeze focus-ring border ${
                     contactHover === c.id
-                      ? 'border-blue-500/40 bg-white dark:bg-zinc-900 -translate-y-1'
-                      : 'border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/60'
+                      ? 'border-accent-300/60 bg-white dark:bg-zinc-900 -translate-y-1 shadow-glow'
+                      : 'border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/60'
                   }`}
                 >
-                  <IconBox icon={c.icon} className="mb-4" />
+                  <IconBox icon={c.icon} tone={c.id === 'email' ? 'sky' : c.id === 'wa' ? 'sage' : 'peach'} className="mb-4" />
                   <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{c.title}</h3>
                   <p className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{c.detail}</p>
                 </a>
@@ -429,7 +447,7 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
             <p className="text-xs text-zinc-400 mt-1">Plateforme africaine de santé mentale & soutien émotionnel · Sénégal</p>
           </div>
           <nav className="flex gap-6" aria-label="Navigation pied de page">
-            <button type="button" onClick={onContact} className="hover:text-teal-700 dark:hover:text-teal-400 transition-colors">
+            <button type="button" onClick={onContact} className="hover:text-accent-600 dark:hover:text-accent-400 transition-colors">
               Contact
             </button>
             <span className="text-zinc-400">Confidentialité (bientôt)</span>

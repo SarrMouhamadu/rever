@@ -6,12 +6,12 @@ export default function ThemeToggle({ theme, onToggle, className = '' }) {
       type="button"
       onClick={onToggle}
       aria-label={theme === 'dark' ? 'Mode clair' : 'Mode sombre'}
-      className={`p-2.5 rounded-full border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-850 transition-premium active-squeeze hover:scale-105 hover:border-teal-500/30 dark:hover:border-teal-400/30 focus-ring ${className} group`}
+      className={`p-2.5 rounded-full border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-premium active-squeeze hover:scale-105 hover:border-accent-400/35 dark:hover:border-accent-500/35 focus-ring ${className} group`}
     >
       {theme === 'dark' ? (
-        <Sun size={20} weight="duotone" className="transition-transform duration-500 group-hover:rotate-90 text-amber-500" />
+        <Sun size={20} weight="duotone" className="transition-transform duration-500 group-hover:rotate-90 text-live-peach" />
       ) : (
-        <Moon size={20} weight="duotone" className="transition-transform duration-500 group-hover:-rotate-12 text-teal-600 dark:text-teal-400" />
+        <Moon size={20} weight="duotone" className="transition-transform duration-500 group-hover:-rotate-12 text-accent-500 dark:text-accent-400" />
       )}
     </button>
   );

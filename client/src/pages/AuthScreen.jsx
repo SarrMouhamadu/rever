@@ -2,7 +2,7 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import Button from '../components/ui/Button';
 
 const inputClass =
-  'w-full bg-stone-50 dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3.5 text-base md:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-ring focus:border-teal-600/50 transition-colors';
+  'w-full bg-canvas dark:bg-zinc-900/80 border border-zinc-200/80 dark:border-zinc-800 rounded-xl px-4 py-3.5 text-base md:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus-ring focus-glow transition-colors';
 
 export default function AuthScreen({
   view,
@@ -19,14 +19,15 @@ export default function AuthScreen({
     <div className="min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 relative">
       <div aria-hidden className="grain" />
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-32 right-0 w-[28rem] h-[28rem] bg-teal-600/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 -left-24 w-80 h-80 bg-zinc-400/10 dark:bg-zinc-600/10 rounded-full blur-3xl" />
+        <div className="absolute -top-32 right-0 w-[28rem] h-[28rem] ambient-blob-accent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 -left-24 w-80 h-80 ambient-blob-sky rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-1/4 w-64 h-64 ambient-blob-lavender rounded-full blur-3xl opacity-80" />
       </div>
 
       <div className="w-full max-w-md glass-panel p-8 sm:p-10 rounded-4xl shadow-soft dark:shadow-soft-dark z-10 animate-slide-up">
         <div className="flex justify-between items-start mb-8">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-400 mb-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-600 dark:text-accent-400 mb-1">
               Anonyme Pro
             </p>
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 text-balance">
@@ -76,7 +77,7 @@ export default function AuthScreen({
               <button
                 type="button"
                 onClick={() => setView('register')}
-                className="text-teal-700 dark:text-teal-400 font-medium hover:underline focus-ring rounded"
+                className="text-link"
               >
                 S&apos;inscrire
               </button>
@@ -145,7 +146,7 @@ export default function AuthScreen({
               <button
                 type="button"
                 onClick={() => setView('login')}
-                className="text-teal-700 dark:text-teal-400 font-medium hover:underline focus-ring rounded"
+                className="text-link"
               >
                 Se connecter
               </button>
