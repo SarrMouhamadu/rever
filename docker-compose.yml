@@ -25,8 +25,9 @@ services:
     build:
       context: ./server
     container_name: rever_server
-    expose:
-      - "5001"
+    ports:
+      - "5001:5001"
+
     environment:
       - DATABASE_URL=postgresql://rever_user:rever_password@db:5432/rever
       - GEMINI_API_KEY=${GEMINI_API_KEY}
