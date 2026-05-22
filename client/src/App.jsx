@@ -2238,8 +2238,8 @@ function App() {
         {view === 'settings' && (
           <div className="relative z-10 max-w-2xl mx-auto animate-view-change space-y-6">
 
-            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">
-              <CoachCertificationsSection />
+            <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-10 shadow-xl">
+              <CoachCertificationsSection embedded />
             </div>
 
             <div className="bg-white/80 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-4xl p-6 sm:p-8 shadow-xl">

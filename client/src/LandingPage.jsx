@@ -158,9 +158,14 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 leading-[1.05] text-balance">
                 Vos émotions méritent d'être entendues
               </h1>
-              <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-[65ch] font-light">
-                Une plateforme de soutien émotionnel pour les étudiants et jeunes d'Afrique — parlez anonymement, échangez avec des coachs et trouvez de l'aide sans jugement.
-              </p>
+              <div className="space-y-4 text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-[65ch] font-light">
+                <p>
+                  Une plateforme de soutien émotionnel ouverte à tous — jeunes, étudiants, femmes, hommes et toute personne ayant besoin d&apos;écoute, de conseils ou d&apos;accompagnement.
+                </p>
+                <p>
+                  Parlez anonymement, échangez avec des coachs et trouvez de l&apos;aide dans un espace bienveillant, sécurisé et sans jugement.
+                </p>
+              </div>
               {/* SEO contextual keywords — visible, authentic, within content */}
               <ul className="flex flex-wrap gap-2" aria-label="Thématiques">
                 {tagChips.map((tag) => (
@@ -339,9 +344,9 @@ function LandingPage({ onGetStarted, onContact, theme, toggleTheme }) {
         {/* CERTIFICATIONS COACHS */}
         <section
           aria-label="Certifications des coachs"
-          className="py-20 md:py-28 px-4 sm:px-6 border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/40 dark:bg-zinc-900/20"
+          className="py-20 md:py-28 px-4 sm:px-6 border-t border-zinc-200/80 dark:border-zinc-800/80 bg-gradient-to-b from-live-lavender-muted/30 via-canvas to-canvas dark:from-live-lavender-dark/10 dark:via-canvas-dark dark:to-canvas-dark"
         >
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             <CoachCertificationsSection />
           </div>
         </section>

@@ -3,26 +3,28 @@
 export const COACH_CERTIFICATIONS = [
   {
     id: 'gdpr-alison',
-    title: 'General Data Protection Regulation (RGPD)',
+    title: 'General Data Protection Regulation',
+    subtitle: 'Règlement général sur la protection des données (RGPD)',
     issuer: 'Alison',
-    issuedLabel: 'avr. 2025',
+    issuedLabel: 'Avril 2025',
     issuedAt: '2025-04',
     tone: 'lavender',
     skills: [
-      'Data Protection',
-      'Data Privacy & Confidentiality',
-      'Data Protection Impact Assessment (DPIA)',
-      'User Consent & Rights Management',
-      'Information Security & Compliance',
-      'Controller & Processor Responsibilities',
-      'Data Governance Policies',
+      'Protection des données',
+      'Confidentialité & vie privée',
+      'Analyse d\'impact (DPIA)',
+      'Consentement & droits des utilisateurs',
+      'Sécurité de l\'information & conformité',
+      'Responsabilités responsable / sous-traitant',
+      'Politiques de gouvernance des données',
     ],
   },
   {
     id: 'data-rights-calp',
     title: 'Pourquoi les droits sur les données sont importants',
+    subtitle: 'Sensibilisation aux droits numériques',
     issuer: 'CALP Network',
-    issuedLabel: 'avr. 2025',
+    issuedLabel: 'Avril 2025',
     issuedAt: '2025-04',
     tone: 'sky',
     skills: [
@@ -34,4 +36,4 @@ export const COACH_CERTIFICATIONS = [
 ];
 
 export const COACH_CERT_INTRO =
-  'Nos coachs sont formés à la protection des données et à l\'écoute confidentielle, pour un accompagnement conforme au RGPD.';
+  'Chaque coach est certifié en protection des données et en écoute confidentielle. Vous échangez avec des professionnels formés au RGPD, dans le respect de votre vie privée.';
