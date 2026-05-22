@@ -264,9 +264,11 @@ function App() {
     const idempotencyKey = generateIdempotencyKey();
     const displayName = anon
       ? 'Anonyme'
-      : user.role === 'user'
-        ? `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase()
-        : user.pseudo;
+      : user.role === 'coach'
+        ? 'Coach'
+        : user.role === 'user'
+          ? `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase()
+          : user.pseudo;
 
     const optimisticPost = {
       clientId,
@@ -362,6 +364,8 @@ function App() {
     if (isPostAuthor && post) {
       if (post.is_anonymous) {
         username = 'Anonyme (Auteur)';
+      } else if (user.role === 'coach') {
+        username = 'Coach (Auteur)';
       } else {
         const initials = `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase();
         username = `${initials} (Auteur)`;

@@ -9,6 +9,7 @@ const router = express.Router();
 
 const maskedActorLabel = (user) => {
   if (!user) return 'Quelqu\'un';
+  if (user.role === 'coach') return 'Coach';
   if (user.role === 'user') {
     const initials =
       `${(user.first_name || '').charAt(0)}${(user.last_name || '').charAt(0)}`.toUpperCase();
@@ -52,7 +53,7 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
 
     try {
     if (isCoach) {
-      const notifMsg = `${req.user.pseudo} a publié un message (coach).`;
+      const notifMsg = 'Coach a publié un message.';
         await notifyAllExcept(req.user.id, {
           type: 'coach-post',
           sourceId: post.id,
@@ -68,7 +69,7 @@ router.post('/', requireAuth, idempotency, uploadLimiter, upload.single('image')
               body: notifMsg,
               content: text,
               postId: post.id,
-              author: req.user.pseudo,
+              author: 'Coach',
               post,
             },
           },

@@ -282,17 +282,20 @@ const addComment = async (postId, userId, text) => {
   const comment = rows[0];
   
   const postRow = await query('SELECT user_id, is_anonymous FROM posts WHERE id = $1', [postId]);
-  const userRow = await query('SELECT pseudo, first_name, last_name FROM users WHERE id = $1', [userId]);
+  const userRow = await query('SELECT pseudo, first_name, last_name, role FROM users WHERE id = $1', [userId]);
   
   const isPostAuthor = postRow.rows[0].user_id === userId;
   const isAnonymousPost = postRow.rows[0].is_anonymous;
+  const author = userRow.rows[0];
   
-  let username = userRow.rows[0].pseudo;
+  let username = author.pseudo;
   if (isPostAuthor) {
     if (isAnonymousPost) {
       username = 'Anonyme (Auteur)';
+    } else if (author.role === 'coach') {
+      username = 'Coach (Auteur)';
     } else {
-      const initials = (userRow.rows[0].first_name.charAt(0) + userRow.rows[0].last_name.charAt(0)).toUpperCase();
+      const initials = (author.first_name.charAt(0) + author.last_name.charAt(0)).toUpperCase();
       username = `${initials} (Auteur)`;
     }
   }
@@ -315,11 +318,13 @@ const getFeed = async (userId, limit = 20, offset = 0) => {
             p.is_reported, p.reports_count, p.is_anonymous,
             CASE 
               WHEN p.is_anonymous = TRUE THEN 'Anonyme' 
+              WHEN u.role = 'coach' THEN 'Coach'
               WHEN p.user_id = $3 THEN u.pseudo 
               ELSE UPPER(LEFT(u.first_name, 1) || LEFT(u.last_name, 1)) 
             END AS username,
             CASE 
               WHEN p.is_anonymous = TRUE THEN NULL 
+              WHEN u.role = 'coach' THEN u.avatar
               WHEN p.user_id = $3 THEN u.avatar 
               ELSE NULL 
             END AS user_avatar,
@@ -340,6 +345,7 @@ const getFeed = async (userId, limit = 20, offset = 0) => {
     `SELECT c.id, c.post_id, c.user_id, c.text, c.created_at, 
             CASE 
               WHEN p.is_anonymous = TRUE AND c.user_id = p.user_id THEN 'Anonyme (Auteur)'
+              WHEN p.is_anonymous = FALSE AND c.user_id = p.user_id AND u.role = 'coach' THEN 'Coach (Auteur)'
               WHEN p.is_anonymous = FALSE AND c.user_id = p.user_id THEN UPPER(LEFT(u.first_name, 1) || LEFT(u.last_name, 1)) || ' (Auteur)'
               ELSE u.pseudo 
             END AS username
@@ -665,11 +671,13 @@ const getEnrichedPostById = async (postId, userId) => {
             p.is_reported, p.reports_count, p.is_anonymous,
             CASE 
               WHEN p.is_anonymous = TRUE THEN 'Anonyme' 
+              WHEN u.role = 'coach' THEN 'Coach'
               WHEN p.user_id = $2 THEN u.pseudo 
               ELSE UPPER(LEFT(u.first_name, 1) || LEFT(u.last_name, 1)) 
             END AS username,
             CASE 
               WHEN p.is_anonymous = TRUE THEN NULL 
+              WHEN u.role = 'coach' THEN u.avatar
               WHEN p.user_id = $2 THEN u.avatar 
               ELSE NULL 
             END AS user_avatar,
